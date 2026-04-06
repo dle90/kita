@@ -66,16 +66,29 @@ class OnboardingNotifier extends StateNotifier<OnboardingFlowState> {
     state = state.copyWith(isSubmitting: true, errorMessage: null);
 
     try {
+      // Map Dart enums to Go backend values
+      const dialectMap = {
+        'bac': 'northern',
+        'trung': 'central',
+        'nam': 'southern',
+      };
+      const levelMap = {
+        'none': 'beginner',
+        'beginner': 'elementary',
+        'school': 'pre_intermediate',
+      };
+
       final response = await _dio.post(
         ApiEndpoints.kidProfiles,
         data: {
-          'display_name': state.displayName,
+          'display_name': state.displayName ?? 'Kid',
           'age': state.age,
-          'dialect': state.dialect.name == 'nam' ? 'south' : state.dialect.name == 'bac' ? 'north' : 'central',
-          'english_level': state.englishLevel.name,
+          'dialect': dialectMap[state.dialect.name] ?? 'northern',
+          'english_level': levelMap[state.englishLevel.name] ?? 'beginner',
           'character_id': state.selectedCharacterId ?? 'mochi',
           if (state.notificationTime != null)
-            'notification_time': '${state.notificationTime!.hour.toString().padLeft(2, '0')}:${state.notificationTime!.minute.toString().padLeft(2, '0')}',
+            'notification_time':
+                '${state.notificationTime!.hour.toString().padLeft(2, '0')}:${state.notificationTime!.minute.toString().padLeft(2, '0')}',
         },
       );
 

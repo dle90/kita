@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:kita_english/core/constants/app_colors.dart';
 import 'package:kita_english/core/constants/app_typography.dart';
 import 'package:kita_english/core/router/app_router.dart';
+import 'package:kita_english/core/audio/tts_service.dart';
 import 'package:kita_english/features/onboarding/presentation/providers/onboarding_provider.dart';
 
 
@@ -258,10 +259,10 @@ class _ListenAndTapRoundState extends State<_ListenAndTapRound> {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
-        // Play button (simulates playing "apple" audio)
+        // Play button — speaks the word aloud using TTS
         ElevatedButton.icon(
           onPressed: () {
-            // Audio playback would happen here
+            ref.read(ttsProvider).speak('apple');
           },
           icon: const Icon(Icons.volume_up, size: 28),
           label: const Text('Nghe'),
