@@ -3,7 +3,7 @@ class ApiEndpoints {
   ApiEndpoints._();
 
   /// Base URL for the API server.
-  static const String baseUrl = 'http://localhost:8081/api/v1';
+  static const String baseUrl = 'https://backend-production-3908.up.railway.app/api/v1';
 
   // Auth
   static const String authRegister = '/auth/register';
