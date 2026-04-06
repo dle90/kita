@@ -1,0 +1,137 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/kitaenglish/backend/internal/auth"
+	"github.com/kitaenglish/backend/internal/common"
+	"github.com/kitaenglish/backend/internal/config"
+	"github.com/kitaenglish/backend/internal/content"
+	"github.com/kitaenglish/backend/internal/notification"
+	"github.com/kitaenglish/backend/internal/onboarding"
+	"github.com/kitaenglish/backend/internal/progress"
+	"github.com/kitaenglish/backend/internal/pronunciation"
+	"github.com/kitaenglish/backend/internal/server"
+	"github.com/kitaenglish/backend/internal/session"
+	"github.com/kitaenglish/backend/internal/srs"
+)
+
+func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Load configuration
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+	}
+	log.Printf("Starting Kita English backend on port %s", cfg.Server.Port)
+
+	// Connect to PostgreSQL
+	dbPool, err := common.NewPostgresPool(ctx, cfg.DB)
+	if err != nil {
+		log.Fatalf("Failed to connect to PostgreSQL: %v", err)
+	}
+	defer dbPool.Close()
+
+	// Connect to Redis
+	redisClient, err := common.NewRedisClient(ctx, cfg.Redis)
+	if err != nil {
+		log.Printf("Warning: Failed to connect to Redis: %v (continuing without Redis)", err)
+	}
+	if redisClient != nil {
+		defer redisClient.Close()
+	}
+
+	// Connect to MinIO
+	storage, err := common.NewStorage(ctx, cfg.MinIO)
+	if err != nil {
+		log.Printf("Warning: Failed to connect to MinIO: %v (continuing without storage)", err)
+	}
+
+	// Initialize repositories
+	authRepo := auth.NewAuthRepository(dbPool)
+	kidRepo := onboarding.NewKidRepository(dbPool)
+	contentRepo := content.NewContentRepository(dbPool)
+	sessionRepo := session.NewSessionRepository(dbPool)
+	activityRepo := session.NewActivityResultRepository(dbPool)
+	srsRepo := srs.NewSrsRepository(dbPool)
+	progressRepo := progress.NewProgressRepository(dbPool)
+	pronRepo := pronunciation.NewPronunciationRepository(dbPool)
+
+	// Initialize services
+	authService := auth.NewAuthService(authRepo, cfg.JWT)
+	onboardingService := onboarding.NewOnboardingService(kidRepo)
+	srsService := srs.NewSrsService(srsRepo)
+	sessionService := session.NewSessionService(sessionRepo, activityRepo, contentRepo, kidRepo, srsRepo)
+	azureClient := pronunciation.NewAzureSpeechClient(cfg.Azure)
+	pronService := pronunciation.NewPronunciationService(pronRepo, azureClient, storage)
+	progressService := progress.NewProgressService(progressRepo, sessionRepo, activityRepo, srsRepo)
+	_ = notification.NewNotificationService()
+
+	srsHandler := srs.NewSrsHandler(srsService)
+
+	// Seed content data
+	seedDir := "seed"
+	if envSeedDir := os.Getenv("SEED_DIR"); envSeedDir != "" {
+		seedDir = envSeedDir
+	}
+	if err := content.SeedContent(ctx, contentRepo, seedDir); err != nil {
+		log.Printf("Warning: Failed to seed content: %v", err)
+	}
+
+	// Initialize handlers
+	authHandler := auth.NewAuthHandler(authService)
+	onboardingHandler := onboarding.NewOnboardingHandler(onboardingService)
+	sessionHandler := session.NewSessionHandler(sessionService)
+	pronHandler := pronunciation.NewPronunciationHandler(pronService, kidRepo)
+	progressHandler := progress.NewProgressHandler(progressService)
+
+	// Create server
+	router := server.NewServer(server.Dependencies{
+		AuthHandler:          authHandler,
+		AuthService:          authService,
+		OnboardingHandler:    onboardingHandler,
+		SessionHandler:       sessionHandler,
+		PronunciationHandler: pronHandler,
+		ProgressHandler:      progressHandler,
+		SrsHandler:           srsHandler,
+	})
+
+	httpServer := &http.Server{
+		Addr:         fmt.Sprintf(":%s", cfg.Server.Port),
+		Handler:      router,
+		ReadTimeout:  cfg.Server.ReadTimeout,
+		WriteTimeout: cfg.Server.WriteTimeout,
+	}
+
+	// Graceful shutdown
+	go func() {
+		sigCh := make(chan os.Signal, 1)
+		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+		<-sigCh
+		log.Println("Shutting down server...")
+
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer shutdownCancel()
+
+		if err := httpServer.Shutdown(shutdownCtx); err != nil {
+			log.Printf("HTTP server shutdown error: %v", err)
+		}
+		cancel()
+	}()
+
+	log.Printf("Server listening on :%s", cfg.Server.Port)
+	if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatalf("HTTP server error: %v", err)
+	}
+
+	log.Println("Server stopped")
+}

@@ -1,0 +1,61 @@
+package common
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"log"
+	"net/url"
+	"time"
+
+	"github.com/kitaenglish/backend/internal/config"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
+)
+
+type Storage struct {
+	client *minio.Client
+	bucket string
+}
+
+func NewStorage(ctx context.Context, cfg config.MinIOConfig) (*Storage, error) {
+	client, err := minio.New(cfg.Endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(cfg.AccessKey, cfg.SecretKey, ""),
+		Secure: cfg.UseSSL,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create MinIO client: %w", err)
+	}
+
+	exists, err := client.BucketExists(ctx, cfg.Bucket)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check bucket: %w", err)
+	}
+	if !exists {
+		if err := client.MakeBucket(ctx, cfg.Bucket, minio.MakeBucketOptions{}); err != nil {
+			return nil, fmt.Errorf("failed to create bucket: %w", err)
+		}
+		log.Printf("Created MinIO bucket: %s", cfg.Bucket)
+	}
+
+	log.Println("Connected to MinIO")
+	return &Storage{client: client, bucket: cfg.Bucket}, nil
+}
+
+func (s *Storage) UploadFile(ctx context.Context, key string, reader io.Reader, size int64, contentType string) (string, error) {
+	_, err := s.client.PutObject(ctx, s.bucket, key, reader, size, minio.PutObjectOptions{
+		ContentType: contentType,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to upload file: %w", err)
+	}
+	return fmt.Sprintf("/%s/%s", s.bucket, key), nil
+}
+
+func (s *Storage) GetFileURL(ctx context.Context, key string) (string, error) {
+	presignedURL, err := s.client.PresignedGetObject(ctx, s.bucket, key, 24*time.Hour, url.Values{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get presigned URL: %w", err)
+	}
+	return presignedURL.String(), nil
+}
