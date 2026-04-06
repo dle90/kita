@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:kita_english/features/onboarding/domain/entities/kid_profile.dart';
 
 /// Steps in the onboarding flow.
@@ -71,14 +72,9 @@ class OnboardingFlowState {
   bool get isPlacementComplete => placementScore != null;
 }
 
-/// Dart doesn't have a built-in TimeOfDay outside Flutter, so we reference
-/// Flutter's TimeOfDay for the notification time.
-class TimeOfDay {
-  final int hour;
-  final int minute;
-  const TimeOfDay({required this.hour, required this.minute});
-
-  String format() {
+/// Extension to format TimeOfDay as HH:mm string for the API.
+extension TimeOfDayFormat on TimeOfDay {
+  String toHHmm() {
     final h = hour.toString().padLeft(2, '0');
     final m = minute.toString().padLeft(2, '0');
     return '$h:$m';

@@ -44,10 +44,14 @@ final dioProvider = Provider<Dio>((ref) {
                 data: {'refresh_token': refreshToken},
               );
 
+              final refreshData =
+                  response.data is Map && response.data['data'] != null
+                      ? response.data['data'] as Map<String, dynamic>
+                      : response.data as Map<String, dynamic>;
               final newAccessToken =
-                  response.data['access_token'] as String? ?? '';
+                  refreshData['access_token'] as String? ?? '';
               final newRefreshToken =
-                  response.data['refresh_token'] as String? ?? '';
+                  refreshData['refresh_token'] as String? ?? '';
 
               await secureStorage.writeAccessToken(newAccessToken);
               if (newRefreshToken.isNotEmpty) {
@@ -67,6 +71,32 @@ final dioProvider = Provider<Dio>((ref) {
           }
         }
         return handler.next(error);
+      },
+    ),
+  );
+
+  // Response interceptor — unwrap Go backend's {"success":true,"data":...} envelope
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onResponse: (response, handler) {
+        final data = response.data;
+        if (data is Map<String, dynamic> && data.containsKey('success')) {
+          if (data['success'] == true && data.containsKey('data')) {
+            response.data = data['data'];
+          } else if (data['success'] == false) {
+            final error = data['error'] as Map<String, dynamic>? ?? {};
+            final message = error['message'] as String? ?? 'Request failed';
+            return handler.reject(
+              DioException(
+                requestOptions: response.requestOptions,
+                response: response,
+                type: DioExceptionType.badResponse,
+                message: message,
+              ),
+            );
+          }
+        }
+        return handler.next(response);
       },
     ),
   );

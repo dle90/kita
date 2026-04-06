@@ -70,7 +70,17 @@ func (s *AuthService) Register(ctx context.Context, req RegisterRequest) (*AuthT
 }
 
 func (s *AuthService) Login(ctx context.Context, req LoginRequest) (*AuthTokensResponse, error) {
+	// Accept email_or_phone, email, or phone fields
 	identifier := strings.TrimSpace(req.EmailOrPhone)
+	if identifier == "" {
+		identifier = strings.TrimSpace(req.Email)
+	}
+	if identifier == "" {
+		identifier = strings.TrimSpace(req.Phone)
+	}
+	if identifier == "" {
+		return nil, common.ErrBadRequest("email or phone is required")
+	}
 
 	var parent *Parent
 	var err error

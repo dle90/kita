@@ -137,7 +137,7 @@ class _CertificateScreenState extends ConsumerState<CertificateScreen>
                           const Text(
                             'CHỨNG CHỈ',
                             style: TextStyle(
-                              fontFamily: 'NunitoSans',
+                              // fontFamily: 'NunitoSans',
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 6,

@@ -69,8 +69,8 @@ class AuthRemoteDataSource {
   }
 
   AuthResponse _parseAuthResponse(Map<String, dynamic> data) {
+    // Dio interceptor unwraps {"success":true,"data":{...}} envelope
     final userData = data['user'] as Map<String, dynamic>? ?? data;
-    // Auth response returns tokens at top level: access_token, refresh_token, expires_at
     final tokens = AuthTokens.fromJson(data);
 
     final account = ParentAccount(

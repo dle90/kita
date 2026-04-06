@@ -113,7 +113,7 @@ class _PronunciationFeedbackState extends State<PronunciationFeedback> {
                 child: Text(
                   words[index],
                   style: TextStyle(
-                    fontFamily: 'NunitoSans',
+                    // fontFamily: 'NunitoSans',
                     fontSize: 24,
                     fontWeight: FontWeight.w700,
                     color: _scoreColor(wordScore),

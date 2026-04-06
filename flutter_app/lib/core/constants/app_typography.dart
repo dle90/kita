@@ -5,7 +5,8 @@ import 'package:kita_english/core/constants/app_colors.dart';
 class AppTypography {
   AppTypography._();
 
-  static const String _fontFamily = 'NunitoSans';
+  // Using default system font; add google_fonts NunitoSans for production
+  static const String _fontFamily = '';
 
   // Display styles — for big headings, celebration screens
   static const TextStyle displayLarge = TextStyle(

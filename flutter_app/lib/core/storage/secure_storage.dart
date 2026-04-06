@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -10,61 +11,78 @@ class _StorageKeys {
   static const String selectedCharacterId = 'kita_selected_character_id';
 }
 
+/// In-memory storage fallback for web platform.
+class _WebMemoryStorage {
+  final Map<String, String> _data = {};
+
+  Future<String?> read({required String key}) async => _data[key];
+  Future<void> write({required String key, required String value}) async =>
+      _data[key] = value;
+  Future<void> delete({required String key}) async => _data.remove(key);
+  Future<void> deleteAll() async => _data.clear();
+}
+
 /// Wrapper around [FlutterSecureStorage] for token read/write/delete.
+/// Falls back to in-memory storage on web.
 class SecureStorageService {
-  final FlutterSecureStorage _storage;
+  final FlutterSecureStorage? _storage;
+  final _WebMemoryStorage? _webStorage;
 
   SecureStorageService({FlutterSecureStorage? storage})
-      : _storage = storage ??
-            const FlutterSecureStorage(
-              aOptions: AndroidOptions(encryptedSharedPreferences: true),
-              iOptions: IOSOptions(
-                accessibility: KeychainAccessibility.first_unlock,
-              ),
-            );
+      : _storage = kIsWeb
+            ? null
+            : (storage ??
+                const FlutterSecureStorage(
+                  aOptions: AndroidOptions(encryptedSharedPreferences: true),
+                  iOptions: IOSOptions(
+                    accessibility: KeychainAccessibility.first_unlock,
+                  ),
+                )),
+        _webStorage = kIsWeb ? _WebMemoryStorage() : null;
+
+  Future<String?> _read(String key) async {
+    if (kIsWeb) return _webStorage!.read(key: key);
+    return _storage!.read(key: key);
+  }
+
+  Future<void> _write(String key, String value) async {
+    if (kIsWeb) return _webStorage!.write(key: key, value: value);
+    return _storage!.write(key: key, value: value);
+  }
+
+  Future<void> _delete(String key) async {
+    if (kIsWeb) return _webStorage!.delete(key: key);
+    return _storage!.delete(key: key);
+  }
 
   // --- Access Token ---
 
-  Future<String?> readAccessToken() async {
-    return _storage.read(key: _StorageKeys.accessToken);
-  }
+  Future<String?> readAccessToken() => _read(_StorageKeys.accessToken);
 
-  Future<void> writeAccessToken(String token) async {
-    await _storage.write(key: _StorageKeys.accessToken, value: token);
-  }
+  Future<void> writeAccessToken(String token) =>
+      _write(_StorageKeys.accessToken, token);
 
-  Future<void> deleteAccessToken() async {
-    await _storage.delete(key: _StorageKeys.accessToken);
-  }
+  Future<void> deleteAccessToken() => _delete(_StorageKeys.accessToken);
 
   // --- Refresh Token ---
 
-  Future<String?> readRefreshToken() async {
-    return _storage.read(key: _StorageKeys.refreshToken);
-  }
+  Future<String?> readRefreshToken() => _read(_StorageKeys.refreshToken);
 
-  Future<void> writeRefreshToken(String token) async {
-    await _storage.write(key: _StorageKeys.refreshToken, value: token);
-  }
+  Future<void> writeRefreshToken(String token) =>
+      _write(_StorageKeys.refreshToken, token);
 
-  Future<void> deleteRefreshToken() async {
-    await _storage.delete(key: _StorageKeys.refreshToken);
-  }
+  Future<void> deleteRefreshToken() => _delete(_StorageKeys.refreshToken);
 
   // --- Token Expiry ---
 
   Future<DateTime?> readTokenExpiresAt() async {
-    final value = await _storage.read(key: _StorageKeys.tokenExpiresAt);
+    final value = await _read(_StorageKeys.tokenExpiresAt);
     if (value == null) return null;
     return DateTime.tryParse(value);
   }
 
-  Future<void> writeTokenExpiresAt(DateTime expiresAt) async {
-    await _storage.write(
-      key: _StorageKeys.tokenExpiresAt,
-      value: expiresAt.toIso8601String(),
-    );
-  }
+  Future<void> writeTokenExpiresAt(DateTime expiresAt) =>
+      _write(_StorageKeys.tokenExpiresAt, expiresAt.toIso8601String());
 
   // --- Token Management ---
 
@@ -84,7 +102,7 @@ class SecureStorageService {
     await Future.wait([
       deleteAccessToken(),
       deleteRefreshToken(),
-      _storage.delete(key: _StorageKeys.tokenExpiresAt),
+      _delete(_StorageKeys.tokenExpiresAt),
     ]);
   }
 
@@ -101,32 +119,29 @@ class SecureStorageService {
 
   // --- Kid Profile ---
 
-  Future<String?> readKidProfileId() async {
-    return _storage.read(key: _StorageKeys.kidProfileId);
-  }
+  Future<String?> readKidProfileId() => _read(_StorageKeys.kidProfileId);
 
-  Future<void> writeKidProfileId(String id) async {
-    await _storage.write(key: _StorageKeys.kidProfileId, value: id);
-  }
+  Future<void> writeKidProfileId(String id) =>
+      _write(_StorageKeys.kidProfileId, id);
 
-  Future<void> deleteKidProfileId() async {
-    await _storage.delete(key: _StorageKeys.kidProfileId);
-  }
+  Future<void> deleteKidProfileId() => _delete(_StorageKeys.kidProfileId);
 
   // --- Character ---
 
-  Future<String?> readSelectedCharacterId() async {
-    return _storage.read(key: _StorageKeys.selectedCharacterId);
-  }
+  Future<String?> readSelectedCharacterId() =>
+      _read(_StorageKeys.selectedCharacterId);
 
-  Future<void> writeSelectedCharacterId(String id) async {
-    await _storage.write(key: _StorageKeys.selectedCharacterId, value: id);
-  }
+  Future<void> writeSelectedCharacterId(String id) =>
+      _write(_StorageKeys.selectedCharacterId, id);
 
   // --- Clear All ---
 
   Future<void> clearAll() async {
-    await _storage.deleteAll();
+    if (kIsWeb) {
+      await _webStorage!.deleteAll();
+    } else {
+      await _storage!.deleteAll();
+    }
   }
 }
 

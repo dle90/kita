@@ -24,7 +24,7 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.scaffoldBackground,
-      fontFamily: 'NunitoSans',
+      // fontFamily: 'NunitoSans',
 
       // Text theme — large, readable for kids
       textTheme: const TextTheme(

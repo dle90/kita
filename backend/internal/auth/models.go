@@ -23,7 +23,9 @@ type RegisterRequest struct {
 }
 
 type LoginRequest struct {
-	EmailOrPhone string `json:"email_or_phone" validate:"required"`
+	EmailOrPhone string `json:"email_or_phone"`
+	Email        string `json:"email"`
+	Phone        string `json:"phone"`
 	Password     string `json:"password" validate:"required"`
 }
 
