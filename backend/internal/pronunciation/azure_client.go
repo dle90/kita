@@ -2,6 +2,7 @@ package pronunciation
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -59,7 +60,7 @@ func (c *AzureSpeechClient) ScorePronunciation(audioData []byte, referenceText s
 
 	req.Header.Set("Ocp-Apim-Subscription-Key", c.key)
 	req.Header.Set("Content-Type", "audio/wav")
-	req.Header.Set("Pronunciation-Assessment", string(pronJSON))
+	req.Header.Set("Pronunciation-Assessment", base64.StdEncoding.EncodeToString(pronJSON))
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.client.Do(req)
