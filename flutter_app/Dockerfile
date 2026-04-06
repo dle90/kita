@@ -5,6 +5,7 @@ COPY pubspec.yaml ./
 COPY pubspec.lock* ./
 RUN flutter pub get
 
+# v2 - force rebuild with dialect fix + TTS
 COPY . .
 RUN flutter build web --release
 
