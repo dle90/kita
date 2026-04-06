@@ -19,26 +19,37 @@ type Storage struct {
 }
 
 func NewStorage(ctx context.Context, cfg config.MinIOConfig) (*Storage, error) {
-	client, err := minio.New(cfg.Endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(cfg.AccessKey, cfg.SecretKey, ""),
-		Secure: cfg.UseSSL,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create MinIO client: %w", err)
+	// Strip https:// or http:// prefix if present — MinIO client wants just the host
+	endpoint := cfg.Endpoint
+	if len(endpoint) > 8 && endpoint[:8] == "https://" {
+		endpoint = endpoint[8:]
+		cfg.UseSSL = true
+	} else if len(endpoint) > 7 && endpoint[:7] == "http://" {
+		endpoint = endpoint[7:]
 	}
 
+	client, err := minio.New(endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(cfg.AccessKey, cfg.SecretKey, ""),
+		Secure: cfg.UseSSL,
+		Region: "auto", // Required for Cloudflare R2
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create storage client: %w", err)
+	}
+
+	// Check if bucket exists; create only if it doesn't
 	exists, err := client.BucketExists(ctx, cfg.Bucket)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check bucket: %w", err)
 	}
 	if !exists {
-		if err := client.MakeBucket(ctx, cfg.Bucket, minio.MakeBucketOptions{}); err != nil {
+		if err := client.MakeBucket(ctx, cfg.Bucket, minio.MakeBucketOptions{Region: "auto"}); err != nil {
 			return nil, fmt.Errorf("failed to create bucket: %w", err)
 		}
-		log.Printf("Created MinIO bucket: %s", cfg.Bucket)
+		log.Printf("Created bucket: %s", cfg.Bucket)
 	}
 
-	log.Println("Connected to MinIO")
+	log.Printf("Connected to object storage (%s)", endpoint)
 	return &Storage{client: client, bucket: cfg.Bucket}, nil
 }
 
