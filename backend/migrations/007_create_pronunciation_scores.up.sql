@@ -1,4 +1,4 @@
-CREATE TABLE pronunciation_scores (
+CREATE TABLE IF NOT EXISTS pronunciation_scores (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     kid_id UUID NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
     vocabulary_id UUID REFERENCES vocabulary(id),
@@ -13,6 +13,6 @@ CREATE TABLE pronunciation_scores (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_pronunciation_scores_kid ON pronunciation_scores(kid_id);
-CREATE INDEX idx_pronunciation_scores_kid_created ON pronunciation_scores(kid_id, created_at DESC);
-CREATE INDEX idx_pronunciation_scores_vocab ON pronunciation_scores(vocabulary_id) WHERE vocabulary_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_pronunciation_scores_kid ON pronunciation_scores(kid_id);
+CREATE INDEX IF NOT EXISTS idx_pronunciation_scores_kid_created ON pronunciation_scores(kid_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_pronunciation_scores_vocab ON pronunciation_scores(vocabulary_id) WHERE vocabulary_id IS NOT NULL;

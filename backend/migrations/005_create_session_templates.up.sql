@@ -1,4 +1,4 @@
-CREATE TABLE session_templates (
+CREATE TABLE IF NOT EXISTS session_templates (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     day_number INTEGER NOT NULL CHECK (day_number >= 1 AND day_number <= 7),
     level VARCHAR(20) NOT NULL CHECK (level IN ('beginner', 'elementary', 'intermediate')),
@@ -10,5 +10,5 @@ CREATE TABLE session_templates (
     sentence_ids JSONB NOT NULL DEFAULT '[]'
 );
 
-CREATE INDEX idx_session_templates_day_level ON session_templates(day_number, level);
-CREATE INDEX idx_session_templates_sort ON session_templates(sort_order);
+CREATE INDEX IF NOT EXISTS idx_session_templates_day_level ON session_templates(day_number, level);
+CREATE INDEX IF NOT EXISTS idx_session_templates_sort ON session_templates(sort_order);

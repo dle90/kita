@@ -1,4 +1,4 @@
-CREATE TABLE srs_cards (
+CREATE TABLE IF NOT EXISTS srs_cards (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     kid_id UUID NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
     vocabulary_id UUID NOT NULL REFERENCES vocabulary(id) ON DELETE CASCADE,
@@ -13,6 +13,6 @@ CREATE TABLE srs_cards (
     UNIQUE(kid_id, vocabulary_id)
 );
 
-CREATE INDEX idx_srs_cards_kid ON srs_cards(kid_id);
-CREATE INDEX idx_srs_cards_kid_due ON srs_cards(kid_id, next_review_date);
-CREATE INDEX idx_srs_cards_vocab ON srs_cards(vocabulary_id);
+CREATE INDEX IF NOT EXISTS idx_srs_cards_kid ON srs_cards(kid_id);
+CREATE INDEX IF NOT EXISTS idx_srs_cards_kid_due ON srs_cards(kid_id, next_review_date);
+CREATE INDEX IF NOT EXISTS idx_srs_cards_vocab ON srs_cards(vocabulary_id);

@@ -1,4 +1,4 @@
-CREATE TABLE daily_progress (
+CREATE TABLE IF NOT EXISTS daily_progress (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     kid_id UUID NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
     date DATE NOT NULL,
@@ -12,5 +12,5 @@ CREATE TABLE daily_progress (
     UNIQUE(kid_id, date)
 );
 
-CREATE INDEX idx_daily_progress_kid ON daily_progress(kid_id);
-CREATE INDEX idx_daily_progress_kid_date ON daily_progress(kid_id, date);
+CREATE INDEX IF NOT EXISTS idx_daily_progress_kid ON daily_progress(kid_id);
+CREATE INDEX IF NOT EXISTS idx_daily_progress_kid_date ON daily_progress(kid_id, date);

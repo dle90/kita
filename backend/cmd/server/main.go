@@ -41,6 +41,15 @@ func main() {
 	}
 	defer dbPool.Close()
 
+	// Auto-run migrations
+	migrationsDir := "migrations"
+	if envMigDir := os.Getenv("MIGRATIONS_DIR"); envMigDir != "" {
+		migrationsDir = envMigDir
+	}
+	if err := common.RunMigrations(ctx, dbPool, migrationsDir); err != nil {
+		log.Printf("Warning: Migration error: %v", err)
+	}
+
 	// Connect to Redis
 	redisClient, err := common.NewRedisClient(ctx, cfg.Redis)
 	if err != nil {

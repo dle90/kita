@@ -1,4 +1,4 @@
-CREATE TABLE sentences (
+CREATE TABLE IF NOT EXISTS sentences (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     text TEXT NOT NULL,
     translation_vi TEXT NOT NULL,
@@ -8,5 +8,5 @@ CREATE TABLE sentences (
     vocabulary_ids JSONB NOT NULL DEFAULT '[]'
 );
 
-CREATE INDEX idx_sentences_day ON sentences(day_number);
-CREATE INDEX idx_sentences_difficulty ON sentences(difficulty);
+CREATE INDEX IF NOT EXISTS idx_sentences_day ON sentences(day_number);
+CREATE INDEX IF NOT EXISTS idx_sentences_difficulty ON sentences(difficulty);

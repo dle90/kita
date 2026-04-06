@@ -1,4 +1,4 @@
-CREATE TABLE kids (
+CREATE TABLE IF NOT EXISTS kids (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     parent_id UUID NOT NULL REFERENCES parents(id) ON DELETE CASCADE,
     display_name VARCHAR(50) NOT NULL,
@@ -13,4 +13,4 @@ CREATE TABLE kids (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_kids_parent ON kids(parent_id);
+CREATE INDEX IF NOT EXISTS idx_kids_parent ON kids(parent_id);

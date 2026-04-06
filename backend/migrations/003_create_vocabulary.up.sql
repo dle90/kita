@@ -1,4 +1,4 @@
-CREATE TABLE vocabulary (
+CREATE TABLE IF NOT EXISTS vocabulary (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     word VARCHAR(100) NOT NULL UNIQUE,
     translation_vi VARCHAR(255) NOT NULL,
@@ -12,6 +12,6 @@ CREATE TABLE vocabulary (
     common_l1_errors JSONB NOT NULL DEFAULT '[]'
 );
 
-CREATE INDEX idx_vocabulary_day ON vocabulary(day_number);
-CREATE INDEX idx_vocabulary_category ON vocabulary(category);
-CREATE INDEX idx_vocabulary_difficulty ON vocabulary(difficulty);
+CREATE INDEX IF NOT EXISTS idx_vocabulary_day ON vocabulary(day_number);
+CREATE INDEX IF NOT EXISTS idx_vocabulary_category ON vocabulary(category);
+CREATE INDEX IF NOT EXISTS idx_vocabulary_difficulty ON vocabulary(difficulty);
