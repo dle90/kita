@@ -1,7 +1,8 @@
 FROM ghcr.io/cirruslabs/flutter:3.41.6 AS builder
 
 WORKDIR /app
-COPY pubspec.yaml pubspec.lock ./
+COPY pubspec.yaml ./
+COPY pubspec.lock* ./
 RUN flutter pub get
 
 COPY . .

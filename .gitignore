@@ -37,7 +37,7 @@ flutter_app/ios/Flutter/Flutter.framework
 flutter_app/ios/Flutter/Flutter.podspec
 flutter_app/ios/Runner.xcworkspace/
 flutter_app/ios/Runner/GeneratedPluginRegistrant.*
-flutter_app/pubspec.lock
+# flutter_app/pubspec.lock  # needed for Railway build
 
 # Environment
 .env
