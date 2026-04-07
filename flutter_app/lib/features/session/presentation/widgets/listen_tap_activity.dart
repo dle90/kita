@@ -115,20 +115,22 @@ class _ListenTapActivityState extends ConsumerState<ListenTapActivity>
     setState(() => _selectedIndex = index);
 
     final isCorrect = index == _correctIndex;
+    final selectedId = widget.activity.options.isNotEmpty
+        ? widget.activity.options[index].id
+        : (_quizOptions.isNotEmpty ? _quizOptions[index]['word'] ?? '' : '');
+
     if (isCorrect) {
       setState(() => _answered = true);
       widget.onComplete(
         isCorrect: true,
-        metadata: {'selectedOption': widget.activity.options[index].id},
+        metadata: {'selectedOption': selectedId},
       );
     } else {
-      // Shake animation for wrong answer
       _shakeController.forward(from: 0);
       widget.onComplete(
         isCorrect: false,
-        metadata: {'selectedOption': widget.activity.options[index].id},
+        metadata: {'selectedOption': selectedId},
       );
-      // Reset selection after shake
       Future.delayed(const Duration(milliseconds: 600), () {
         if (mounted) setState(() => _selectedIndex = null);
       });

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
@@ -8,21 +9,34 @@ class TtsService {
 
   Future<void> _init() async {
     if (_initialized) return;
-    await _tts.setLanguage('en-US');
-    await _tts.setSpeechRate(0.4); // Slow for kids
-    await _tts.setPitch(1.1); // Slightly higher pitch
-    await _tts.setVolume(1.0);
-    _initialized = true;
+    try {
+      if (kIsWeb) {
+        await _tts.awaitSpeakCompletion(true);
+      }
+      await _tts.setLanguage('en-US');
+      await _tts.setSpeechRate(0.4);
+      await _tts.setPitch(1.1);
+      await _tts.setVolume(1.0);
+      _initialized = true;
+    } catch (e) {
+      debugPrint('TTS init failed: $e');
+    }
   }
 
   Future<void> speak(String text) async {
-    await _init();
-    await _tts.stop();
-    await _tts.speak(text);
+    try {
+      await _init();
+      await _tts.stop();
+      await _tts.speak(text);
+    } catch (e) {
+      debugPrint('TTS speak failed: $e');
+    }
   }
 
   Future<void> stop() async {
-    await _tts.stop();
+    try {
+      await _tts.stop();
+    } catch (_) {}
   }
 }
 
