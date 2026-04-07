@@ -69,6 +69,78 @@ func (s *AuthService) Register(ctx context.Context, req RegisterRequest) (*AuthT
 	return s.generateTokens(ctx, parent.ID)
 }
 
+func (s *AuthService) CreateGuest(ctx context.Context) (*AuthTokensResponse, error) {
+	// Generate a random password hash for the guest account
+	randomPass := uuid.New().String()
+	hash, err := bcrypt.GenerateFromPassword([]byte(randomPass), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, common.ErrInternal("failed to hash password")
+	}
+
+	parent, err := s.repo.CreateParent(ctx, nil, nil, string(hash))
+	if err != nil {
+		return nil, common.ErrInternal("failed to create guest account")
+	}
+
+	return s.generateTokens(ctx, parent.ID)
+}
+
+func (s *AuthService) LinkAccount(ctx context.Context, parentID uuid.UUID, req LinkAccountRequest) (*AuthTokensResponse, error) {
+	// Find existing parent
+	parent, err := s.repo.FindParentByID(ctx, parentID)
+	if err != nil {
+		return nil, common.ErrInternal("failed to find account")
+	}
+	if parent == nil {
+		return nil, common.ErrNotFound("account not found")
+	}
+
+	email := strings.TrimSpace(strings.ToLower(req.Email))
+	phone := strings.TrimSpace(req.Phone)
+
+	// Validate email not taken
+	if email != "" {
+		existing, err := s.repo.FindParentByEmail(ctx, email)
+		if err != nil {
+			return nil, common.ErrInternal("failed to check existing email")
+		}
+		if existing != nil && existing.ID != parentID {
+			return nil, common.ErrConflict("email already registered")
+		}
+	}
+
+	// Validate phone not taken
+	if phone != "" {
+		existing, err := s.repo.FindParentByPhone(ctx, phone)
+		if err != nil {
+			return nil, common.ErrInternal("failed to check existing phone")
+		}
+		if existing != nil && existing.ID != parentID {
+			return nil, common.ErrConflict("phone number already registered")
+		}
+	}
+
+	// Hash new password
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, common.ErrInternal("failed to hash password")
+	}
+
+	var emailPtr, phonePtr *string
+	if email != "" {
+		emailPtr = &email
+	}
+	if phone != "" {
+		phonePtr = &phone
+	}
+
+	if err := s.repo.UpdateParent(ctx, parentID, emailPtr, phonePtr, string(hash)); err != nil {
+		return nil, common.ErrInternal("failed to update account")
+	}
+
+	return s.generateTokens(ctx, parentID)
+}
+
 func (s *AuthService) Login(ctx context.Context, req LoginRequest) (*AuthTokensResponse, error) {
 	// Accept email_or_phone, email, or phone fields
 	identifier := strings.TrimSpace(req.EmailOrPhone)

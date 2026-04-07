@@ -68,6 +68,31 @@ class AuthRemoteDataSource {
     return AuthTokens.fromJson(data);
   }
 
+  /// POST /auth/guest
+  Future<AuthResponse> createGuest() async {
+    final response = await _dio.post(ApiEndpoints.authGuest);
+    final data = response.data as Map<String, dynamic>;
+    return _parseAuthResponse(data);
+  }
+
+  /// POST /auth/link
+  Future<AuthResponse> linkAccount({
+    required String email,
+    required String password,
+    String? phone,
+  }) async {
+    final response = await _dio.post(
+      ApiEndpoints.authLink,
+      data: {
+        'email': email,
+        'password': password,
+        if (phone != null) 'phone': phone,
+      },
+    );
+    final data = response.data as Map<String, dynamic>;
+    return _parseAuthResponse(data);
+  }
+
   AuthResponse _parseAuthResponse(Map<String, dynamic> data) {
     // Dio interceptor unwraps {"success":true,"data":{...}} envelope
     final userData = data['user'] as Map<String, dynamic>? ?? data;

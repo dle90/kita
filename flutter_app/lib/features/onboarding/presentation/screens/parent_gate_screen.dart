@@ -5,6 +5,7 @@ import 'package:kita_english/core/constants/app_colors.dart';
 import 'package:kita_english/core/constants/app_typography.dart';
 import 'package:kita_english/core/router/app_router.dart';
 import 'package:kita_english/features/onboarding/domain/entities/kid_profile.dart';
+import 'package:kita_english/features/auth/presentation/providers/auth_provider.dart';
 import 'package:kita_english/features/onboarding/presentation/providers/onboarding_provider.dart';
 import 'package:kita_english/shared/widgets/kita_button.dart';
 
@@ -18,6 +19,17 @@ class ParentGateScreen extends ConsumerStatefulWidget {
 class _ParentGateScreenState extends ConsumerState<ParentGateScreen> {
   final _nameController = TextEditingController();
   TimeOfDay _selectedTime = const TimeOfDay(hour: 18, minute: 0);
+  @override
+  void initState() {
+    super.initState();
+    _ensureGuestSession();
+  }
+
+  Future<void> _ensureGuestSession() async {
+    final authState = ref.read(authStateProvider);
+    if (authState.status == AuthStatus.authenticated) return;
+    await ref.read(authStateProvider.notifier).createGuest();
+  }
 
   @override
   void dispose() {

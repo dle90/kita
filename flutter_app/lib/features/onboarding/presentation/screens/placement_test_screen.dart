@@ -241,6 +241,7 @@ class _ListenAndTapRound extends StatefulWidget {
 class _ListenAndTapRoundState extends State<_ListenAndTapRound> {
   int? _selectedIndex;
   final int _correctIndex = 1; // "apple" is at index 1
+  final _tts = TtsService();
 
   final _options = [
     {'label': 'Cat', 'emoji': '🐱'},
@@ -262,7 +263,7 @@ class _ListenAndTapRoundState extends State<_ListenAndTapRound> {
         // Play button — speaks the word aloud using TTS
         ElevatedButton.icon(
           onPressed: () {
-            ref.read(ttsProvider).speak('apple');
+            _tts.speak('apple');
           },
           icon: const Icon(Icons.volume_up, size: 28),
           label: const Text('Nghe'),

@@ -110,6 +110,56 @@ class AuthNotifier extends StateNotifier<AuthState> {
     );
   }
 
+  Future<void> createGuest() async {
+    state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
+
+    final result = await _repository.createGuest();
+
+    result.when(
+      success: (account) {
+        state = state.copyWith(
+          status: AuthStatus.authenticated,
+          account: account,
+        );
+      },
+      failure: (message, _) {
+        state = state.copyWith(
+          status: AuthStatus.error,
+          errorMessage: message,
+        );
+      },
+    );
+  }
+
+  Future<void> linkAccount({
+    required String email,
+    required String password,
+    String? phone,
+  }) async {
+    state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
+
+    final result = await _repository.linkAccount(
+      email: email,
+      password: password,
+      phone: phone,
+    );
+
+    result.when(
+      success: (account) {
+        state = state.copyWith(
+          status: AuthStatus.authenticated,
+          account: account,
+        );
+      },
+      failure: (message, _) {
+        state = state.copyWith(
+          status: AuthStatus.error,
+          errorMessage: message,
+        );
+      },
+    );
+  }
+
   Future<void> signOut() async {
     state = state.copyWith(status: AuthStatus.loading);
     await _repository.signOut();

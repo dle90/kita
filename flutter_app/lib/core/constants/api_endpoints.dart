@@ -9,6 +9,8 @@ class ApiEndpoints {
   static const String authRegister = '/auth/register';
   static const String authLogin = '/auth/login';
   static const String authRefresh = '/auth/refresh';
+  static const String authGuest = '/auth/guest';
+  static const String authLink = '/auth/link';
 
   // Kid profile
   static const String kidProfiles = '/kids';

@@ -27,4 +27,14 @@ abstract class AuthRepository {
 
   /// Refreshes the access token using the refresh token.
   Future<ApiResult<void>> refreshToken();
+
+  /// Creates a guest account (no email/password needed).
+  Future<ApiResult<ParentAccount>> createGuest();
+
+  /// Links a guest account to a permanent email/password.
+  Future<ApiResult<ParentAccount>> linkAccount({
+    required String email,
+    required String password,
+    String? phone,
+  });
 }

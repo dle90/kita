@@ -15,6 +15,7 @@ type AuthRepository interface {
 	FindParentByEmail(ctx context.Context, email string) (*Parent, error)
 	FindParentByPhone(ctx context.Context, phone string) (*Parent, error)
 	FindParentByID(ctx context.Context, id uuid.UUID) (*Parent, error)
+	UpdateParent(ctx context.Context, id uuid.UUID, email *string, phone *string, passwordHash string) error
 	StoreRefreshToken(ctx context.Context, parentID uuid.UUID, tokenHash string, expiresAt time.Time) error
 	ValidateRefreshToken(ctx context.Context, tokenHash string) (uuid.UUID, error)
 	RevokeRefreshToken(ctx context.Context, tokenHash string) error
@@ -92,6 +93,14 @@ func (r *pgAuthRepository) FindParentByID(ctx context.Context, id uuid.UUID) (*P
 		return nil, err
 	}
 	return parent, nil
+}
+
+func (r *pgAuthRepository) UpdateParent(ctx context.Context, id uuid.UUID, email *string, phone *string, passwordHash string) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE parents SET email = $2, phone = $3, password_hash = $4, updated_at = $5 WHERE id = $1`,
+		id, email, phone, passwordHash, time.Now(),
+	)
+	return err
 }
 
 func (r *pgAuthRepository) StoreRefreshToken(ctx context.Context, parentID uuid.UUID, tokenHash string, expiresAt time.Time) error {

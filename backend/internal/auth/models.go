@@ -29,6 +29,12 @@ type LoginRequest struct {
 	Password     string `json:"password" validate:"required"`
 }
 
+type LinkAccountRequest struct {
+	Email    string `json:"email" validate:"required,min=3"`
+	Phone    string `json:"phone"`
+	Password string `json:"password" validate:"required,min=6"`
+}
+
 type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token" validate:"required"`
 }

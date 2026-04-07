@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kita_english/core/storage/secure_storage.dart';
 import 'package:kita_english/features/auth/presentation/screens/login_screen.dart';
+import 'package:kita_english/features/auth/presentation/screens/link_account_screen.dart';
 import 'package:kita_english/features/auth/presentation/screens/signup_screen.dart';
 import 'package:kita_english/features/day7/presentation/screens/certificate_screen.dart';
 import 'package:kita_english/features/day7/presentation/screens/showcase_recording_screen.dart';
@@ -29,6 +30,7 @@ class RoutePaths {
   static const String day7Record = '/day7/record';
   static const String day7Certificate = '/day7/certificate';
   static const String progress = '/progress';
+  static const String accountLink = '/account/link';
 }
 
 /// Provides the configured [GoRouter] instance.
@@ -52,10 +54,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         final hasKidProfile =
             (await secureStorage.readKidProfileId()) != null;
 
-        // Not authenticated — redirect to login
+        // Not authenticated — go to onboarding (guest-first flow)
         if (!isAuthenticated) {
-          if (authRoutes.contains(currentPath)) return null;
-          return RoutePaths.login;
+          if (authRoutes.contains(currentPath) ||
+              onboardingRoutes.contains(currentPath)) {
+            return null;
+          }
+          return RoutePaths.onboardingParent;
         }
 
         // Authenticated but no kid profile — redirect to onboarding
@@ -64,8 +69,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return RoutePaths.onboardingParent;
         }
 
-        // Authenticated and has profile — redirect away from auth/onboarding
-        if (authRoutes.contains(currentPath)) {
+        // Authenticated and has profile — redirect away from onboarding
+        if (authRoutes.contains(currentPath) ||
+            onboardingRoutes.contains(currentPath)) {
           return RoutePaths.home;
         }
 
@@ -74,9 +80,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return RoutePaths.home;
         }
       } catch (_) {
-        // On web or storage error, fall back to login
-        if (authRoutes.contains(currentPath)) return null;
-        return RoutePaths.login;
+        // On web or storage error, fall back to onboarding
+        if (authRoutes.contains(currentPath) ||
+            onboardingRoutes.contains(currentPath)) {
+          return null;
+        }
+        return RoutePaths.onboardingParent;
       }
 
       return null;
@@ -181,6 +190,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           key: state.pageKey,
           child: const CertificateScreen(),
           transitionsBuilder: _scaleTransition,
+        ),
+      ),
+
+      // Account link
+      GoRoute(
+        path: RoutePaths.accountLink,
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const LinkAccountScreen(),
+          transitionsBuilder: _slideTransition,
         ),
       ),
 

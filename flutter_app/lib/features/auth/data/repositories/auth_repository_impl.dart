@@ -86,6 +86,44 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<ApiResult<ParentAccount>> createGuest() async {
+    try {
+      final response = await _remoteDs.createGuest();
+      await _localDs.saveTokens(response.tokens);
+      return ApiResult.success(response.account);
+    } on DioException catch (e) {
+      final message = e.message ?? 'Tạo tài khoản khách thất bại.';
+      final statusCode = e.response?.statusCode;
+      return ApiResult.failure(message, statusCode: statusCode);
+    } catch (e) {
+      return ApiResult.failure('Đã xảy ra lỗi không mong muốn: $e');
+    }
+  }
+
+  @override
+  Future<ApiResult<ParentAccount>> linkAccount({
+    required String email,
+    required String password,
+    String? phone,
+  }) async {
+    try {
+      final response = await _remoteDs.linkAccount(
+        email: email,
+        password: password,
+        phone: phone,
+      );
+      await _localDs.saveTokens(response.tokens);
+      return ApiResult.success(response.account);
+    } on DioException catch (e) {
+      final message = e.message ?? 'Liên kết tài khoản thất bại.';
+      final statusCode = e.response?.statusCode;
+      return ApiResult.failure(message, statusCode: statusCode);
+    } catch (e) {
+      return ApiResult.failure('Đã xảy ra lỗi không mong muốn: $e');
+    }
+  }
+
+  @override
   Future<ApiResult<void>> refreshToken() async {
     try {
       final currentRefreshToken = await _localDs.readRefreshToken();

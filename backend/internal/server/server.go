@@ -60,6 +60,8 @@ func NewServer(deps Dependencies) *chi.Mux {
 		r.Group(func(r chi.Router) {
 			r.Use(auth.AuthMiddleware(deps.AuthService))
 
+			r.Post("/auth/link", deps.AuthHandler.LinkAccount)
+
 			r.Mount("/kids", deps.OnboardingHandler.Routes())
 
 			r.Route("/kids/{kidId}", func(r chi.Router) {

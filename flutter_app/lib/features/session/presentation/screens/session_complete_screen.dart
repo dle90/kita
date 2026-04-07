@@ -189,6 +189,46 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
 
                   const Spacer(flex: 2),
 
+                  // Day 1 account link prompt
+                  if (widget.dayNumber == 1) ...[
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.shield_outlined,
+                            color: AppColors.primary,
+                            size: 28,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Lưu tiến trình học của bé!',
+                            style: AppTypography.titleSmall.copyWith(
+                              color: AppColors.primary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 12),
+                          KitaButton(
+                            label: 'Tạo tài khoản',
+                            onPressed: () =>
+                                context.push(RoutePaths.accountLink),
+                            icon: Icons.person_add_outlined,
+                            color: AppColors.secondary,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
                   // Teaser message
                   if (!isDay7)
                     Text(
