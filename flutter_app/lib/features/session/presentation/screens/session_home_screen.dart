@@ -124,9 +124,11 @@ class _SessionHomeScreenState extends ConsumerState<SessionHomeScreen> {
               padding: const EdgeInsets.all(24),
               child: KitaButton(
                 label: 'Bắt đầu Ngày $_currentDay!',
-                onPressed: () {
-                  ref.read(sessionProvider.notifier).startSession(_currentDay);
-                  context.push('/session/$_currentDay');
+                onPressed: () async {
+                  await ref.read(sessionProvider.notifier).startSession(_currentDay);
+                  if (mounted) {
+                    context.push('/session/$_currentDay');
+                  }
                 },
                 icon: Icons.play_arrow_rounded,
                 color: AppColors.secondary,

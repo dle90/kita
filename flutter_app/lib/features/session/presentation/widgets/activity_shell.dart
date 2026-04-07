@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kita_english/core/constants/app_colors.dart';
+import 'package:kita_english/core/router/app_router.dart';
 import 'package:kita_english/core/constants/app_typography.dart';
 import 'package:kita_english/features/session/domain/entities/activity.dart';
 import 'package:kita_english/features/session/domain/entities/activity_result.dart';
@@ -187,11 +188,30 @@ class _ActivityShellState extends ConsumerState<ActivityShell>
     }
 
     if (activity == null) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(
-          child: Text(
-            'Đang tải bài học...',
-            style: AppTypography.bodyLarge,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              const Text(
+                'Đang tải bài học...',
+                style: AppTypography.bodyLarge,
+              ),
+              if (sessionState.errorMessage != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  sessionState.errorMessage!,
+                  style: AppTypography.bodySmall,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => context.go(RoutePaths.home),
+                  child: const Text('Quay lại'),
+                ),
+              ],
+            ],
           ),
         ),
       );
