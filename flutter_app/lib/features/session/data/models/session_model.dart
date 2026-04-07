@@ -22,17 +22,24 @@ class SessionModel {
   });
 
   factory SessionModel.fromJson(Map<String, dynamic> json) {
-    final activitiesJson = json['activities'] as List<dynamic>? ?? [];
+    // Defensively handle activities — may be null, list, or missing
+    List<ActivityModel> activities = [];
+    final rawActivities = json['activities'];
+    if (rawActivities is List) {
+      activities = rawActivities
+          .whereType<Map<String, dynamic>>()
+          .map((a) => ActivityModel.fromJson(a))
+          .toList();
+    }
+
     final completedAt = json['completed_at'] as String?;
     return SessionModel(
       id: json['id'] as String? ?? '',
-      dayNumber: json['day_number'] as int? ?? 1,
-      activities: activitiesJson
-          .map((a) => ActivityModel.fromJson(a as Map<String, dynamic>))
-          .toList(),
+      dayNumber: (json['day_number'] as num?)?.toInt() ?? 1,
+      activities: activities,
       isCompleted: completedAt != null,
       completedAt: completedAt,
-      totalStars: json['total_stars'] as int? ?? 0,
+      totalStars: (json['total_stars'] as num?)?.toInt() ?? 0,
       accuracyPct: (json['accuracy_pct'] as num?)?.toDouble() ?? 0.0,
     );
   }

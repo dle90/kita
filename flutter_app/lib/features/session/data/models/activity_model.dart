@@ -74,7 +74,8 @@ class ActivityModel {
             ?.map((e) => e as String)
             .toList() ??
         const [];
-    final optionsJson = (config['options'] as List<dynamic>?) ?? const [];
+    final rawOptions = config['options'];
+    final optionsJson = rawOptions is List ? rawOptions : const [];
     final difficulty = config['difficulty'] as int? ?? 1;
 
     return Activity(
