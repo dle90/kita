@@ -92,26 +92,17 @@ class SessionNotifier extends StateNotifier<SessionState> {
       totalStarsEarned: 0,
     );
 
+    // Fetch session with activities first
     final sessionResult = await _repository.getSession(dayNumber);
     sessionResult.when(
-      success: (session) async {
-        // Start the session on the backend using day number
-        final startResult = await _repository.startSession(dayNumber);
-        startResult.when(
-          success: (startedSession) {
-            state = state.copyWith(
-              session: startedSession,
-              isLoading: false,
-            );
-          },
-          failure: (message, _) {
-            // Even if start fails, we can use the fetched session
-            state = state.copyWith(
-              session: session,
-              isLoading: false,
-            );
-          },
+      success: (session) {
+        // Use the session with activities
+        state = state.copyWith(
+          session: session,
+          isLoading: false,
         );
+        // Mark as started on backend (fire-and-forget, don't replace session)
+        _repository.startSession(dayNumber);
       },
       failure: (message, _) {
         state = state.copyWith(isLoading: false, errorMessage: message);

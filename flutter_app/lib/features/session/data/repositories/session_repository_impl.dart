@@ -76,14 +76,12 @@ class SessionRepositoryImpl implements SessionRepository {
   Future<ApiResult<Session>> startSession(int dayNumber) async {
     try {
       final kidId = await _getKidId();
-      final response = await _dio.post(
-        ApiEndpoints.sessionStart(kidId, dayNumber),
-      );
-      final model =
-          SessionModel.fromJson(response.data as Map<String, dynamic>);
-      final session = model.toEntity();
-      _sessionCache[session.dayNumber] = session;
-      return ApiResult.success(session);
+      await _dio.post(ApiEndpoints.sessionStart(kidId, dayNumber));
+      // Return cached session (start endpoint returns session without activities)
+      final cached = _sessionCache[dayNumber];
+      if (cached != null) return ApiResult.success(cached);
+      // Fallback: fetch full session
+      return getSession(dayNumber);
     } on DioException catch (e) {
       return ApiResult.failure(
         e.message ?? 'Không thể bắt đầu bài học.',
