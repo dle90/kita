@@ -307,11 +307,15 @@ class _ActivityShellState extends ConsumerState<ActivityShell>
   Widget _buildActivityWidget(Activity activity) {
     switch (activity.type) {
       case ActivityType.listenTap:
+      case ActivityType.flashcardIntro:
+      case ActivityType.listenAndChoose:
         return ListenTapActivity(
           activity: activity,
           onComplete: _onActivityComplete,
         );
       case ActivityType.repeatAfterMe:
+      case ActivityType.listenAndRepeat:
+      case ActivityType.speakWord:
         return RepeatAfterMeActivity(
           activity: activity,
           onComplete: _onActivityComplete,

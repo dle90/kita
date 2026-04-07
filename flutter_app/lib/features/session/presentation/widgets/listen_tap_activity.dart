@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:kita_english/core/audio/audio_player.dart';
+import 'package:kita_english/core/audio/tts_service.dart';
 import 'package:kita_english/core/constants/app_colors.dart';
 import 'package:kita_english/core/constants/app_typography.dart';
 import 'package:kita_english/features/session/domain/entities/activity.dart';
 
 /// Listen & Tap activity: plays audio of a word, kid taps the matching image.
+/// Falls back to TTS + emoji when no audio/image URLs are available.
 class ListenTapActivity extends ConsumerStatefulWidget {
   final Activity activity;
   final void Function({required bool isCorrect, Map<String, dynamic> metadata})
@@ -28,17 +29,35 @@ class _ListenTapActivityState extends ConsumerState<ListenTapActivity>
   bool _answered = false;
   late AnimationController _shakeController;
   late Animation<double> _shakeAnimation;
+  final _tts = TtsService();
+
+  // Fallback word data when no options are provided
+  static const _fallbackWords = [
+    {'word': 'hello', 'emoji': '👋', 'vi': 'xin chào'},
+    {'word': 'cat', 'emoji': '🐱', 'vi': 'con mèo'},
+    {'word': 'dog', 'emoji': '🐶', 'vi': 'con chó'},
+    {'word': 'apple', 'emoji': '🍎', 'vi': 'quả táo'},
+    {'word': 'happy', 'emoji': '😊', 'vi': 'vui'},
+    {'word': 'sad', 'emoji': '😢', 'vi': 'buồn'},
+    {'word': 'mom', 'emoji': '👩', 'vi': 'mẹ'},
+    {'word': 'dad', 'emoji': '👨', 'vi': 'bố'},
+    {'word': 'fish', 'emoji': '🐟', 'vi': 'con cá'},
+    {'word': 'bird', 'emoji': '🐦', 'vi': 'con chim'},
+    {'word': 'milk', 'emoji': '🥛', 'vi': 'sữa'},
+    {'word': 'rice', 'emoji': '🍚', 'vi': 'cơm'},
+    {'word': 'water', 'emoji': '💧', 'vi': 'nước'},
+    {'word': 'run', 'emoji': '🏃', 'vi': 'chạy'},
+    {'word': 'jump', 'emoji': '🤸', 'vi': 'nhảy'},
+    {'word': 'book', 'emoji': '📖', 'vi': 'sách'},
+  ];
+
+  late final List<Map<String, String>> _quizOptions;
+  late final int _correctQuizIndex;
+  late final String _targetWord;
 
   @override
   void initState() {
     super.initState();
-    // Find the correct option index
-    for (int i = 0; i < widget.activity.options.length; i++) {
-      if (widget.activity.options[i].isCorrect) {
-        _correctIndex = i;
-        break;
-      }
-    }
 
     _shakeController = AnimationController(
       vsync: this,
@@ -48,7 +67,33 @@ class _ListenTapActivityState extends ConsumerState<ListenTapActivity>
       CurvedAnimation(parent: _shakeController, curve: Curves.elasticIn),
     );
 
-    // Auto-play the audio when the activity loads
+    if (widget.activity.options.isNotEmpty) {
+      // Original mode with options
+      for (int i = 0; i < widget.activity.options.length; i++) {
+        if (widget.activity.options[i].isCorrect) {
+          _correctIndex = i;
+          break;
+        }
+      }
+      _quizOptions = [];
+      _correctQuizIndex = 0;
+      _targetWord = widget.activity.targetWord ?? '';
+    } else {
+      // Fallback mode: generate quiz from fallback words
+      final shuffled = List<Map<String, String>>.from(_fallbackWords)..shuffle();
+      _quizOptions = shuffled.take(4).toList();
+      _correctQuizIndex = 0; // first one is the answer
+      _targetWord = _quizOptions[0]['word']!;
+      _quizOptions.shuffle(); // re-shuffle so answer isn't always first
+      // find where the correct answer ended up
+      for (int i = 0; i < _quizOptions.length; i++) {
+        if (_quizOptions[i]['word'] == _targetWord) {
+          _correctIndex = i;
+          break;
+        }
+      }
+    }
+
     _playAudio();
   }
 
@@ -59,14 +104,8 @@ class _ListenTapActivityState extends ConsumerState<ListenTapActivity>
   }
 
   Future<void> _playAudio() async {
-    final audioUrl = widget.activity.audioUrl;
-    if (audioUrl != null && audioUrl.isNotEmpty) {
-      try {
-        final player = ref.read(audioPlayerProvider);
-        await player.play(audioUrl);
-      } catch (_) {
-        // Audio playback failure is non-fatal
-      }
+    if (_targetWord.isNotEmpty) {
+      await _tts.speak(_targetWord);
     }
   }
 
@@ -98,7 +137,8 @@ class _ListenTapActivityState extends ConsumerState<ListenTapActivity>
 
   @override
   Widget build(BuildContext context) {
-    final options = widget.activity.options;
+    // Use original options or fallback quiz
+    final hasOriginalOptions = widget.activity.options.isNotEmpty;
 
     return Column(
       children: [
@@ -108,13 +148,6 @@ class _ListenTapActivityState extends ConsumerState<ListenTapActivity>
           style: AppTypography.titleLarge,
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 4),
-        if (widget.activity.vietnameseTranslation != null)
-          Text(
-            widget.activity.vietnameseTranslation!,
-            style: AppTypography.vietnameseHint,
-            textAlign: TextAlign.center,
-          ),
         const SizedBox(height: 16),
 
         // Play button
@@ -127,7 +160,7 @@ class _ListenTapActivityState extends ConsumerState<ListenTapActivity>
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.secondary.withValues(alpha:0.3),
+                  color: AppColors.secondary.withValues(alpha: 0.3),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
                 ),
@@ -158,9 +191,10 @@ class _ListenTapActivityState extends ConsumerState<ListenTapActivity>
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
             ),
-            itemCount: options.length,
+            itemCount: hasOriginalOptions
+                ? widget.activity.options.length
+                : _quizOptions.length,
             itemBuilder: (context, index) {
-              final option = options[index];
               final isSelected = _selectedIndex == index;
               final isCorrectAnswer =
                   _answered && index == _correctIndex;
@@ -204,67 +238,10 @@ class _ListenTapActivityState extends ConsumerState<ListenTapActivity>
                               ),
                             ],
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Image or emoji placeholder
-                        if (option.imageUrl != null &&
-                            option.imageUrl!.isNotEmpty)
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              option.imageUrl!,
-                              width: 80,
-                              height: 80,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                width: 80,
-                                height: 80,
-                                decoration: BoxDecoration(
-                                  color: AppColors.surfaceVariant,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
-                                  Icons.image,
-                                  size: 40,
-                                  color: AppColors.textHint,
-                                ),
-                              ),
-                            ),
-                          )
-                        else
-                          Container(
-                            width: 80,
-                            height: 80,
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceVariant,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Center(
-                              child: Text(
-                                option.text.isNotEmpty
-                                    ? option.text[0].toUpperCase()
-                                    : '?',
-                                style: const TextStyle(
-                                  fontSize: 36,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        const SizedBox(height: 8),
-                        Text(
-                          option.text,
-                          style: AppTypography.titleSmall,
-                          textAlign: TextAlign.center,
-                        ),
-                        if (isCorrectAnswer)
-                          const Padding(
-                            padding: EdgeInsets.only(top: 4),
-                            child:
-                                Icon(Icons.star, color: AppColors.starFilled, size: 24),
-                          ),
-                      ],
+                    child: _buildOptionContent(
+                      index,
+                      hasOriginalOptions,
+                      isCorrectAnswer,
                     ),
                   ),
                 ),
@@ -272,6 +249,58 @@ class _ListenTapActivityState extends ConsumerState<ListenTapActivity>
             },
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildOptionContent(
+    int index,
+    bool hasOriginalOptions,
+    bool isCorrectAnswer,
+  ) {
+    if (hasOriginalOptions) {
+      final option = widget.activity.options[index];
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            option.text.isNotEmpty ? option.text[0].toUpperCase() : '?',
+            style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(option.text, style: AppTypography.titleSmall, textAlign: TextAlign.center),
+          if (isCorrectAnswer)
+            const Icon(Icons.star, color: AppColors.starFilled, size: 24),
+        ],
+      );
+    }
+
+    // Fallback quiz mode with emoji
+    final quizOption = _quizOptions[index];
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          quizOption['emoji'] ?? '❓',
+          style: const TextStyle(fontSize: 48),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          quizOption['word'] ?? '',
+          style: AppTypography.titleMedium,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          quizOption['vi'] ?? '',
+          style: AppTypography.vietnameseHint,
+          textAlign: TextAlign.center,
+        ),
+        if (isCorrectAnswer)
+          const Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: Icon(Icons.star, color: AppColors.starFilled, size: 24),
+          ),
       ],
     );
   }

@@ -3,7 +3,11 @@ enum ActivityType {
   listenTap('listen_tap', 'Listen & Tap', 'Nghe và chọn'),
   repeatAfterMe('repeat_after_me', 'Repeat After Me', 'Nói theo mẫu'),
   wordMatch('word_match', 'Word Match', 'Nối từ'),
-  sentenceBuilder('sentence_builder', 'Sentence Builder', 'Xếp câu');
+  sentenceBuilder('sentence_builder', 'Sentence Builder', 'Xếp câu'),
+  flashcardIntro('flashcard_intro', 'Flashcard', 'Học từ mới'),
+  listenAndRepeat('listen_and_repeat', 'Listen & Repeat', 'Nghe và nhắc lại'),
+  listenAndChoose('listen_and_choose', 'Listen & Choose', 'Nghe và chọn'),
+  speakWord('speak_word', 'Speak', 'Phát âm');
 
   final String apiValue;
   final String englishName;
