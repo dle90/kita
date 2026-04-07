@@ -12,6 +12,7 @@ type Parent struct {
 	Email        *string   `json:"email,omitempty"`
 	Phone        *string   `json:"phone,omitempty"`
 	PasswordHash string    `json:"-"`
+	IsGuest      bool      `json:"is_guest"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }

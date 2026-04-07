@@ -30,19 +30,21 @@ func NewAuthRepository(pool *pgxpool.Pool) AuthRepository {
 }
 
 func (r *pgAuthRepository) CreateParent(ctx context.Context, email, phone *string, passwordHash string) (*Parent, error) {
+	isGuest := email == nil && phone == nil
 	parent := &Parent{
 		ID:           uuid.New(),
 		Email:        email,
 		Phone:        phone,
 		PasswordHash: passwordHash,
+		IsGuest:      isGuest,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 	}
 
 	_, err := r.pool.Exec(ctx,
-		`INSERT INTO parents (id, email, phone, password_hash, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6)`,
-		parent.ID, parent.Email, parent.Phone, parent.PasswordHash, parent.CreatedAt, parent.UpdatedAt,
+		`INSERT INTO parents (id, email, phone, password_hash, is_guest, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		parent.ID, parent.Email, parent.Phone, parent.PasswordHash, parent.IsGuest, parent.CreatedAt, parent.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err

@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS parents (
     password_hash VARCHAR(255) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT parents_email_or_phone CHECK (email IS NOT NULL OR phone IS NOT NULL)
+    -- Guest accounts may have both email and phone NULL
+    is_guest BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE INDEX IF NOT EXISTS idx_parents_email ON parents(email) WHERE email IS NOT NULL;
