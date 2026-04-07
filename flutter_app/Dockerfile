@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Copy everything at once — no layer caching for source files
 COPY . .
-RUN flutter pub get && flutter build web --release
+RUN flutter pub get && flutter build web --release --pwa-strategy=none
 
 FROM nginx:alpine
 
