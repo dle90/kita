@@ -29,9 +29,14 @@ func NewAzureSpeechClient(cfg config.AzureConfig) *AzureSpeechClient {
 	}
 }
 
-func (c *AzureSpeechClient) ScorePronunciation(audioData []byte, referenceText string) (*AzureResponse, error) {
+func (c *AzureSpeechClient) ScorePronunciation(audioData []byte, referenceText string, contentType ...string) (*AzureResponse, error) {
 	if c.key == "" {
 		return c.mockResponse(referenceText), nil
+	}
+
+	audioContentType := "audio/wav"
+	if len(contentType) > 0 && contentType[0] != "" {
+		audioContentType = contentType[0]
 	}
 
 	endpoint := fmt.Sprintf(
@@ -59,7 +64,7 @@ func (c *AzureSpeechClient) ScorePronunciation(audioData []byte, referenceText s
 	}
 
 	req.Header.Set("Ocp-Apim-Subscription-Key", c.key)
-	req.Header.Set("Content-Type", "audio/wav")
+	req.Header.Set("Content-Type", audioContentType)
 	req.Header.Set("Pronunciation-Assessment", base64.StdEncoding.EncodeToString(pronJSON))
 	req.Header.Set("Accept", "application/json")
 

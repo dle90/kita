@@ -1,9 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kita_english/core/audio/sound_effects.dart';
 import 'package:kita_english/core/audio/tts_service.dart';
+import 'package:kita_english/core/audio/web_recorder.dart';
 import 'package:kita_english/core/constants/app_colors.dart';
 import 'package:kita_english/core/constants/app_typography.dart';
+import 'package:kita_english/features/pronunciation/data/repositories/pronunciation_repository_impl.dart';
 import 'package:kita_english/features/pronunciation/presentation/widgets/record_button.dart';
 import 'package:kita_english/features/session/domain/entities/activity.dart';
 
@@ -67,16 +70,66 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
     );
   }
 
-  void _skipRecording() {
-    // On web, skip recording and auto-pass
-    widget.onComplete(
-      isCorrect: true,
-      metadata: {
-        'pronunciationScore': 70.0,
-        'referenceText': _word,
-        'skipped': true,
-      },
-    );
+  Future<void> _startWebRecording() async {
+    final recorder = ref.read(webRecorderProvider);
+    final started = await recorder.start();
+    if (started && mounted) {
+      setState(() => _isRecording = true);
+      // Auto-stop after 5 seconds
+      Future.delayed(const Duration(seconds: 5), () {
+        if (mounted && _isRecording) _stopWebRecording();
+      });
+    }
+  }
+
+  Future<void> _stopWebRecording() async {
+    final recorder = ref.read(webRecorderProvider);
+    final audioBytes = await recorder.stop();
+    if (!mounted) return;
+
+    setState(() {
+      _isRecording = false;
+      _hasRecorded = true;
+    });
+
+    if (audioBytes != null && audioBytes.isNotEmpty) {
+      // Send to Azure for real scoring
+      final repo = ref.read(pronunciationRepositoryProvider);
+      final result = await repo.scorePronunciationBytes(
+        audioBytes: audioBytes,
+        referenceText: _word,
+      );
+
+      if (!mounted) return;
+
+      result.when(
+        success: (score) {
+          setState(() => _pronunciationScore = score.pronunciationScore);
+          final isCorrect = score.pronunciationScore >= 50;
+          if (isCorrect) SoundEffects().playCorrect();
+          widget.onComplete(
+            isCorrect: isCorrect,
+            metadata: {
+              'pronunciationScore': score.pronunciationScore,
+              'referenceText': _word,
+            },
+          );
+        },
+        failure: (_, __) {
+          // Scoring failed — pass anyway
+          widget.onComplete(
+            isCorrect: true,
+            metadata: {'pronunciationScore': 70.0, 'referenceText': _word},
+          );
+        },
+      );
+    } else {
+      // No audio captured — pass anyway
+      widget.onComplete(
+        isCorrect: true,
+        metadata: {'pronunciationScore': 70.0, 'referenceText': _word},
+      );
+    }
   }
 
   @override
@@ -169,22 +222,14 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
         ),
         const SizedBox(height: 40),
 
-        // Record button — fake mic on web, real on native
+        // Record button — real web recording with Azure scoring
         if (kIsWeb)
           GestureDetector(
-            onTap: _hasRecorded ? null : () {
-              setState(() => _isRecording = true);
-              // Fake listening for 2 seconds
-              Future.delayed(const Duration(seconds: 2), () {
-                if (mounted) {
-                  setState(() {
-                    _isRecording = false;
-                    _hasRecorded = true;
-                  });
-                  _skipRecording();
-                }
-              });
-            },
+            onTap: _hasRecorded
+                ? null
+                : _isRecording
+                    ? _stopWebRecording
+                    : _startWebRecording,
             child: Column(
               children: [
                 AnimatedContainer(
@@ -211,7 +256,7 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
                     _hasRecorded
                         ? Icons.check
                         : _isRecording
-                            ? Icons.hearing
+                            ? Icons.stop
                             : Icons.mic,
                     color: Colors.white,
                     size: 40,
@@ -220,7 +265,7 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
                 const SizedBox(height: 8),
                 Text(
                   _isRecording
-                      ? 'Đang nghe...'
+                      ? 'Nhấn để dừng...'
                       : _hasRecorded
                           ? 'Tuyệt vời!'
                           : 'Nhấn để nói',

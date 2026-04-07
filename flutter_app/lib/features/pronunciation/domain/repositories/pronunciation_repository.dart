@@ -1,14 +1,20 @@
+import 'dart:typed_data';
+
 import 'package:kita_english/core/network/api_result.dart';
 import 'package:kita_english/features/pronunciation/domain/entities/pronunciation_score.dart';
 
 /// Abstract repository for pronunciation scoring.
 abstract class PronunciationRepository {
-  /// Scores the pronunciation of a recorded audio file against reference text.
-  ///
-  /// [audioPath] - path to the recorded WAV file (16kHz, 16-bit, mono).
-  /// [referenceText] - the expected English text the learner should have said.
+  /// Scores pronunciation from a file path (native platforms).
   Future<ApiResult<PronunciationScore>> scorePronunciation({
     required String audioPath,
     required String referenceText,
+  });
+
+  /// Scores pronunciation from raw audio bytes (web platform).
+  Future<ApiResult<PronunciationScore>> scorePronunciationBytes({
+    required Uint8List audioBytes,
+    required String referenceText,
+    String contentType = 'audio/webm',
   });
 }

@@ -24,16 +24,26 @@ func NewPronunciationService(repo PronunciationRepository, azureClient *AzureSpe
 	}
 }
 
-func (s *PronunciationService) ScorePronunciation(ctx context.Context, kidID uuid.UUID, audioData []byte, referenceText string, dialect string, vocabularyID *uuid.UUID) (*PronunciationScore, error) {
-	// Upload audio to MinIO
-	audioKey := fmt.Sprintf("pronunciation/%s/%s.wav", kidID.String(), uuid.New().String())
-	audioURL, err := s.storage.UploadFile(ctx, audioKey, bytes.NewReader(audioData), int64(len(audioData)), "audio/wav")
+func (s *PronunciationService) ScorePronunciation(ctx context.Context, kidID uuid.UUID, audioData []byte, referenceText string, dialect string, vocabularyID *uuid.UUID, contentType ...string) (*PronunciationScore, error) {
+	// Determine audio format
+	audioMime := "audio/wav"
+	audioExt := "wav"
+	if len(contentType) > 0 && contentType[0] != "" {
+		audioMime = contentType[0]
+		if audioMime == "audio/webm" || audioMime == "audio/webm;codecs=opus" {
+			audioExt = "webm"
+		}
+	}
+
+	// Upload audio to storage
+	audioKey := fmt.Sprintf("pronunciation/%s/%s.%s", kidID.String(), uuid.New().String(), audioExt)
+	audioURL, err := s.storage.UploadFile(ctx, audioKey, bytes.NewReader(audioData), int64(len(audioData)), audioMime)
 	if err != nil {
 		return nil, common.ErrInternal("failed to upload audio file")
 	}
 
 	// Call Azure Speech API
-	azureResp, err := s.azureClient.ScorePronunciation(audioData, referenceText)
+	azureResp, err := s.azureClient.ScorePronunciation(audioData, referenceText, audioMime)
 	if err != nil {
 		return nil, common.ErrInternal(fmt.Sprintf("pronunciation scoring failed: %v", err))
 	}

@@ -31,8 +31,8 @@ func (h *PronunciationHandler) ScorePronunciation(w http.ResponseWriter, r *http
 		return
 	}
 
-	// Get audio file
-	audioFile, _, err := r.FormFile("audio")
+	// Get audio file and its content type
+	audioFile, audioHeader, err := r.FormFile("audio")
 	if err != nil {
 		common.RespondError(w, http.StatusBadRequest, "audio file is required")
 		return
@@ -72,7 +72,13 @@ func (h *PronunciationHandler) ScorePronunciation(w http.ResponseWriter, r *http
 		dialect = kid.Dialect
 	}
 
-	score, svcErr := h.service.ScorePronunciation(r.Context(), kidID, audioData, referenceText, dialect, vocabularyID)
+	// Detect audio content type from uploaded file
+	audioContentType := audioHeader.Header.Get("Content-Type")
+	if audioContentType == "" {
+		audioContentType = "audio/wav"
+	}
+
+	score, svcErr := h.service.ScorePronunciation(r.Context(), kidID, audioData, referenceText, dialect, vocabularyID, audioContentType)
 	if svcErr != nil {
 		if appErr, ok := svcErr.(*common.AppError); ok {
 			common.RespondAppError(w, appErr)

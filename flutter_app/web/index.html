@@ -51,6 +51,59 @@
       });
     }
 
+    // Web microphone recording via MediaRecorder API
+    var _kitaMediaRecorder = null;
+    var _kitaAudioChunks = [];
+    var _kitaRecordingResolve = null;
+
+    function _kitaStartRecording() {
+      return new Promise(function(resolve, reject) {
+        navigator.mediaDevices.getUserMedia({ audio: { sampleRate: 16000, channelCount: 1 } })
+          .then(function(stream) {
+            _kitaAudioChunks = [];
+            _kitaMediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+            _kitaMediaRecorder.ondataavailable = function(e) {
+              if (e.data.size > 0) _kitaAudioChunks.push(e.data);
+            };
+            _kitaMediaRecorder.onstop = function() {
+              var blob = new Blob(_kitaAudioChunks, { type: 'audio/webm' });
+              stream.getTracks().forEach(function(t) { t.stop(); });
+              // Convert to base64 for Dart
+              var reader = new FileReader();
+              reader.onloadend = function() {
+                var base64 = reader.result.split(',')[1];
+                if (_kitaRecordingResolve) {
+                  _kitaRecordingResolve(base64);
+                  _kitaRecordingResolve = null;
+                }
+              };
+              reader.readAsDataURL(blob);
+            };
+            _kitaMediaRecorder.start();
+            resolve(true);
+          })
+          .catch(function(err) {
+            console.warn('Mic access denied:', err);
+            reject(err);
+          });
+      });
+    }
+
+    function _kitaStopRecording() {
+      return new Promise(function(resolve) {
+        _kitaRecordingResolve = resolve;
+        if (_kitaMediaRecorder && _kitaMediaRecorder.state === 'recording') {
+          _kitaMediaRecorder.stop();
+        } else {
+          resolve(null);
+        }
+      });
+    }
+
+    function _kitaIsRecording() {
+      return _kitaMediaRecorder && _kitaMediaRecorder.state === 'recording';
+    }
+
     // Web Audio API tone generator for sound effects
     var _kitaAudioCtx = null;
     function _kitaPlayTone(frequency, duration, type) {

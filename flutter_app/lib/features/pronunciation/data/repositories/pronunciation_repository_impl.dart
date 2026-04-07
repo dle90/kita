@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -36,6 +37,51 @@ class PronunciationRepositoryImpl implements PronunciationRepository {
           audioPath,
           filename: 'recording.wav',
           contentType: DioMediaType('audio', 'wav'),
+        ),
+        'reference_text': referenceText,
+        'kid_id': kidId,
+      });
+
+      final response = await _dio.post(
+        ApiEndpoints.pronunciationScore,
+        data: formData,
+        options: Options(
+          contentType: 'multipart/form-data',
+          sendTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
+        ),
+      );
+
+      final data = response.data as Map<String, dynamic>;
+      final model = PronunciationScoreModel.fromJson(data);
+      return ApiResult.success(model.toEntity());
+    } on DioException catch (e) {
+      final message =
+          e.message ?? 'Không thể đánh giá phát âm. Thử lại nhé!';
+      return ApiResult.failure(message, statusCode: e.response?.statusCode);
+    } catch (e) {
+      return ApiResult.failure('Lỗi đánh giá phát âm: $e');
+    }
+  }
+
+  @override
+  Future<ApiResult<PronunciationScore>> scorePronunciationBytes({
+    required Uint8List audioBytes,
+    required String referenceText,
+    String contentType = 'audio/webm',
+  }) async {
+    try {
+      final kidId = await _secureStorage.readKidProfileId() ?? '';
+
+      final mimeMain = contentType.split('/').first;
+      final mimeSub = contentType.split('/').last.split(';').first;
+      final ext = mimeSub == 'webm' ? 'webm' : 'wav';
+
+      final formData = FormData.fromMap({
+        'audio': MultipartFile.fromBytes(
+          audioBytes,
+          filename: 'recording.$ext',
+          contentType: DioMediaType(mimeMain, mimeSub),
         ),
         'reference_text': referenceText,
         'kid_id': kidId,
