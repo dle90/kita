@@ -18,10 +18,12 @@ class SoundEffects {
     }
   }
 
-  /// Play a short "wrong" buzz
+  /// Play a gentle "wrong" sound (soft descending tone, not harsh)
   Future<void> playWrong() async {
     if (kIsWeb) {
-      playWebTone(200, 0.25, 'sawtooth');
+      playWebTone(440, 0.15, 'sine');
+      await Future.delayed(const Duration(milliseconds: 100));
+      playWebTone(330, 0.2, 'sine');
     } else {
       await HapticFeedback.heavyImpact();
     }

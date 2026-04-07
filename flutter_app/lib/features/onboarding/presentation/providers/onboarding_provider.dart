@@ -61,11 +61,30 @@ class OnboardingNotifier extends StateNotifier<OnboardingFlowState> {
     state = state.copyWith(placementScore: score);
   }
 
+  /// Ensures a valid auth token exists, creating a guest account if needed.
+  Future<void> _ensureAuthenticated() async {
+    final hasToken = await _secureStorage.hasValidToken();
+    if (!hasToken) {
+      final response = await _dio.post(ApiEndpoints.authGuest);
+      final data = response.data as Map<String, dynamic>;
+      final accessToken = data['access_token'] as String? ?? '';
+      final refreshToken = data['refresh_token'] as String? ?? '';
+      final expiresAt = DateTime.tryParse(data['expires_at'] as String? ?? '');
+      await _secureStorage.writeTokens(
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+        expiresAt: expiresAt,
+      );
+    }
+  }
+
   /// Submits the onboarding data to the backend and creates the kid profile.
   Future<bool> submitOnboarding() async {
     state = state.copyWith(isSubmitting: true, errorMessage: null);
 
     try {
+      // Ensure we have a valid auth token (create guest if expired/missing)
+      await _ensureAuthenticated();
       // Map Dart enums to Go backend values
       const dialectMap = {
         'bac': 'northern',
