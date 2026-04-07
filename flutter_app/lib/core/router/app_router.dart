@@ -66,10 +66,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      // Splash — handled by redirect
+      // Splash — redirect to onboarding
       GoRoute(
         path: RoutePaths.splash,
-        builder: (context, state) => const _SplashScreen(),
+        builder: (context, state) => const ParentGateScreen(),
       ),
 
       // Auth
@@ -77,7 +77,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: RoutePaths.login,
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
-          child: const LoginScreen(),
+          child: const ParentGateScreen(), // Login disabled — go to onboarding
           transitionsBuilder: _fadeTransition,
         ),
       ),
@@ -85,7 +85,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: RoutePaths.signup,
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
-          child: const SignupScreen(),
+          child: const ParentGateScreen(), // Signup disabled — go to onboarding
           transitionsBuilder: _slideTransition,
         ),
       ),
