@@ -27,6 +27,8 @@ class RepeatAfterMeActivity extends ConsumerStatefulWidget {
 
 class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
   bool _hasListened = false;
+  bool _isRecording = false;
+  bool _hasRecorded = false;
   double? _pronunciationScore;
   final _tts = TtsService();
 
@@ -167,30 +169,63 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
         ),
         const SizedBox(height: 40),
 
-        // Record button (or skip on web)
+        // Record button — fake mic on web, real on native
         if (kIsWeb)
           GestureDetector(
-            onTap: _skipRecording,
+            onTap: _hasRecorded ? null : () {
+              setState(() => _isRecording = true);
+              // Fake listening for 2 seconds
+              Future.delayed(const Duration(seconds: 2), () {
+                if (mounted) {
+                  setState(() {
+                    _isRecording = false;
+                    _hasRecorded = true;
+                  });
+                  _skipRecording();
+                }
+              });
+            },
             child: Column(
               children: [
-                Container(
-                  width: 80,
-                  height: 80,
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  width: _isRecording ? 100 : 80,
+                  height: _isRecording ? 100 : 80,
                   decoration: BoxDecoration(
-                    color: AppColors.success,
+                    color: _hasRecorded
+                        ? AppColors.success
+                        : _isRecording
+                            ? AppColors.error
+                            : AppColors.primary,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.success.withValues(alpha: 0.3),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
+                        color: (_isRecording ? AppColors.error : AppColors.primary)
+                            .withValues(alpha: 0.4),
+                        blurRadius: _isRecording ? 24 : 12,
+                        spreadRadius: _isRecording ? 4 : 0,
                       ),
                     ],
                   ),
-                  child: const Icon(Icons.check, color: Colors.white, size: 40),
+                  child: Icon(
+                    _hasRecorded
+                        ? Icons.check
+                        : _isRecording
+                            ? Icons.hearing
+                            : Icons.mic,
+                    color: Colors.white,
+                    size: 40,
+                  ),
                 ),
                 const SizedBox(height: 8),
-                const Text('Đã nói xong!', style: AppTypography.bodySmall),
+                Text(
+                  _isRecording
+                      ? 'Đang nghe...'
+                      : _hasRecorded
+                          ? 'Tuyệt vời!'
+                          : 'Nhấn để nói',
+                  style: AppTypography.bodySmall,
+                ),
               ],
             ),
           )

@@ -471,23 +471,67 @@ class _SayHelloRoundState extends State<_SayHelloRound> {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
           ),
-          const SizedBox(height: 32),
-          // Big green done button
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: ElevatedButton.icon(
-              onPressed: _submitted ? null : _onWebDone,
-              icon: Icon(_submitted ? Icons.check : Icons.mic),
-              label: Text(_submitted ? 'Tuyệt vời!' : 'Đã nói xong!'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.success,
-                foregroundColor: Colors.white,
-                textStyle: AppTypography.titleMedium,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
+          const SizedBox(height: 40),
+          // Big mic button — tap to "record", fake listening, auto-complete
+          GestureDetector(
+            onTap: _submitted ? null : () {
+              setState(() => _isRecording = true);
+              _tts.speak('Hello'); // Play while "listening"
+              // Fake listening for 2 seconds then complete
+              Future.delayed(const Duration(seconds: 2), () {
+                if (mounted) {
+                  setState(() {
+                    _isRecording = false;
+                    _submitted = true;
+                    _hasRecorded = true;
+                  });
+                  SoundEffects().playCorrect();
+                  Future.delayed(const Duration(milliseconds: 500), () {
+                    _onWebDone();
+                  });
+                }
+              });
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              width: _isRecording ? 120 : 100,
+              height: _isRecording ? 120 : 100,
+              decoration: BoxDecoration(
+                color: _submitted
+                    ? AppColors.success
+                    : _isRecording
+                        ? AppColors.error
+                        : AppColors.primary,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: (_isRecording ? AppColors.error : AppColors.primary)
+                        .withValues(alpha: 0.4),
+                    blurRadius: _isRecording ? 24 : 12,
+                    spreadRadius: _isRecording ? 4 : 0,
+                  ),
+                ],
               ),
+              child: Icon(
+                _submitted
+                    ? Icons.check
+                    : _isRecording
+                        ? Icons.hearing
+                        : Icons.mic,
+                color: Colors.white,
+                size: 48,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _isRecording
+                ? 'Đang nghe...'
+                : _submitted
+                    ? 'Tuyệt vời!'
+                    : 'Nhấn để nói',
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.textSecondary,
             ),
           ),
         ],
