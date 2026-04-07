@@ -13,6 +13,7 @@ import 'package:kita_english/features/onboarding/presentation/screens/placement_
 import 'package:kita_english/features/progress/presentation/screens/progress_dashboard_screen.dart';
 import 'package:kita_english/features/session/presentation/screens/session_complete_screen.dart';
 import 'package:kita_english/features/session/presentation/screens/session_home_screen.dart';
+import 'package:kita_english/features/session/presentation/widgets/activity_shell.dart';
 
 /// Route path constants.
 class RoutePaths {
@@ -151,14 +152,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
-      // Session
+      // Session — shows the activity shell for the day's activities
       GoRoute(
         path: RoutePaths.session,
         pageBuilder: (context, state) {
-          final day = int.tryParse(state.pathParameters['day'] ?? '') ?? 1;
           return CustomTransitionPage(
             key: state.pageKey,
-            child: SessionHomeScreen(initialDay: day),
+            child: const ActivityShell(),
             transitionsBuilder: _slideTransition,
           );
         },
