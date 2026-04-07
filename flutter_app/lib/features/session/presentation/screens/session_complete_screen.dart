@@ -257,6 +257,7 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
                     label: 'Về trang chính',
                     onPressed: () {
                       ref.read(sessionProvider.notifier).reset();
+                      ref.invalidate(allSessionsProvider);
                       context.go(RoutePaths.home);
                     },
                     icon: Icons.home_rounded,

@@ -137,7 +137,8 @@ class _ActivityShellState extends ConsumerState<ActivityShell>
       });
 
       final sessionState = ref.read(sessionProvider);
-      if (sessionState.isSessionComplete) {
+      if (sessionState.isSessionComplete ||
+          sessionState.currentActivityIndex >= (sessionState.session?.activityCount ?? 0)) {
         final day = sessionState.session?.dayNumber ?? 1;
         context.go('/session/$day/complete');
       } else {

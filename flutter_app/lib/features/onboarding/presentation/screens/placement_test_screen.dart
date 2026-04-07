@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -355,6 +356,8 @@ class _SayHelloRound extends StatefulWidget {
 class _SayHelloRoundState extends State<_SayHelloRound> {
   bool _isRecording = false;
   bool _hasRecorded = false;
+  bool _submitted = false;
+  final _tts = TtsService();
 
   void _toggleRecording() {
     if (_isRecording) {
@@ -384,8 +387,71 @@ class _SayHelloRoundState extends State<_SayHelloRound> {
     }
   }
 
+  void _onWebDone() {
+    if (_submitted) return;
+    setState(() => _submitted = true);
+    Future.delayed(const Duration(milliseconds: 500), () {
+      widget.onAnswer({
+        'round': 2,
+        'type': 'say_hello',
+        'recorded': false,
+        'correct': true, // Always passes on web
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (kIsWeb) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text(
+            'Hello!',
+            style: AppTypography.englishWord,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Nói "Hello!" thật to nhé!',
+            style: AppTypography.bodyLarge.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 24),
+          // TTS play button
+          ElevatedButton.icon(
+            onPressed: () => _tts.speak('Hello'),
+            icon: const Icon(Icons.volume_up, size: 28),
+            label: const Text('Nghe'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.secondary,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+          ),
+          const SizedBox(height: 32),
+          // Big green done button
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton.icon(
+              onPressed: _submitted ? null : _onWebDone,
+              icon: Icon(_submitted ? Icons.check : Icons.mic),
+              label: Text(_submitted ? 'Tuyệt vời!' : 'Đã nói xong!'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.success,
+                foregroundColor: Colors.white,
+                textStyle: AppTypography.titleMedium,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [

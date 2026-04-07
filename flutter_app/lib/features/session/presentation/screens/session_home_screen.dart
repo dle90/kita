@@ -113,7 +113,22 @@ class _SessionHomeScreenState extends ConsumerState<SessionHomeScreen> {
             // Day circles path
             Expanded(
               child: sessionsAsync.when(
-                data: (sessions) => _buildDayPath(sessions),
+                data: (sessions) {
+                  // Auto-set current day to first incomplete session
+                  if (widget.initialDay == null && sessions.isNotEmpty) {
+                    final firstIncompleteDay = sessions
+                        .where((s) => !s.isCompleted)
+                        .map((s) => s.dayNumber)
+                        .fold<int?>(null, (prev, day) => prev == null || day < prev ? day : prev);
+                    final targetDay = firstIncompleteDay ?? sessions.length + 1;
+                    if (targetDay != _currentDay) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) setState(() => _currentDay = targetDay.clamp(1, 7));
+                      });
+                    }
+                  }
+                  return _buildDayPath(sessions);
+                },
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (_, __) => _buildDayPath([]),
               ),
