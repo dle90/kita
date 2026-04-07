@@ -39,54 +39,28 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final secureStorage = ref.read(secureStorageProvider);
 
   return GoRouter(
-    initialLocation: RoutePaths.splash,
+    initialLocation: RoutePaths.onboardingParent,
     debugLogDiagnostics: true,
     redirect: (context, state) async {
       final currentPath = state.matchedLocation;
-      final authRoutes = [RoutePaths.login, RoutePaths.signup];
-      final onboardingRoutes = [
-        RoutePaths.onboardingParent,
-        RoutePaths.onboardingCharacter,
-        RoutePaths.onboardingPlacement,
-      ];
 
       try {
-        final isAuthenticated = await secureStorage.hasValidToken();
         final hasKidProfile =
             (await secureStorage.readKidProfileId()) != null;
 
-        // Not authenticated — go to onboarding (guest-first flow)
-        if (!isAuthenticated) {
-          if (authRoutes.contains(currentPath) ||
-              onboardingRoutes.contains(currentPath)) {
-            return null;
+        // Has kid profile — go to home (skip onboarding)
+        if (hasKidProfile) {
+          if (currentPath == RoutePaths.splash ||
+              currentPath == RoutePaths.onboardingParent ||
+              currentPath == RoutePaths.onboardingCharacter ||
+              currentPath == RoutePaths.onboardingPlacement ||
+              currentPath == RoutePaths.login ||
+              currentPath == RoutePaths.signup) {
+            return RoutePaths.home;
           }
-          return RoutePaths.onboardingParent;
-        }
-
-        // Authenticated but no kid profile — redirect to onboarding
-        if (!hasKidProfile) {
-          if (onboardingRoutes.contains(currentPath)) return null;
-          return RoutePaths.onboardingParent;
-        }
-
-        // Authenticated and has profile — redirect away from onboarding
-        if (authRoutes.contains(currentPath) ||
-            onboardingRoutes.contains(currentPath)) {
-          return RoutePaths.home;
-        }
-
-        // Splash redirect
-        if (currentPath == RoutePaths.splash) {
-          return RoutePaths.home;
         }
       } catch (_) {
-        // On web or storage error, fall back to onboarding
-        if (authRoutes.contains(currentPath) ||
-            onboardingRoutes.contains(currentPath)) {
-          return null;
-        }
-        return RoutePaths.onboardingParent;
+        // Storage error — stay on current page
       }
 
       return null;
