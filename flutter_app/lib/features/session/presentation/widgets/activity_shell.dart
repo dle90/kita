@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kita_english/core/audio/sound_effects.dart';
 import 'package:kita_english/core/constants/app_colors.dart';
 import 'package:kita_english/core/router/app_router.dart';
 import 'package:kita_english/core/constants/app_typography.dart';
@@ -65,6 +66,7 @@ class _ActivityShellState extends ConsumerState<ActivityShell>
     if (activity == null) return;
 
     if (isCorrect) {
+      ref.read(soundEffectsProvider).playCorrect();
       _attempts++;
       final timeSpent = DateTime.now()
           .difference(_activityStartTime ?? DateTime.now())
@@ -103,6 +105,7 @@ class _ActivityShellState extends ConsumerState<ActivityShell>
         _encourageColor = AppColors.secondary;
       });
 
+      ref.read(soundEffectsProvider).playWrong();
       // If too many attempts, move on
       if (_attempts >= 3) {
         Future.delayed(const Duration(milliseconds: 1200), () {

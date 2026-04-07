@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kita_english/core/audio/sound_effects.dart';
 import 'package:kita_english/core/audio/tts_service.dart';
 import 'package:kita_english/core/constants/app_colors.dart';
 import 'package:kita_english/core/constants/app_typography.dart';
@@ -120,12 +121,14 @@ class _ListenTapActivityState extends ConsumerState<ListenTapActivity>
         : (_quizOptions.isNotEmpty ? _quizOptions[index]['word'] ?? '' : '');
 
     if (isCorrect) {
+      ref.read(soundEffectsProvider).playCorrect();
       setState(() => _answered = true);
       widget.onComplete(
         isCorrect: true,
         metadata: {'selectedOption': selectedId},
       );
     } else {
+      ref.read(soundEffectsProvider).playWrong();
       _shakeController.forward(from: 0);
       widget.onComplete(
         isCorrect: false,

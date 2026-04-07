@@ -50,6 +50,24 @@
         }
       });
     }
+
+    // Web Audio API tone generator for sound effects
+    var _kitaAudioCtx = null;
+    function _kitaPlayTone(frequency, duration, type) {
+      try {
+        if (!_kitaAudioCtx) _kitaAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        var osc = _kitaAudioCtx.createOscillator();
+        var gain = _kitaAudioCtx.createGain();
+        osc.type = type;
+        osc.frequency.value = frequency;
+        gain.gain.setValueAtTime(0.3, _kitaAudioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, _kitaAudioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(_kitaAudioCtx.destination);
+        osc.start(_kitaAudioCtx.currentTime);
+        osc.stop(_kitaAudioCtx.currentTime + duration);
+      } catch(e) { console.warn('Audio:', e); }
+    }
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>

@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kita_english/core/audio/sound_effects.dart';
 import 'package:kita_english/core/constants/app_colors.dart';
 import 'package:kita_english/core/constants/app_typography.dart';
 import 'package:kita_english/core/router/app_router.dart';
@@ -38,6 +39,11 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
+
+    // Play celebration sound
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) SoundEffects().playCelebration();
+    });
 
     // Stagger animations
     Future.delayed(const Duration(milliseconds: 500), () {

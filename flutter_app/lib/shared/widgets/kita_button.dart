@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kita_english/core/audio/sound_effects.dart';
 import 'package:kita_english/core/constants/app_colors.dart';
 import 'package:kita_english/core/constants/app_typography.dart';
 
@@ -87,7 +88,12 @@ class _KitaButtonState extends State<KitaButton>
       onTapDown: _onTapDown,
       onTapUp: _onTapUp,
       onTapCancel: _onTapCancel,
-      onTap: isDisabled ? null : widget.onPressed,
+      onTap: isDisabled
+          ? null
+          : () {
+              SoundEffects().playTap();
+              widget.onPressed!();
+            },
       child: AnimatedBuilder(
         animation: _scaleAnimation,
         builder: (context, child) {

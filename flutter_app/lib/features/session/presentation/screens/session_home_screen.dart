@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kita_english/core/audio/sound_effects.dart';
 import 'package:kita_english/core/constants/app_colors.dart';
 import 'package:kita_english/core/constants/app_typography.dart';
 import 'package:kita_english/core/router/app_router.dart';
@@ -140,6 +141,7 @@ class _SessionHomeScreenState extends ConsumerState<SessionHomeScreen> {
               child: KitaButton(
                 label: 'Bắt đầu Ngày $_currentDay!',
                 onPressed: () async {
+                  ref.read(soundEffectsProvider).playTap();
                   await ref.read(sessionProvider.notifier).startSession(_currentDay);
                   if (mounted) {
                     context.push('/session/$_currentDay');

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:kita_english/core/constants/app_colors.dart';
 import 'package:kita_english/core/constants/app_typography.dart';
 import 'package:kita_english/core/router/app_router.dart';
+import 'package:kita_english/core/audio/sound_effects.dart';
 import 'package:kita_english/core/audio/tts_service.dart';
 import 'package:kita_english/features/onboarding/presentation/providers/onboarding_provider.dart';
 
@@ -59,6 +60,7 @@ class _PlacementTestScreenState extends ConsumerState<PlacementTestScreen>
     final isCorrect = answer['correct'] == true;
 
     if (isCorrect) {
+      ref.read(soundEffectsProvider).playCorrect();
       _answers.add(answer);
       final encouragements = [
         'Tuyệt vời! ⭐',
@@ -78,6 +80,7 @@ class _PlacementTestScreenState extends ConsumerState<PlacementTestScreen>
         }
       });
     } else {
+      ref.read(soundEffectsProvider).playWrong();
       // Gentle wrong-answer feedback — don't record, let them retry
       final nudges = [
         'Gần đúng rồi! Thử lại nha! 💪',
@@ -272,6 +275,7 @@ class _ListenAndTapRoundState extends State<_ListenAndTapRound> {
       _lastCorrect = isCorrect;
     });
     if (isCorrect) {
+      SoundEffects().playCorrect();
       _answered = true;
       Future.delayed(const Duration(milliseconds: 400), () {
         widget.onAnswer({
@@ -282,6 +286,7 @@ class _ListenAndTapRoundState extends State<_ListenAndTapRound> {
         });
       });
     } else {
+      SoundEffects().playWrong();
       // Wrong — flash red, then clear for retry
       widget.onAnswer({
         'round': 1,
@@ -584,11 +589,13 @@ class _ReadAndMatchRoundState extends State<_ReadAndMatchRound> {
     final isCorrect = index == _correctIndex;
     setState(() { _selectedIndex = index; _lastCorrect = isCorrect; });
     if (isCorrect) {
+      SoundEffects().playCorrect();
       _answered = true;
       Future.delayed(const Duration(milliseconds: 400), () {
         widget.onAnswer({'round': 3, 'type': 'read_match', 'selected': _options[index]['label'], 'correct': true});
       });
     } else {
+      SoundEffects().playWrong();
       widget.onAnswer({'round': 3, 'type': 'read_match', 'selected': _options[index]['label'], 'correct': false});
       Future.delayed(const Duration(milliseconds: 800), () {
         if (mounted) setState(() { _selectedIndex = null; _lastCorrect = null; });
@@ -678,11 +685,13 @@ class _PhonicsRoundState extends State<_PhonicsRound> {
     final isCorrect = index == _correctIndex;
     setState(() { _selectedIndex = index; _lastCorrect = isCorrect; });
     if (isCorrect) {
+      SoundEffects().playCorrect();
       _answered = true;
       Future.delayed(const Duration(milliseconds: 400), () {
         widget.onAnswer({'round': 4, 'type': 'phonics', 'selected': _options[index]['label'], 'correct': true});
       });
     } else {
+      SoundEffects().playWrong();
       widget.onAnswer({'round': 4, 'type': 'phonics', 'selected': _options[index]['label'], 'correct': false});
       Future.delayed(const Duration(milliseconds: 800), () {
         if (mounted) setState(() { _selectedIndex = null; _lastCorrect = null; });
