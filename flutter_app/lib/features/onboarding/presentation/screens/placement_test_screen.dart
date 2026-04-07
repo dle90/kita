@@ -56,27 +56,38 @@ class _PlacementTestScreenState extends ConsumerState<PlacementTestScreen>
   }
 
   void _submitAnswer(Map<String, dynamic> answer) {
-    _answers.add(answer);
+    final isCorrect = answer['correct'] == true;
 
-    // Always show encouragement — no right/wrong feedback
-    final encouragements = [
-      'Tuyệt vời!',
-      'Giỏi lắm!',
-      'Hay quá!',
-      'Bé làm tốt lắm!',
-      'Cố lên nào!',
-    ];
-    _showEncouragement(
-      encouragements[Random().nextInt(encouragements.length)],
-    );
+    if (isCorrect) {
+      _answers.add(answer);
+      final encouragements = [
+        'Tuyệt vời! ⭐',
+        'Giỏi lắm! 🎉',
+        'Đúng rồi! ✨',
+        'Hay quá! 👏',
+      ];
+      _showEncouragement(
+        encouragements[Random().nextInt(encouragements.length)],
+      );
 
-    Future.delayed(const Duration(milliseconds: 800), () {
-      if (_currentRound < 3) {
-        setState(() => _currentRound++);
-      } else {
-        _finishPlacement();
-      }
-    });
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (_currentRound < 3) {
+          setState(() => _currentRound++);
+        } else {
+          _finishPlacement();
+        }
+      });
+    } else {
+      // Gentle wrong-answer feedback — don't record, let them retry
+      final nudges = [
+        'Gần đúng rồi! Thử lại nha! 💪',
+        'Chưa đúng, thử lần nữa nhé! 😊',
+        'Không sao, chọn lại nha! 🌟',
+      ];
+      _showEncouragement(
+        nudges[Random().nextInt(nudges.length)],
+      );
+    }
   }
 
   Future<void> _finishPlacement() async {
@@ -241,6 +252,8 @@ class _ListenAndTapRound extends StatefulWidget {
 
 class _ListenAndTapRoundState extends State<_ListenAndTapRound> {
   int? _selectedIndex;
+  bool? _lastCorrect;
+  bool _answered = false;
   final int _correctIndex = 1; // "apple" is at index 1
   final _tts = TtsService();
 
@@ -250,6 +263,37 @@ class _ListenAndTapRoundState extends State<_ListenAndTapRound> {
     {'label': 'Car', 'emoji': '🚗'},
     {'label': 'Book', 'emoji': '📖'},
   ];
+
+  void _onTap(int index) {
+    if (_answered) return;
+    final isCorrect = index == _correctIndex;
+    setState(() {
+      _selectedIndex = index;
+      _lastCorrect = isCorrect;
+    });
+    if (isCorrect) {
+      _answered = true;
+      Future.delayed(const Duration(milliseconds: 400), () {
+        widget.onAnswer({
+          'round': 1,
+          'type': 'listen_tap',
+          'selected': _options[index]['label'],
+          'correct': true,
+        });
+      });
+    } else {
+      // Wrong — flash red, then clear for retry
+      widget.onAnswer({
+        'round': 1,
+        'type': 'listen_tap',
+        'selected': _options[index]['label'],
+        'correct': false,
+      });
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (mounted) setState(() { _selectedIndex = null; _lastCorrect = null; });
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -261,11 +305,8 @@ class _ListenAndTapRoundState extends State<_ListenAndTapRound> {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
-        // Play button — speaks the word aloud using TTS
         ElevatedButton.icon(
-          onPressed: () {
-            _tts.speak('apple');
-          },
+          onPressed: () => _tts.speak('apple'),
           icon: const Icon(Icons.volume_up, size: 28),
           label: const Text('Nghe'),
           style: ElevatedButton.styleFrom(
@@ -286,34 +327,30 @@ class _ListenAndTapRoundState extends State<_ListenAndTapRound> {
             itemBuilder: (context, index) {
               final option = _options[index];
               final isSelected = _selectedIndex == index;
+              final isCorrectAnswer = isSelected && _lastCorrect == true;
+              final isWrongAnswer = isSelected && _lastCorrect == false;
               return GestureDetector(
-                onTap: () {
-                  setState(() => _selectedIndex = index);
-                  Future.delayed(const Duration(milliseconds: 400), () {
-                    widget.onAnswer({
-                      'round': 1,
-                      'type': 'listen_tap',
-                      'selected': option['label'],
-                      'correct': index == _correctIndex,
-                    });
-                  });
-                },
+                onTap: () => _onTap(index),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.primaryLight.withValues(alpha:0.3)
-                        : AppColors.surface,
+                    color: isCorrectAnswer
+                        ? AppColors.successLight.withValues(alpha: 0.3)
+                        : isWrongAnswer
+                            ? AppColors.errorLight.withValues(alpha: 0.3)
+                            : AppColors.surface,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: isSelected
-                          ? AppColors.primary
-                          : AppColors.surfaceVariant,
+                      color: isCorrectAnswer
+                          ? AppColors.success
+                          : isWrongAnswer
+                              ? AppColors.error
+                              : AppColors.surfaceVariant,
                       width: isSelected ? 3 : 1,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha:0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -531,6 +568,8 @@ class _ReadAndMatchRound extends StatefulWidget {
 
 class _ReadAndMatchRoundState extends State<_ReadAndMatchRound> {
   int? _selectedIndex;
+  bool? _lastCorrect;
+  bool _answered = false;
   final int _correctIndex = 2; // "cat" is at index 2
 
   final _options = [
@@ -540,78 +579,67 @@ class _ReadAndMatchRoundState extends State<_ReadAndMatchRound> {
     {'emoji': '🐰', 'label': 'Rabbit'},
   ];
 
+  void _onTap(int index) {
+    if (_answered) return;
+    final isCorrect = index == _correctIndex;
+    setState(() { _selectedIndex = index; _lastCorrect = isCorrect; });
+    if (isCorrect) {
+      _answered = true;
+      Future.delayed(const Duration(milliseconds: 400), () {
+        widget.onAnswer({'round': 3, 'type': 'read_match', 'selected': _options[index]['label'], 'correct': true});
+      });
+    } else {
+      widget.onAnswer({'round': 3, 'type': 'read_match', 'selected': _options[index]['label'], 'correct': false});
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (mounted) setState(() { _selectedIndex = null; _lastCorrect = null; });
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const Text(
-          'Đọc từ này:',
-          style: AppTypography.titleLarge,
-        ),
+        const Text('Đọc từ này:', style: AppTypography.titleLarge),
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           decoration: BoxDecoration(
-            color: AppColors.primaryLight.withValues(alpha:0.15),
+            color: AppColors.primaryLight.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(16),
           ),
-          child: const Text(
-            'CAT',
-            style: AppTypography.englishWord,
-          ),
+          child: const Text('CAT', style: AppTypography.englishWord),
         ),
         const SizedBox(height: 8),
-        Text(
-          'Chọn hình phù hợp:',
-          style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
+        Text('Chọn hình phù hợp:', style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary)),
         const SizedBox(height: 24),
         Expanded(
           child: GridView.builder(
             shrinkWrap: true,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-            ),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 16, mainAxisSpacing: 16),
             itemCount: _options.length,
             itemBuilder: (context, index) {
               final option = _options[index];
               final isSelected = _selectedIndex == index;
+              final isCorrectAnswer = isSelected && _lastCorrect == true;
+              final isWrongAnswer = isSelected && _lastCorrect == false;
               return GestureDetector(
-                onTap: () {
-                  setState(() => _selectedIndex = index);
-                  Future.delayed(const Duration(milliseconds: 400), () {
-                    widget.onAnswer({
-                      'round': 3,
-                      'type': 'read_match',
-                      'selected': option['label'],
-                      'correct': index == _correctIndex,
-                    });
-                  });
-                },
+                onTap: () => _onTap(index),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.primaryLight.withValues(alpha:0.3)
-                        : AppColors.surface,
+                    color: isCorrectAnswer
+                        ? AppColors.successLight.withValues(alpha: 0.3)
+                        : isWrongAnswer
+                            ? AppColors.errorLight.withValues(alpha: 0.3)
+                            : AppColors.surface,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: isSelected
-                          ? AppColors.primary
-                          : AppColors.surfaceVariant,
+                      color: isCorrectAnswer ? AppColors.success : isWrongAnswer ? AppColors.error : AppColors.surfaceVariant,
                       width: isSelected ? 3 : 1,
                     ),
                   ),
-                  child: Center(
-                    child: Text(
-                      option['emoji']!,
-                      style: const TextStyle(fontSize: 56),
-                    ),
-                  ),
+                  child: Center(child: Text(option['emoji']!, style: const TextStyle(fontSize: 56))),
                 ),
               );
             },
@@ -634,6 +662,8 @@ class _PhonicsRound extends StatefulWidget {
 
 class _PhonicsRoundState extends State<_PhonicsRound> {
   int? _selectedIndex;
+  bool? _lastCorrect;
+  bool _answered = false;
   final int _correctIndex = 0; // "banana" starts with "b" like "ball"
 
   final _options = [
@@ -643,21 +673,33 @@ class _PhonicsRoundState extends State<_PhonicsRound> {
     {'emoji': '🐟', 'label': 'Fish'},
   ];
 
+  void _onTap(int index) {
+    if (_answered) return;
+    final isCorrect = index == _correctIndex;
+    setState(() { _selectedIndex = index; _lastCorrect = isCorrect; });
+    if (isCorrect) {
+      _answered = true;
+      Future.delayed(const Duration(milliseconds: 400), () {
+        widget.onAnswer({'round': 4, 'type': 'phonics', 'selected': _options[index]['label'], 'correct': true});
+      });
+    } else {
+      widget.onAnswer({'round': 4, 'type': 'phonics', 'selected': _options[index]['label'], 'correct': false});
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (mounted) setState(() { _selectedIndex = null; _lastCorrect = null; });
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const Text(
-          'Từ nào bắt đầu giống\nâm của "Ball"?',
-          style: AppTypography.titleLarge,
-          textAlign: TextAlign.center,
-        ),
+        const Text('Từ nào bắt đầu giống\nâm của "Ball"?', style: AppTypography.titleLarge, textAlign: TextAlign.center),
         const SizedBox(height: 12),
-        // Illustration for "ball"
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           decoration: BoxDecoration(
-            color: AppColors.secondaryLight.withValues(alpha:0.2),
+            color: AppColors.secondaryLight.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Row(
@@ -665,12 +707,7 @@ class _PhonicsRoundState extends State<_PhonicsRound> {
             children: [
               const Text('⚽', style: TextStyle(fontSize: 36)),
               const SizedBox(width: 12),
-              Text(
-                'Ball',
-                style: AppTypography.englishWord.copyWith(
-                  color: AppColors.secondary,
-                ),
-              ),
+              Text('Ball', style: AppTypography.englishWord.copyWith(color: AppColors.secondary)),
             ],
           ),
         ),
@@ -678,53 +715,35 @@ class _PhonicsRoundState extends State<_PhonicsRound> {
         Expanded(
           child: GridView.builder(
             shrinkWrap: true,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-            ),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 16, mainAxisSpacing: 16),
             itemCount: _options.length,
             itemBuilder: (context, index) {
               final option = _options[index];
               final isSelected = _selectedIndex == index;
+              final isCorrectAnswer = isSelected && _lastCorrect == true;
+              final isWrongAnswer = isSelected && _lastCorrect == false;
               return GestureDetector(
-                onTap: () {
-                  setState(() => _selectedIndex = index);
-                  Future.delayed(const Duration(milliseconds: 400), () {
-                    widget.onAnswer({
-                      'round': 4,
-                      'type': 'phonics',
-                      'selected': option['label'],
-                      'correct': index == _correctIndex,
-                    });
-                  });
-                },
+                onTap: () => _onTap(index),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.primaryLight.withValues(alpha:0.3)
-                        : AppColors.surface,
+                    color: isCorrectAnswer
+                        ? AppColors.successLight.withValues(alpha: 0.3)
+                        : isWrongAnswer
+                            ? AppColors.errorLight.withValues(alpha: 0.3)
+                            : AppColors.surface,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: isSelected
-                          ? AppColors.primary
-                          : AppColors.surfaceVariant,
+                      color: isCorrectAnswer ? AppColors.success : isWrongAnswer ? AppColors.error : AppColors.surfaceVariant,
                       width: isSelected ? 3 : 1,
                     ),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        option['emoji']!,
-                        style: const TextStyle(fontSize: 44),
-                      ),
+                      Text(option['emoji']!, style: const TextStyle(fontSize: 44)),
                       const SizedBox(height: 8),
-                      Text(
-                        option['label']!,
-                        style: AppTypography.titleSmall,
-                      ),
+                      Text(option['label']!, style: AppTypography.titleSmall),
                     ],
                   ),
                 ),
