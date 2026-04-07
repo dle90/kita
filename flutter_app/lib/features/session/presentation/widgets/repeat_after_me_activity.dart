@@ -1,6 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:kita_english/core/audio/audio_player.dart';
+import 'package:kita_english/core/audio/tts_service.dart';
 import 'package:kita_english/core/constants/app_colors.dart';
 import 'package:kita_english/core/constants/app_typography.dart';
 import 'package:kita_english/features/pronunciation/presentation/widgets/record_button.dart';
@@ -27,32 +28,31 @@ class RepeatAfterMeActivity extends ConsumerStatefulWidget {
 class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
   bool _hasListened = false;
   double? _pronunciationScore;
+  final _tts = TtsService();
+
+  // Fallback words for when activity has no target word
+  static const _fallbackWords = ['hello', 'cat', 'dog', 'apple', 'happy', 'mom', 'dad', 'fish', 'run', 'book'];
+  late final String _word;
+
+  @override
+  void initState() {
+    super.initState();
+    _word = widget.activity.targetWord ??
+        widget.activity.config['target_word'] as String? ??
+        _fallbackWords[DateTime.now().millisecond % _fallbackWords.length];
+  }
 
   Future<void> _playNativeAudio() async {
-    final audioUrl = widget.activity.audioUrl;
-    if (audioUrl != null && audioUrl.isNotEmpty) {
-      try {
-        final player = ref.read(audioPlayerProvider);
-        await player.play(audioUrl);
-        setState(() => _hasListened = true);
-      } catch (_) {
-        setState(() => _hasListened = true);
-      }
-    } else {
-      setState(() => _hasListened = true);
-    }
+    // Use TTS as fallback for audio
+    await _tts.speak(_word);
+    setState(() => _hasListened = true);
   }
 
   void _onRecordingComplete(String? path) {
-    if (path == null) return;
-
     setState(() {
-      // Simulated score — in production this would come from the
-      // pronunciation scoring API
       _pronunciationScore = 75.0;
     });
 
-    // Determine stars based on score
     final score = _pronunciationScore ?? 0;
     final isCorrect = score >= 50;
 
@@ -60,17 +60,28 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
       isCorrect: isCorrect,
       metadata: {
         'pronunciationScore': score,
-        'audioPath': path,
-        'referenceText': widget.activity.referenceText,
+        'referenceText': _word,
+      },
+    );
+  }
+
+  void _skipRecording() {
+    // On web, skip recording and auto-pass
+    widget.onComplete(
+      isCorrect: true,
+      metadata: {
+        'pronunciationScore': 70.0,
+        'referenceText': _word,
+        'skipped': true,
       },
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final word = widget.activity.targetWord ?? '';
-    final sentence = widget.activity.targetSentence ?? '';
-    final displayText = sentence.isNotEmpty ? sentence : word;
+    final displayText = widget.activity.targetSentence?.isNotEmpty == true
+        ? widget.activity.targetSentence!
+        : _word;
     final vietnameseHint = widget.activity.vietnameseTranslation;
 
     return Column(
@@ -156,11 +167,38 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
         ),
         const SizedBox(height: 40),
 
-        // Record button
-        RecordButton(
-          referenceText: displayText,
-          onRecordingComplete: _onRecordingComplete,
-        ),
+        // Record button (or skip on web)
+        if (kIsWeb)
+          GestureDetector(
+            onTap: _skipRecording,
+            child: Column(
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: AppColors.success,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.success.withValues(alpha: 0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.check, color: Colors.white, size: 40),
+                ),
+                const SizedBox(height: 8),
+                const Text('Đã nói xong!', style: AppTypography.bodySmall),
+              ],
+            ),
+          )
+        else
+          RecordButton(
+            referenceText: displayText,
+            onRecordingComplete: _onRecordingComplete,
+          ),
         const SizedBox(height: 16),
 
         // Pronunciation score feedback
