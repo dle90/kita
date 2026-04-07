@@ -5,7 +5,8 @@ COPY pubspec.yaml ./
 COPY pubspec.lock* ./
 RUN flutter pub get
 
-# v2 - force rebuild with dialect fix + TTS
+# Copy all source — .build_id changes each deploy to bust Docker cache
+COPY .build_id* ./
 COPY . .
 RUN flutter build web --release
 
