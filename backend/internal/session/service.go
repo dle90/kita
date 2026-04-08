@@ -12,11 +12,11 @@ import (
 )
 
 type SessionService struct {
-	sessionRepo    SessionRepository
-	activityRepo   ActivityResultRepository
-	contentRepo    content.ContentRepository
-	kidRepo        onboarding.KidRepository
-	srsRepo        srs.SrsRepository
+	sessionRepo  SessionRepository
+	activityRepo ActivityResultRepository
+	contentRepo  content.ContentRepository
+	kidRepo      onboarding.KidRepository
+	srsRepo      srs.SrsRepository
 }
 
 func NewSessionService(
@@ -113,7 +113,14 @@ func (s *SessionService) GetSession(ctx context.Context, kidID uuid.UUID, dayNum
 
 	recentAccuracy := s.getRecentAccuracy(ctx, kidID)
 
-	activities := GenerateSessionActivities(dayNumber, templates, dueCards, recentAccuracy)
+	// Collect all vocabulary IDs we need to look up
+	vocabIDs := s.collectVocabularyIDs(templates, dueCards)
+	vocabByID, _ := GetVocabularyForActivity(ctx, s.contentRepo, vocabIDs)
+	if vocabByID == nil {
+		vocabByID = make(map[uuid.UUID]*content.Vocabulary)
+	}
+
+	activities := GenerateSessionActivities(dayNumber, templates, dueCards, recentAccuracy, vocabByID)
 
 	return &SessionWithActivities{
 		KidSession: *session,
@@ -194,6 +201,9 @@ func (s *SessionService) CompleteSession(ctx context.Context, kidID uuid.UUID, d
 		_ = srsService.CreateCardsForSession(ctx, kidID, vocabIDs)
 	}
 
+	// Review SRS cards based on activity results (map attempts to SM-2 quality)
+	s.reviewSRSCardsFromResults(ctx, kidID, results)
+
 	// Update kid's current day
 	kid, _ := s.kidRepo.GetKid(ctx, kidID)
 	if kid != nil && dayNumber >= kid.CurrentDay && dayNumber < 7 {
@@ -259,4 +269,60 @@ func (s *SessionService) getRecentAccuracy(ctx context.Context, kidID uuid.UUID)
 		return 0
 	}
 	return totalAccuracy / float64(count)
+}
+
+// collectVocabularyIDs gathers all unique vocabulary IDs from templates and SRS due cards
+// so they can be fetched in a single batch query.
+func (s *SessionService) collectVocabularyIDs(templates []*content.SessionTemplate, dueCards []*srs.SrsCard) []uuid.UUID {
+	seen := make(map[uuid.UUID]bool)
+	var ids []uuid.UUID
+
+	for _, tmpl := range templates {
+		for _, vid := range tmpl.VocabularyIDs {
+			if !seen[vid] {
+				seen[vid] = true
+				ids = append(ids, vid)
+			}
+		}
+	}
+
+	for _, card := range dueCards {
+		if !seen[card.VocabularyID] {
+			seen[card.VocabularyID] = true
+			ids = append(ids, card.VocabularyID)
+		}
+	}
+
+	return ids
+}
+
+// reviewSRSCardsFromResults updates SRS cards based on activity results.
+// It maps activity attempts/correctness to SM-2 quality scores.
+func (s *SessionService) reviewSRSCardsFromResults(ctx context.Context, kidID uuid.UUID, results []*ActivityResult) {
+	// Get all SRS cards for this kid to match vocabulary IDs
+	cards, err := s.srsRepo.GetCardsByKid(ctx, kidID)
+	if err != nil || len(cards) == 0 {
+		return
+	}
+
+	// Build vocab -> card mapping
+	cardByVocab := make(map[uuid.UUID]*srs.SrsCard, len(cards))
+	for _, card := range cards {
+		cardByVocab[card.VocabularyID] = card
+	}
+
+	srsService := srs.NewSrsService(s.srsRepo)
+
+	for _, result := range results {
+		if result.VocabularyID == nil {
+			continue
+		}
+		card, ok := cardByVocab[*result.VocabularyID]
+		if !ok {
+			continue
+		}
+
+		quality := MapAttemptsToSM2Quality(result.Attempts, result.IsCorrect)
+		_, _ = srsService.ReviewCard(ctx, card.ID, quality)
+	}
 }

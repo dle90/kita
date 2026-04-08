@@ -7,17 +7,20 @@ import (
 )
 
 type Vocabulary struct {
-	ID             uuid.UUID `json:"id"`
-	Word           string    `json:"word"`
-	TranslationVI  string    `json:"translation_vi"`
-	PhoneticIPA    string    `json:"phonetic_ipa"`
-	AudioURL       string    `json:"audio_url"`
-	ImageURL       string    `json:"image_url"`
-	Category       string    `json:"category"`
-	DayNumber      int       `json:"day_number"`
-	Difficulty     int       `json:"difficulty"`
-	TargetPhonemes []string  `json:"target_phonemes"`
-	CommonL1Errors []string  `json:"common_l1_errors"`
+	ID                uuid.UUID `json:"id"`
+	Word              string    `json:"word"`
+	TranslationVI     string    `json:"translation_vi"`
+	PhoneticIPA       string    `json:"phonetic_ipa"`
+	AudioURL          string    `json:"audio_url"`
+	ImageURL          string    `json:"image_url"`
+	Category          string    `json:"category"`
+	DayNumber         int       `json:"day_number"`
+	Difficulty        int       `json:"difficulty"`
+	Emoji             string    `json:"emoji"`
+	ExampleSentence   string    `json:"example_sentence"`
+	ExampleSentenceVI string    `json:"example_sentence_vi"`
+	TargetPhonemes    []string  `json:"target_phonemes"`
+	CommonL1Errors    []string  `json:"common_l1_errors"`
 }
 
 type Sentence struct {
@@ -44,14 +47,17 @@ type SessionTemplate struct {
 
 // Seed data structures for JSON import
 type VocabularySeed struct {
-	Word           string   `json:"word"`
-	TranslationVI  string   `json:"translation_vi"`
-	PhoneticIPA    string   `json:"phonetic_ipa"`
-	Category       string   `json:"category"`
-	DayNumber      int      `json:"day_number"`
-	Difficulty     int      `json:"difficulty"`
-	TargetPhonemes []string `json:"target_phonemes"`
-	CommonL1Errors []string `json:"common_l1_errors"`
+	Word              string   `json:"word"`
+	TranslationVI     string   `json:"translation_vi"`
+	PhoneticIPA       string   `json:"phonetic_ipa"`
+	Category          string   `json:"category"`
+	DayNumber         int      `json:"day_number"`
+	Difficulty        int      `json:"difficulty"`
+	Emoji             string   `json:"emoji"`
+	ExampleSentence   string   `json:"example_sentence"`
+	ExampleSentenceVI string   `json:"example_sentence_vi"`
+	TargetPhonemes    []string `json:"target_phonemes"`
+	CommonL1Errors    []string `json:"common_l1_errors"`
 }
 
 type SessionTemplateSeed struct {

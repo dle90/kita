@@ -53,15 +53,18 @@ func seedVocabulary(ctx context.Context, repo ContentRepository, filePath string
 	wordIDMap := make(map[string]uuid.UUID)
 	for _, s := range seeds {
 		vocab := &Vocabulary{
-			ID:             uuid.New(),
-			Word:           s.Word,
-			TranslationVI:  s.TranslationVI,
-			PhoneticIPA:    s.PhoneticIPA,
-			Category:       s.Category,
-			DayNumber:      s.DayNumber,
-			Difficulty:     s.Difficulty,
-			TargetPhonemes: s.TargetPhonemes,
-			CommonL1Errors: s.CommonL1Errors,
+			ID:                uuid.New(),
+			Word:              s.Word,
+			TranslationVI:     s.TranslationVI,
+			PhoneticIPA:       s.PhoneticIPA,
+			Category:          s.Category,
+			DayNumber:         s.DayNumber,
+			Difficulty:        s.Difficulty,
+			Emoji:             s.Emoji,
+			ExampleSentence:   s.ExampleSentence,
+			ExampleSentenceVI: s.ExampleSentenceVI,
+			TargetPhonemes:    s.TargetPhonemes,
+			CommonL1Errors:    s.CommonL1Errors,
 		}
 		if err := repo.InsertVocabulary(ctx, vocab); err != nil {
 			return nil, fmt.Errorf("inserting vocabulary %q: %w", s.Word, err)

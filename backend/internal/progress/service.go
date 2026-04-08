@@ -2,10 +2,12 @@ package progress
 
 import (
 	"context"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/kitaenglish/backend/internal/common"
+	"github.com/kitaenglish/backend/internal/pronunciation"
 	"github.com/kitaenglish/backend/internal/session"
 	"github.com/kitaenglish/backend/internal/srs"
 )
@@ -15,6 +17,7 @@ type ProgressService struct {
 	sessionRepo  session.SessionRepository
 	activityRepo session.ActivityResultRepository
 	srsRepo      srs.SrsRepository
+	pronRepo     pronunciation.PronunciationRepository
 }
 
 func NewProgressService(
@@ -22,12 +25,14 @@ func NewProgressService(
 	sessionRepo session.SessionRepository,
 	activityRepo session.ActivityResultRepository,
 	srsRepo srs.SrsRepository,
+	pronRepo pronunciation.PronunciationRepository,
 ) *ProgressService {
 	return &ProgressService{
 		progressRepo: progressRepo,
 		sessionRepo:  sessionRepo,
 		activityRepo: activityRepo,
 		srsRepo:      srsRepo,
+		pronRepo:     pronRepo,
 	}
 }
 
@@ -59,12 +64,32 @@ func (s *ProgressService) RecordSessionProgress(ctx context.Context, kidID uuid.
 		}
 	}
 
+	// Get actual pronunciation score from pronunciation_scores if available
+	avgPronScore := sess.AccuracyPct
+	if s.pronRepo != nil {
+		scores, pronErr := s.pronRepo.GetScoresByKid(ctx, kidID, 10)
+		if pronErr == nil && len(scores) > 0 {
+			// Use the average of recent pronunciation scores from today
+			var todayTotal float64
+			var todayCount int
+			for _, sc := range scores {
+				if sc.CreatedAt.Truncate(24 * time.Hour).Equal(today) {
+					todayTotal += sc.PronunciationScore
+					todayCount++
+				}
+			}
+			if todayCount > 0 {
+				avgPronScore = todayTotal / float64(todayCount)
+			}
+		}
+	}
+
 	progress := &DailyProgress{
 		KidID:            kidID,
 		Date:             today,
 		WordsLearned:     wordsLearned,
 		WordsReviewed:    wordsReviewed,
-		AvgPronScore:     sess.AccuracyPct,
+		AvgPronScore:     avgPronScore,
 		SessionCompleted: sess.CompletedAt != nil,
 		TotalTimeMs:      totalTimeMs,
 	}
@@ -76,7 +101,7 @@ func (s *ProgressService) RecordSessionProgress(ctx context.Context, kidID uuid.
 		progress.WordsReviewed += existing.WordsReviewed
 		progress.TotalTimeMs += existing.TotalTimeMs
 		if existing.AvgPronScore > 0 {
-			progress.AvgPronScore = (existing.AvgPronScore + sess.AccuracyPct) / 2
+			progress.AvgPronScore = (existing.AvgPronScore + avgPronScore) / 2
 		}
 	}
 
@@ -161,14 +186,117 @@ func (s *ProgressService) GetVocabularyProgress(ctx context.Context, kidID uuid.
 }
 
 func (s *ProgressService) GetPronunciationProgress(ctx context.Context, kidID uuid.UUID) (*PronunciationProgress, error) {
-	// This would normally query the pronunciation_scores table
-	// For now, derive from session data
-	return &PronunciationProgress{
-		TotalAttempts: 0,
-		AvgScore:      0,
-		BestScore:     0,
-		CommonErrors:  []string{},
-	}, nil
+	if s.pronRepo == nil {
+		// No pronunciation repo available, return empty progress
+		return &PronunciationProgress{
+			TotalAttempts: 0,
+			AvgScore:      0,
+			BestScore:     0,
+			CommonErrors:  []L1ErrorCount{},
+			Trend:         "flat",
+		}, nil
+	}
+
+	// Fetch recent pronunciation scores (up to 50 for analysis)
+	scores, err := s.pronRepo.GetScoresByKid(ctx, kidID, 50)
+	if err != nil {
+		return nil, common.ErrInternal("failed to get pronunciation scores")
+	}
+
+	pp := &PronunciationProgress{
+		TotalAttempts: len(scores),
+		CommonErrors:  []L1ErrorCount{},
+		Trend:         "flat",
+	}
+
+	if len(scores) == 0 {
+		return pp, nil
+	}
+
+	// Calculate average and best scores
+	var totalScore float64
+	bestScore := 0.0
+	for _, sc := range scores {
+		totalScore += sc.PronunciationScore
+		if sc.PronunciationScore > bestScore {
+			bestScore = sc.PronunciationScore
+		}
+	}
+	pp.AvgScore = totalScore / float64(len(scores))
+	pp.BestScore = bestScore
+
+	// Aggregate L1 error types
+	errorCounts := make(map[string]int)
+	for _, sc := range scores {
+		// L1Errors may be populated from the stored JSON
+		for _, l1err := range sc.L1Errors {
+			errorCounts[string(l1err.Type)]++
+		}
+	}
+
+	// Convert to sorted slice (most common first)
+	for errType, count := range errorCounts {
+		pp.CommonErrors = append(pp.CommonErrors, L1ErrorCount{
+			ErrorType: errType,
+			Count:     count,
+		})
+	}
+	sort.Slice(pp.CommonErrors, func(i, j int) bool {
+		return pp.CommonErrors[i].Count > pp.CommonErrors[j].Count
+	})
+
+	// Calculate trend based on last 5 vs previous 5 scores
+	// Scores are ordered DESC by created_at, so index 0 is most recent
+	pp.Trend = calculatePronunciationTrend(scores)
+
+	return pp, nil
+}
+
+// calculatePronunciationTrend compares the average of the last 5 scores vs the previous 5.
+// Scores are assumed to be ordered most-recent-first (DESC by created_at).
+func calculatePronunciationTrend(scores []*pronunciation.PronunciationScore) string {
+	if len(scores) < 5 {
+		return "flat" // not enough data
+	}
+
+	// Recent 5 scores (indices 0..4)
+	recentCount := 5
+	if recentCount > len(scores) {
+		recentCount = len(scores)
+	}
+	var recentTotal float64
+	for i := 0; i < recentCount; i++ {
+		recentTotal += scores[i].PronunciationScore
+	}
+	recentAvg := recentTotal / float64(recentCount)
+
+	// Previous 5 scores (indices 5..9)
+	prevStart := recentCount
+	prevEnd := prevStart + 5
+	if prevEnd > len(scores) {
+		prevEnd = len(scores)
+	}
+	prevCount := prevEnd - prevStart
+	if prevCount == 0 {
+		return "flat"
+	}
+
+	var prevTotal float64
+	for i := prevStart; i < prevEnd; i++ {
+		prevTotal += scores[i].PronunciationScore
+	}
+	prevAvg := prevTotal / float64(prevCount)
+
+	// Determine trend with a threshold of 3 points
+	diff := recentAvg - prevAvg
+	switch {
+	case diff > 3:
+		return "improving"
+	case diff < -3:
+		return "declining"
+	default:
+		return "flat"
+	}
 }
 
 func calculateStreak(sessions []*session.KidSession) int {
@@ -182,3 +310,4 @@ func calculateStreak(sessions []*session.KidSession) int {
 	}
 	return streak
 }
+

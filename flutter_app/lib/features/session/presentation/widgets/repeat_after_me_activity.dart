@@ -7,11 +7,14 @@ import 'package:kita_english/core/audio/web_recorder.dart';
 import 'package:kita_english/core/constants/app_colors.dart';
 import 'package:kita_english/core/constants/app_typography.dart';
 import 'package:kita_english/features/pronunciation/data/repositories/pronunciation_repository_impl.dart';
+import 'package:kita_english/features/pronunciation/domain/entities/pronunciation_score.dart';
+import 'package:kita_english/features/pronunciation/presentation/providers/pronunciation_provider.dart';
+import 'package:kita_english/features/pronunciation/presentation/widgets/pronunciation_feedback.dart';
 import 'package:kita_english/features/pronunciation/presentation/widgets/record_button.dart';
 import 'package:kita_english/features/session/domain/entities/activity.dart';
 
 /// Repeat After Me activity: shows a word/sentence, plays native audio,
-/// kid records their pronunciation, and gets scored.
+/// kid records their pronunciation, and gets scored with rich feedback.
 class RepeatAfterMeActivity extends ConsumerStatefulWidget {
   final Activity activity;
   final void Function({required bool isCorrect, Map<String, dynamic> metadata})
@@ -32,11 +35,15 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
   bool _hasListened = false;
   bool _isRecording = false;
   bool _hasRecorded = false;
-  double? _pronunciationScore;
+  PronunciationScore? _fullScore;
+  bool _showFeedback = false;
   final _tts = TtsService();
 
   // Fallback words for when activity has no target word
-  static const _fallbackWords = ['hello', 'cat', 'dog', 'apple', 'happy', 'mom', 'dad', 'fish', 'run', 'book'];
+  static const _fallbackWords = [
+    'hello', 'cat', 'dog', 'apple', 'happy', 'mom', 'dad', 'fish', 'run',
+    'book',
+  ];
   late final String _word;
 
   @override
@@ -48,26 +55,55 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
   }
 
   Future<void> _playNativeAudio() async {
-    // Use TTS as fallback for audio
     await _tts.speak(_word);
     setState(() => _hasListened = true);
   }
 
   void _onRecordingComplete(String? path) {
     setState(() {
-      _pronunciationScore = 75.0;
+      _fullScore = PronunciationScore(
+        accuracyScore: 75,
+        fluencyScore: 75,
+        completenessScore: 100,
+        pronunciationScore: 75,
+      );
+      _showFeedback = true;
     });
+    _scheduleAutoAdvance(75);
+  }
 
-    final score = _pronunciationScore ?? 0;
-    final isCorrect = score >= 50;
+  void _scheduleAutoAdvance(double score) {
+    if (score >= 50) {
+      // Good enough: auto-advance after 3 seconds
+      Future.delayed(const Duration(seconds: 3), () {
+        if (!mounted || !_showFeedback) return;
+        _completeActivity(score);
+      });
+    }
+    // If score < 50, don't auto-advance; show retry button instead
+  }
+
+  void _completeActivity(double score) {
+    // Record to pronunciation history
+    if (_fullScore != null) {
+      ref.read(pronunciationHistoryProvider.notifier).addScore(_fullScore!);
+    }
 
     widget.onComplete(
-      isCorrect: isCorrect,
+      isCorrect: score >= 50,
       metadata: {
         'pronunciationScore': score,
         'referenceText': _word,
       },
     );
+  }
+
+  void _retry() {
+    setState(() {
+      _hasRecorded = false;
+      _showFeedback = false;
+      _fullScore = null;
+    });
   }
 
   Future<void> _startWebRecording() async {
@@ -90,14 +126,30 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
     setState(() => _isRecording = true);
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
-    setState(() { _isRecording = false; _hasRecorded = true; });
-    try { SoundEffects().playCorrect(); } catch (_) {}
+    setState(() {
+      _isRecording = false;
+      _hasRecorded = true;
+    });
+    try {
+      SoundEffects().playCorrect();
+    } catch (_) {}
     await Future.delayed(const Duration(milliseconds: 300));
     if (!mounted) return;
-    widget.onComplete(
-      isCorrect: true,
-      metadata: {'pronunciationScore': 70.0, 'referenceText': _word, 'fallback': true},
+    _handleFallbackScore();
+  }
+
+  void _handleFallbackScore() {
+    final fallbackScore = PronunciationScore(
+      accuracyScore: 70,
+      fluencyScore: 70,
+      completenessScore: 100,
+      pronunciationScore: 70,
     );
+    setState(() {
+      _fullScore = fallbackScore;
+      _showFeedback = true;
+    });
+    _scheduleAutoAdvance(70);
   }
 
   Future<void> _stopWebRecording() async {
@@ -122,31 +174,20 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
 
       result.when(
         success: (score) {
-          setState(() => _pronunciationScore = score.pronunciationScore);
           final isCorrect = score.pronunciationScore >= 50;
           if (isCorrect) SoundEffects().playCorrect();
-          widget.onComplete(
-            isCorrect: isCorrect,
-            metadata: {
-              'pronunciationScore': score.pronunciationScore,
-              'referenceText': _word,
-            },
-          );
+          setState(() {
+            _fullScore = score;
+            _showFeedback = true;
+          });
+          _scheduleAutoAdvance(score.pronunciationScore);
         },
         failure: (_, __) {
-          // Scoring failed — pass anyway
-          widget.onComplete(
-            isCorrect: true,
-            metadata: {'pronunciationScore': 70.0, 'referenceText': _word},
-          );
+          _handleFallbackScore();
         },
       );
     } else {
-      // No audio captured — pass anyway
-      widget.onComplete(
-        isCorrect: true,
-        metadata: {'pronunciationScore': 70.0, 'referenceText': _word},
-      );
+      _handleFallbackScore();
     }
   }
 
@@ -157,12 +198,17 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
         : _word;
     final vietnameseHint = widget.activity.vietnameseTranslation;
 
+    // Show feedback overlay after recording
+    if (_showFeedback && _fullScore != null) {
+      return _buildFeedbackView(displayText);
+    }
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         // Instruction
         const Text(
-          'Nghe và nói theo!',
+          'Nghe v\u00E0 n\u00F3i theo!',
           style: AppTypography.titleLarge,
           textAlign: TextAlign.center,
         ),
@@ -172,7 +218,7 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
           decoration: BoxDecoration(
-            color: AppColors.primaryLight.withValues(alpha:0.12),
+            color: AppColors.primaryLight.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Column(
@@ -210,7 +256,7 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
               boxShadow: !_hasListened
                   ? [
                       BoxShadow(
-                        color: AppColors.secondary.withValues(alpha:0.3),
+                        color: AppColors.secondary.withValues(alpha: 0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 3),
                       ),
@@ -228,7 +274,7 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  _hasListened ? 'Nghe lại' : 'Nghe phát âm',
+                  _hasListened ? 'Nghe l\u1EA1i' : 'Nghe ph\u00E1t \u00E2m',
                   style: AppTypography.labelLarge.copyWith(
                     color:
                         _hasListened ? AppColors.textSecondary : Colors.white,
@@ -263,7 +309,9 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: (_isRecording ? AppColors.error : AppColors.primary)
+                        color: (_isRecording
+                                ? AppColors.error
+                                : AppColors.primary)
                             .withValues(alpha: 0.4),
                         blurRadius: _isRecording ? 24 : 12,
                         spreadRadius: _isRecording ? 4 : 0,
@@ -283,10 +331,10 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
                 const SizedBox(height: 8),
                 Text(
                   _isRecording
-                      ? 'Nhấn để dừng...'
+                      ? 'Nh\u1EA5n \u0111\u1EC3 d\u1EEBng...'
                       : _hasRecorded
-                          ? 'Tuyệt vời!'
-                          : 'Nhấn để nói',
+                          ? 'Tuy\u1EC7t v\u1EDDi!'
+                          : 'Nh\u1EA5n \u0111\u1EC3 n\u00F3i',
                   style: AppTypography.bodySmall,
                 ),
               ],
@@ -297,50 +345,83 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
             referenceText: displayText,
             onRecordingComplete: _onRecordingComplete,
           ),
-        const SizedBox(height: 16),
-
-        // Pronunciation score feedback
-        if (_pronunciationScore != null)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            decoration: BoxDecoration(
-              color: _scoreColor(_pronunciationScore!).withValues(alpha:0.15),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  _pronunciationScore! >= 80
-                      ? Icons.star
-                      : _pronunciationScore! >= 50
-                          ? Icons.thumb_up
-                          : Icons.refresh,
-                  color: _scoreColor(_pronunciationScore!),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  _scoreMessage(_pronunciationScore!),
-                  style: AppTypography.titleSmall.copyWith(
-                    color: _scoreColor(_pronunciationScore!),
-                  ),
-                ),
-              ],
-            ),
-          ),
       ],
     );
   }
 
-  Color _scoreColor(double score) {
-    if (score >= 80) return AppColors.pronExcellent;
-    if (score >= 50) return AppColors.pronGood;
-    return AppColors.pronNeedsWork;
-  }
+  Widget _buildFeedbackView(String referenceText) {
+    final score = _fullScore!;
+    final isLow = score.pronunciationScore < 50;
 
-  String _scoreMessage(double score) {
-    if (score >= 80) return 'Xuất sắc! ${score.toStringAsFixed(0)} điểm';
-    if (score >= 50) return 'Tốt lắm! ${score.toStringAsFixed(0)} điểm';
-    return 'Thử lại nhé! ${score.toStringAsFixed(0)} điểm';
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          PronunciationFeedback(
+            score: score,
+            referenceText: referenceText,
+          ),
+          const SizedBox(height: 24),
+
+          if (isLow)
+            // Retry button for low scores
+            GestureDetector(
+              onTap: _retry,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary,
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.secondary.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.refresh, color: Colors.white, size: 24),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Th\u1EED l\u1EA1i',
+                      style: AppTypography.labelLarge.copyWith(
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            // Auto-advancing indicator
+            Text(
+              'Ti\u1EBFp t\u1EE5c trong gi\u00E2y l\u00E1t...',
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textHint,
+              ),
+            ),
+
+          // Always show a "skip" button so the user is not stuck
+          if (isLow) ...[
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () =>
+                  _completeActivity(score.pronunciationScore),
+              child: Text(
+                'B\u1ECF qua',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textHint,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }

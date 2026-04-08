@@ -35,8 +35,15 @@ type VocabularyProgress struct {
 }
 
 type PronunciationProgress struct {
-	TotalAttempts int     `json:"total_attempts"`
-	AvgScore      float64 `json:"avg_score"`
-	BestScore     float64 `json:"best_score"`
-	CommonErrors  []string `json:"common_errors"`
+	TotalAttempts int              `json:"total_attempts"`
+	AvgScore      float64          `json:"avg_score"`
+	BestScore     float64          `json:"best_score"`
+	CommonErrors  []L1ErrorCount   `json:"common_errors"`
+	Trend         string           `json:"trend"` // "improving", "flat", "declining"
+}
+
+// L1ErrorCount tracks how often a specific L1 error type occurs.
+type L1ErrorCount struct {
+	ErrorType string `json:"error_type"`
+	Count     int    `json:"count"`
 }

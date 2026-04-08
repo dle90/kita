@@ -32,7 +32,7 @@ func NewContentRepository(pool *pgxpool.Pool) ContentRepository {
 }
 
 func (r *pgContentRepository) GetVocabulary(ctx context.Context, dayNumber int, category string) ([]*Vocabulary, error) {
-	query := `SELECT id, word, translation_vi, phonetic_ipa, audio_url, image_url, category, day_number, difficulty, target_phonemes, common_l1_errors
+	query := `SELECT id, word, translation_vi, phonetic_ipa, audio_url, image_url, category, day_number, difficulty, emoji, example_sentence, example_sentence_vi, target_phonemes, common_l1_errors
 		FROM vocabulary WHERE 1=1`
 	args := []interface{}{}
 	argIdx := 1
@@ -63,9 +63,9 @@ func (r *pgContentRepository) GetVocabularyByID(ctx context.Context, id uuid.UUI
 	v := &Vocabulary{}
 	var phonemesJSON, errorsJSON []byte
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, word, translation_vi, phonetic_ipa, audio_url, image_url, category, day_number, difficulty, target_phonemes, common_l1_errors
+		`SELECT id, word, translation_vi, phonetic_ipa, audio_url, image_url, category, day_number, difficulty, emoji, example_sentence, example_sentence_vi, target_phonemes, common_l1_errors
 		 FROM vocabulary WHERE id = $1`, id,
-	).Scan(&v.ID, &v.Word, &v.TranslationVI, &v.PhoneticIPA, &v.AudioURL, &v.ImageURL, &v.Category, &v.DayNumber, &v.Difficulty, &phonemesJSON, &errorsJSON)
+	).Scan(&v.ID, &v.Word, &v.TranslationVI, &v.PhoneticIPA, &v.AudioURL, &v.ImageURL, &v.Category, &v.DayNumber, &v.Difficulty, &v.Emoji, &v.ExampleSentence, &v.ExampleSentenceVI, &phonemesJSON, &errorsJSON)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -82,7 +82,7 @@ func (r *pgContentRepository) GetVocabularyByIDs(ctx context.Context, ids []uuid
 		return nil, nil
 	}
 	rows, err := r.pool.Query(ctx,
-		`SELECT id, word, translation_vi, phonetic_ipa, audio_url, image_url, category, day_number, difficulty, target_phonemes, common_l1_errors
+		`SELECT id, word, translation_vi, phonetic_ipa, audio_url, image_url, category, day_number, difficulty, emoji, example_sentence, example_sentence_vi, target_phonemes, common_l1_errors
 		 FROM vocabulary WHERE id = ANY($1)`, ids,
 	)
 	if err != nil {
@@ -97,7 +97,7 @@ func scanVocabularyRows(rows pgx.Rows) ([]*Vocabulary, error) {
 	for rows.Next() {
 		v := &Vocabulary{}
 		var phonemesJSON, errorsJSON []byte
-		if err := rows.Scan(&v.ID, &v.Word, &v.TranslationVI, &v.PhoneticIPA, &v.AudioURL, &v.ImageURL, &v.Category, &v.DayNumber, &v.Difficulty, &phonemesJSON, &errorsJSON); err != nil {
+		if err := rows.Scan(&v.ID, &v.Word, &v.TranslationVI, &v.PhoneticIPA, &v.AudioURL, &v.ImageURL, &v.Category, &v.DayNumber, &v.Difficulty, &v.Emoji, &v.ExampleSentence, &v.ExampleSentenceVI, &phonemesJSON, &errorsJSON); err != nil {
 			return nil, err
 		}
 		json.Unmarshal(phonemesJSON, &v.TargetPhonemes)
@@ -158,11 +158,11 @@ func (r *pgContentRepository) InsertVocabulary(ctx context.Context, vocab *Vocab
 	phonemesJSON, _ := json.Marshal(vocab.TargetPhonemes)
 	errorsJSON, _ := json.Marshal(vocab.CommonL1Errors)
 	_, err := r.pool.Exec(ctx,
-		`INSERT INTO vocabulary (id, word, translation_vi, phonetic_ipa, audio_url, image_url, category, day_number, difficulty, target_phonemes, common_l1_errors)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		`INSERT INTO vocabulary (id, word, translation_vi, phonetic_ipa, audio_url, image_url, category, day_number, difficulty, emoji, example_sentence, example_sentence_vi, target_phonemes, common_l1_errors)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 		 ON CONFLICT (word) DO NOTHING`,
 		vocab.ID, vocab.Word, vocab.TranslationVI, vocab.PhoneticIPA, vocab.AudioURL, vocab.ImageURL,
-		vocab.Category, vocab.DayNumber, vocab.Difficulty, phonemesJSON, errorsJSON,
+		vocab.Category, vocab.DayNumber, vocab.Difficulty, vocab.Emoji, vocab.ExampleSentence, vocab.ExampleSentenceVI, phonemesJSON, errorsJSON,
 	)
 	return err
 }

@@ -82,7 +82,7 @@ func main() {
 	sessionService := session.NewSessionService(sessionRepo, activityRepo, contentRepo, kidRepo, srsRepo)
 	azureClient := pronunciation.NewAzureSpeechClient(cfg.Azure)
 	pronService := pronunciation.NewPronunciationService(pronRepo, azureClient, storage)
-	progressService := progress.NewProgressService(progressRepo, sessionRepo, activityRepo, srsRepo)
+	progressService := progress.NewProgressService(progressRepo, sessionRepo, activityRepo, srsRepo, pronRepo)
 	_ = notification.NewNotificationService()
 
 	srsHandler := srs.NewSrsHandler(srsService)

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kita_english/core/audio/sound_effects.dart';
 import 'package:kita_english/core/constants/app_colors.dart';
 import 'package:kita_english/core/constants/app_typography.dart';
 import 'package:kita_english/features/session/domain/entities/activity.dart';
 
 /// Word Match activity: match English words with Vietnamese translations.
-/// Tap to select pairs — correct matches light up green.
-class WordMatchActivity extends StatefulWidget {
+/// Tap to select pairs -- correct matches light up green.
+class WordMatchActivity extends ConsumerStatefulWidget {
   final Activity activity;
   final void Function({required bool isCorrect, Map<String, dynamic> metadata})
       onComplete;
@@ -17,11 +19,11 @@ class WordMatchActivity extends StatefulWidget {
   });
 
   @override
-  State<WordMatchActivity> createState() => _WordMatchActivityState();
+  ConsumerState<WordMatchActivity> createState() => _WordMatchActivityState();
 }
 
-class _WordMatchActivityState extends State<WordMatchActivity> {
-  // Pairs: each option contains text (English) and config has Vietnamese
+class _WordMatchActivityState extends ConsumerState<WordMatchActivity>
+    with SingleTickerProviderStateMixin {
   late List<_MatchPair> _pairs;
   late List<String> _shuffledRight;
 
@@ -30,38 +32,78 @@ class _WordMatchActivityState extends State<WordMatchActivity> {
   final Set<int> _matchedLeftIndices = {};
   final Set<int> _matchedRightIndices = {};
   int _wrongAttempts = 0;
+  bool _wrongFlash = false;
+
+  late AnimationController _shakeController;
+  late Animation<double> _shakeAnimation;
 
   @override
   void initState() {
     super.initState();
+
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _shakeAnimation = Tween<double>(begin: 0, end: 6).animate(
+      CurvedAnimation(parent: _shakeController, curve: Curves.elasticIn),
+    );
+
     _buildPairs();
   }
 
-  void _buildPairs() {
-    final options = widget.activity.options;
-    _pairs = options.map((opt) {
-      final vietnamese =
-          widget.activity.config['translations']?[opt.text] as String? ??
-              opt.text;
-      return _MatchPair(english: opt.text, vietnamese: vietnamese);
-    }).toList();
+  @override
+  void dispose() {
+    _shakeController.dispose();
+    super.dispose();
+  }
 
-    // If no translations from config, create simple pairs
+  void _buildPairs() {
+    final config = widget.activity.config;
+    _pairs = [];
+
+    // Try config['pairs'] first (backend format: [{english, match}])
+    final configPairs = config['pairs'];
+    if (configPairs is List && configPairs.isNotEmpty) {
+      for (final p in configPairs) {
+        if (p is Map) {
+          final english = p['english'] as String? ?? '';
+          final match = p['match'] as String? ?? p['vietnamese'] as String? ?? '';
+          if (english.isNotEmpty && match.isNotEmpty) {
+            _pairs.add(_MatchPair(english: english, vietnamese: match));
+          }
+        }
+      }
+    }
+
+    // Try options + translations fallback
+    if (_pairs.isEmpty) {
+      final options = widget.activity.options;
+      if (options.isNotEmpty) {
+        _pairs = options.map((opt) {
+          final vietnamese =
+              config['translations']?[opt.text] as String? ?? opt.text;
+          return _MatchPair(english: opt.text, vietnamese: vietnamese);
+        }).toList();
+      }
+    }
+
+    // Final fallback
     if (_pairs.isEmpty) {
       _pairs = [
-        const _MatchPair(english: 'Cat', vietnamese: 'Con mèo'),
-        const _MatchPair(english: 'Dog', vietnamese: 'Con chó'),
-        const _MatchPair(english: 'Fish', vietnamese: 'Con cá'),
+        const _MatchPair(english: 'Cat', vietnamese: 'Con m\u00E8o'),
+        const _MatchPair(english: 'Dog', vietnamese: 'Con ch\u00F3'),
+        const _MatchPair(english: 'Fish', vietnamese: 'Con c\u00E1'),
         const _MatchPair(english: 'Bird', vietnamese: 'Con chim'),
       ];
     }
 
-    _shuffledRight =
-        _pairs.map((p) => p.vietnamese).toList()..shuffle();
+    _shuffledRight = _pairs.map((p) => p.vietnamese).toList()..shuffle();
   }
 
   void _onLeftTap(int index) {
-    if (_matchedLeftIndices.contains(index)) return;
+    if (_matchedLeftIndices.contains(index) || _wrongFlash) return;
+    ref.read(soundEffectsProvider).playTap();
     setState(() {
       _selectedLeftIndex = index;
       _checkMatch();
@@ -69,7 +111,8 @@ class _WordMatchActivityState extends State<WordMatchActivity> {
   }
 
   void _onRightTap(int index) {
-    if (_matchedRightIndices.contains(index)) return;
+    if (_matchedRightIndices.contains(index) || _wrongFlash) return;
+    ref.read(soundEffectsProvider).playTap();
     setState(() {
       _selectedRightIndex = index;
       _checkMatch();
@@ -83,7 +126,8 @@ class _WordMatchActivityState extends State<WordMatchActivity> {
     final rightText = _shuffledRight[_selectedRightIndex!];
 
     if (leftPair.vietnamese == rightText) {
-      // Match found
+      // Correct match
+      ref.read(soundEffectsProvider).playCorrect();
       _matchedLeftIndices.add(_selectedLeftIndex!);
       _matchedRightIndices.add(_selectedRightIndex!);
       _selectedLeftIndex = null;
@@ -92,31 +136,40 @@ class _WordMatchActivityState extends State<WordMatchActivity> {
       // Check if all matched
       if (_matchedLeftIndices.length == _pairs.length) {
         Future.delayed(const Duration(milliseconds: 600), () {
-          widget.onComplete(
-            isCorrect: true,
-            metadata: {'wrongAttempts': _wrongAttempts},
-          );
+          if (mounted) {
+            widget.onComplete(
+              isCorrect: true,
+              metadata: {'wrongAttempts': _wrongAttempts},
+            );
+          }
         });
       }
     } else {
-      // Wrong match
+      // Wrong match - shake and reset
       _wrongAttempts++;
+      ref.read(soundEffectsProvider).playWrong();
+      _shakeController.forward(from: 0);
+      setState(() => _wrongFlash = true);
 
-      // Brief red highlight then reset
       Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) {
           setState(() {
             _selectedLeftIndex = null;
             _selectedRightIndex = null;
+            _wrongFlash = false;
           });
         }
       });
 
       if (_wrongAttempts >= 6) {
-        widget.onComplete(
-          isCorrect: false,
-          metadata: {'wrongAttempts': _wrongAttempts},
-        );
+        Future.delayed(const Duration(milliseconds: 600), () {
+          if (mounted) {
+            widget.onComplete(
+              isCorrect: false,
+              metadata: {'wrongAttempts': _wrongAttempts},
+            );
+          }
+        });
       }
     }
   }
@@ -126,7 +179,7 @@ class _WordMatchActivityState extends State<WordMatchActivity> {
     return Column(
       children: [
         const Text(
-          'Nối từ tiếng Anh với nghĩa tiếng Việt!',
+          'N\u1ED1i t\u1EEB ti\u1EBFng Anh v\u1EDBi ngh\u0129a ti\u1EBFng Vi\u1EC7t!',
           style: AppTypography.titleLarge,
           textAlign: TextAlign.center,
         ),
@@ -144,39 +197,57 @@ class _WordMatchActivityState extends State<WordMatchActivity> {
                   itemBuilder: (context, index) {
                     final isMatched = _matchedLeftIndices.contains(index);
                     final isSelected = _selectedLeftIndex == index;
+                    final isWrongSelected = isSelected && _wrongFlash;
 
                     return GestureDetector(
                       onTap: () => _onLeftTap(index),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isMatched
-                              ? AppColors.successLight.withValues(alpha:0.3)
-                              : isSelected
-                                  ? AppColors.primaryLight.withValues(alpha:0.3)
-                                  : AppColors.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isMatched
-                                ? AppColors.success
-                                : isSelected
-                                    ? AppColors.primary
-                                    : AppColors.surfaceVariant,
-                            width: (isMatched || isSelected) ? 2 : 1,
+                      child: AnimatedBuilder(
+                        animation: _shakeAnimation,
+                        builder: (context, child) {
+                          final offset = isWrongSelected
+                              ? _shakeAnimation.value
+                              : 0.0;
+                          return Transform.translate(
+                            offset: Offset(offset, 0),
+                            child: child,
+                          );
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
                           ),
-                        ),
-                        child: Text(
-                          _pairs[index].english,
-                          style: AppTypography.titleSmall.copyWith(
+                          decoration: BoxDecoration(
                             color: isMatched
-                                ? AppColors.success
-                                : AppColors.primary,
+                                ? AppColors.successLight.withValues(alpha: 0.3)
+                                : isWrongSelected
+                                    ? AppColors.errorLight.withValues(alpha: 0.3)
+                                    : isSelected
+                                        ? AppColors.primaryLight
+                                            .withValues(alpha: 0.3)
+                                        : AppColors.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isMatched
+                                  ? AppColors.success
+                                  : isWrongSelected
+                                      ? AppColors.error
+                                      : isSelected
+                                          ? AppColors.primary
+                                          : AppColors.surfaceVariant,
+                              width: (isMatched || isSelected) ? 2 : 1,
+                            ),
                           ),
-                          textAlign: TextAlign.center,
+                          child: Text(
+                            _pairs[index].english,
+                            style: AppTypography.titleSmall.copyWith(
+                              color: isMatched
+                                  ? AppColors.success
+                                  : AppColors.primary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                       ),
                     );
@@ -214,39 +285,57 @@ class _WordMatchActivityState extends State<WordMatchActivity> {
                   itemBuilder: (context, index) {
                     final isMatched = _matchedRightIndices.contains(index);
                     final isSelected = _selectedRightIndex == index;
+                    final isWrongSelected = isSelected && _wrongFlash;
 
                     return GestureDetector(
                       onTap: () => _onRightTap(index),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isMatched
-                              ? AppColors.successLight.withValues(alpha:0.3)
-                              : isSelected
-                                  ? AppColors.secondaryLight.withValues(alpha:0.3)
-                                  : AppColors.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isMatched
-                                ? AppColors.success
-                                : isSelected
-                                    ? AppColors.secondary
-                                    : AppColors.surfaceVariant,
-                            width: (isMatched || isSelected) ? 2 : 1,
+                      child: AnimatedBuilder(
+                        animation: _shakeAnimation,
+                        builder: (context, child) {
+                          final offset = isWrongSelected
+                              ? -_shakeAnimation.value
+                              : 0.0;
+                          return Transform.translate(
+                            offset: Offset(offset, 0),
+                            child: child,
+                          );
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
                           ),
-                        ),
-                        child: Text(
-                          _shuffledRight[index],
-                          style: AppTypography.titleSmall.copyWith(
+                          decoration: BoxDecoration(
                             color: isMatched
-                                ? AppColors.success
-                                : AppColors.textPrimary,
+                                ? AppColors.successLight.withValues(alpha: 0.3)
+                                : isWrongSelected
+                                    ? AppColors.errorLight.withValues(alpha: 0.3)
+                                    : isSelected
+                                        ? AppColors.secondaryLight
+                                            .withValues(alpha: 0.3)
+                                        : AppColors.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isMatched
+                                  ? AppColors.success
+                                  : isWrongSelected
+                                      ? AppColors.error
+                                      : isSelected
+                                          ? AppColors.secondary
+                                          : AppColors.surfaceVariant,
+                              width: (isMatched || isSelected) ? 2 : 1,
+                            ),
                           ),
-                          textAlign: TextAlign.center,
+                          child: Text(
+                            _shuffledRight[index],
+                            style: AppTypography.titleSmall.copyWith(
+                              color: isMatched
+                                  ? AppColors.success
+                                  : AppColors.textPrimary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                       ),
                     );
