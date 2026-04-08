@@ -27,13 +27,13 @@ class _SessionHomeScreenState extends ConsumerState<SessionHomeScreen>
   late final Animation<double> _buddyAnimation;
 
   static const _dayThemes = [
-    {'icon': '\u{1F44B}', 'label': 'Chao hoi'},
-    {'icon': '\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}', 'label': 'Gia dinh'},
-    {'icon': '\u{1F34E}', 'label': 'Do an'},
-    {'icon': '\u{1F3C3}', 'label': 'Hanh dong'},
-    {'icon': '\u{2600}\u{FE0F}', 'label': 'Thoi tiet'},
-    {'icon': '\u{1F504}', 'label': 'On tap'},
-    {'icon': '\u{1F389}', 'label': 'Trinh dien!'},
+    {'icon': '\u{1F44B}', 'label': 'Chào hỏi'},
+    {'icon': '\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}', 'label': 'Gia đình'},
+    {'icon': '\u{1F34E}', 'label': 'Đồ ăn'},
+    {'icon': '\u{1F3C3}', 'label': 'Hành động'},
+    {'icon': '\u{2600}\u{FE0F}', 'label': 'Thời tiết'},
+    {'icon': '\u{1F504}', 'label': 'Ôn tập'},
+    {'icon': '\u{1F389}', 'label': 'Trình diễn!'},
   ];
 
   @override
@@ -58,13 +58,13 @@ class _SessionHomeScreenState extends ConsumerState<SessionHomeScreen>
   }
 
   final _buddyMessages = const [
-    'Ngay 1! Bat dau hanh trinh nao! \u{1F680}',
-    'Ngay 2! Hom nay hoc ve gia dinh nhe! \u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}',
-    'Ngay 3! Cung kham pha do an! \u{1F34E}',
-    'Ngay 4! Hoc ve hanh dong thoi! \u{1F3C3}',
-    'Ngay 5! Hom nay hoc ve thoi tiet! \u{2600}\u{FE0F}',
-    'Ngay 6! Sap hoan thanh roi! \u{1F4AA}',
-    'Ngay 7! Ngay cuoi cung - that tuyet! \u{1F389}',
+    'Ngày 1! Bắt đầu hành trình nào! \u{1F680}',
+    'Ngày 2! Hôm nay học về gia đình nhé! \u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}',
+    'Ngày 3! Cùng khám phá đồ ăn! \u{1F34E}',
+    'Ngày 4! Học về hành động thôi! \u{1F3C3}',
+    'Ngày 5! Hôm nay học về thời tiết! \u{2600}\u{FE0F}',
+    'Ngày 6! Sắp hoàn thành rồi! \u{1F4AA}',
+    'Ngày 7! Ngày cuối cùng - thật tuyệt! \u{1F389}',
   ];
 
   @override
@@ -105,7 +105,7 @@ class _SessionHomeScreenState extends ConsumerState<SessionHomeScreen>
                           ),
                         ),
                         Text(
-                          'Thu thach 7 ngay \u{2728}',
+                          'Thử thách 7 ngày \u{2728}',
                           style: AppTypography.bodySmall.copyWith(
                             color: AppColors.textSecondary,
                           ),
@@ -233,7 +233,7 @@ class _SessionHomeScreenState extends ConsumerState<SessionHomeScreen>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 child: KitaButton(
-                  label: 'Bat dau Ngay $_currentDay! \u{25B6}\u{FE0F}',
+                  label: 'Bắt đầu Ngày $_currentDay! \u{25B6}\u{FE0F}',
                   onPressed: () async {
                     ref.read(soundEffectsProvider).playTap();
                     await ref
@@ -414,7 +414,7 @@ class _SessionHomeScreenState extends ConsumerState<SessionHomeScreen>
                                     CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Ngay $dayNumber',
+                                    'Ngày $dayNumber',
                                     style:
                                         AppTypography.titleSmall.copyWith(
                                       color: isCurrent
@@ -457,7 +457,7 @@ class _SessionHomeScreenState extends ConsumerState<SessionHomeScreen>
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
-                                  'Hom nay',
+                                  'Hôm nay',
                                   style:
                                       AppTypography.labelSmall.copyWith(
                                     color: Colors.white,

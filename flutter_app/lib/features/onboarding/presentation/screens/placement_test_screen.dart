@@ -28,7 +28,7 @@ class _PlacementTestScreenState extends ConsumerState<PlacementTestScreen>
   late final AnimationController _encourageController;
   late final Animation<double> _encourageAnimation;
   late final AnimationController _sparkleController;
-  String _encourageText = 'Bat dau nhe! \u{1F31F}';
+  String _encourageText = 'Bắt đầu nhé! \u{1F31F}';
   bool _isSubmitting = false;
 
   @override
@@ -75,10 +75,10 @@ class _PlacementTestScreenState extends ConsumerState<PlacementTestScreen>
       _playSparkle();
       _answers.add(answer);
       final encouragements = [
-        'Tuyet voi! \u{2B50}',
-        'Gioi lam! \u{1F389}',
-        'Dung roi! \u{2728}',
-        'Hay qua! \u{1F44F}',
+        'Tuyệt vời! \u{2B50}',
+        'Giỏi lắm! \u{1F389}',
+        'Đúng rồi! \u{2728}',
+        'Hay quá! \u{1F44F}',
       ];
       _showEncouragement(
         encouragements[Random().nextInt(encouragements.length)],
@@ -95,9 +95,9 @@ class _PlacementTestScreenState extends ConsumerState<PlacementTestScreen>
       ref.read(soundEffectsProvider).playWrong();
       // Gentle wrong-answer feedback -- don't record, let them retry
       final nudges = [
-        'Gan dung roi! Thu lai nha! \u{1F4AA}',
-        'Chua dung, thu lan nua nhe! \u{1F60A}',
-        'Khong sao, chon lai nha! \u{1F31F}',
+        'Gần đúng rồi! Thử lại nha! \u{1F4AA}',
+        'Chưa đúng, thử lần nữa nhé! \u{1F60A}',
+        'Không sao, chọn lại nha! \u{1F31F}',
       ];
       _showEncouragement(
         nudges[Random().nextInt(nudges.length)],
@@ -131,7 +131,7 @@ class _PlacementTestScreenState extends ConsumerState<PlacementTestScreen>
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Da xay ra loi. Vui long thu lai.'),
+            content: Text('Đã xảy ra lỗi. Vui lòng thử lại.'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -172,7 +172,7 @@ class _PlacementTestScreenState extends ConsumerState<PlacementTestScreen>
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        'Dang chuan bi bai hoc cho be... \u{1F4DA}',
+                        'Đang chuẩn bị bài học cho bé... \u{1F4DA}',
                         style: AppTypography.bodyLarge.copyWith(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w600,
@@ -180,7 +180,7 @@ class _PlacementTestScreenState extends ConsumerState<PlacementTestScreen>
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Cho chut nhe!',
+                        'Chờ chút nhé!',
                         style: AppTypography.bodyMedium.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -266,7 +266,7 @@ class _PlacementTestScreenState extends ConsumerState<PlacementTestScreen>
                         const SizedBox(height: 4),
                         // Round counter
                         Text(
-                          'Cau ${_currentRound + 1} / 4',
+                          'Câu ${_currentRound + 1} / 4',
                           style: AppTypography.labelSmall.copyWith(
                             color: AppColors.textHint,
                           ),
@@ -519,7 +519,7 @@ class _ListenAndTapRoundState extends State<_ListenAndTapRound> {
     return Column(
       children: [
         Text(
-          'Nghe va chon hinh dung:',
+          'Nghe và chọn hình đúng:',
           style: AppTypography.titleLarge.copyWith(
             fontWeight: FontWeight.w700,
           ),
@@ -738,7 +738,7 @@ class _SayHelloRoundState extends State<_SayHelloRound> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Noi "Hello!" that to nhe!',
+            'Nói "Hello!" thật to nhé!',
             style: AppTypography.bodyLarge.copyWith(
               color: AppColors.textSecondary,
             ),
@@ -819,10 +819,10 @@ class _SayHelloRoundState extends State<_SayHelloRound> {
           const SizedBox(height: 16),
           Text(
             _isRecording
-                ? 'Dang nghe... \u{1F442}'
+                ? 'Đang nghe... \u{1F442}'
                 : _submitted
-                    ? 'Tuyet voi! \u{1F389}'
-                    : 'Nhan de noi \u{1F3A4}',
+                    ? 'Tuyệt vời! \u{1F389}'
+                    : 'Nhấn để nói \u{1F3A4}',
             style: AppTypography.bodyLarge.copyWith(
               color: _submitted ? AppColors.success : AppColors.textSecondary,
               fontWeight: FontWeight.w600,
@@ -908,10 +908,10 @@ class _SayHelloRoundState extends State<_SayHelloRound> {
         const SizedBox(height: 16),
         Text(
           _isRecording
-              ? 'Dang nghe... \u{1F442}'
+              ? 'Đang nghe... \u{1F442}'
               : _hasRecorded
-                  ? 'Tuyet voi! \u{1F389}'
-                  : 'Nhan de noi \u{1F3A4}',
+                  ? 'Tuyệt vời! \u{1F389}'
+                  : 'Nhấn để nói \u{1F3A4}',
           style: AppTypography.bodyLarge.copyWith(
             color: _hasRecorded ? AppColors.success : AppColors.textSecondary,
             fontWeight: FontWeight.w600,
@@ -969,7 +969,7 @@ class _ReadAndMatchRoundState extends State<_ReadAndMatchRound> {
     return Column(
       children: [
         Text(
-          'Doc tu nay:',
+          'Đọc từ này:',
           style: AppTypography.titleLarge.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 14),
@@ -995,7 +995,7 @@ class _ReadAndMatchRoundState extends State<_ReadAndMatchRound> {
         ),
         const SizedBox(height: 10),
         Text(
-          'Chon hinh phu hop:',
+          'Chọn hình phù hợp:',
           style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
         ),
         const SizedBox(height: 20),
@@ -1118,7 +1118,7 @@ class _PhonicsRoundState extends State<_PhonicsRound> {
     return Column(
       children: [
         Text(
-          'Tu nao bat dau giong\nam cua "Ball"?',
+          'Từ nào bắt đầu giống\nâm của "Ball"?',
           style: AppTypography.titleLarge.copyWith(fontWeight: FontWeight.w700),
           textAlign: TextAlign.center,
         ),

@@ -33,8 +33,8 @@ const _characters = [
     id: 'mochi',
     name: 'Mochi \u{1F431}',
     emoji: '\u{1F431}',
-    personality: 'Meo de thuong, thich kham pha va luon vui ve!',
-    quote: 'Minh se hoc cung ban nhe!',
+    personality: 'Mèo dễ thương, thích khám phá và luôn vui vẻ!',
+    quote: 'Mình sẽ học cùng bạn nhé!',
     color: AppColors.mochiCat,
     accentColor: AppColors.mochiCatAccent,
   ),
@@ -42,8 +42,8 @@ const _characters = [
     id: 'rong',
     name: 'Rong \u{1F409}',
     emoji: '\u{1F409}',
-    personality: 'Rong nho dung cam, thich phieu luu va ke chuyen!',
-    quote: 'Cung phieu luu nao!',
+    personality: 'Rồng nhỏ dũng cảm, thích phiêu lưu và kể chuyện!',
+    quote: 'Cùng phiêu lưu nào!',
     color: AppColors.rongDragon,
     accentColor: AppColors.rongDragonAccent,
   ),
@@ -51,8 +51,8 @@ const _characters = [
     id: 'lua',
     name: 'Lua \u{1F426}',
     emoji: '\u{1F426}',
-    personality: 'Chim nho hay hat, yeu am nhac va thich hoc tu moi!',
-    quote: 'Hat cung minh nhe!',
+    personality: 'Chim nhỏ hay hát, yêu âm nhạc và thích học từ mới!',
+    quote: 'Hát cùng mình nhé!',
     color: AppColors.luaBird,
     accentColor: AppColors.luaBirdAccent,
   ),
@@ -60,8 +60,8 @@ const _characters = [
     id: 'bo',
     name: 'Bo \u{1F916}',
     emoji: '\u{1F916}',
-    personality: 'Robot thong minh, gioi toan va thich giai do!',
-    quote: 'Giai do cung minh!',
+    personality: 'Robot thông minh, giỏi toán và thích giải đố!',
+    quote: 'Giải đố cùng mình!',
     color: AppColors.boRobot,
     accentColor: AppColors.boRobotAccent,
   ),
@@ -137,7 +137,7 @@ class _CharacterSelectScreenState extends ConsumerState<CharacterSelectScreen>
 
               // Title
               Text(
-                'Chon ban dong hanh! \u{2728}',
+                'Chọn bạn đồng hành! \u{2728}',
                 style: AppTypography.headlineMedium.copyWith(
                   color: AppColors.primary,
                   fontWeight: FontWeight.w800,
@@ -146,7 +146,7 @@ class _CharacterSelectScreenState extends ConsumerState<CharacterSelectScreen>
               ),
               const SizedBox(height: 6),
               Text(
-                'Ban dong hanh se luon o ben co vu be',
+                'Bạn đồng hành sẽ luôn ở bên cổ vũ bé',
                 style: AppTypography.bodyMedium.copyWith(
                   color: AppColors.textSecondary,
                 ),
@@ -365,7 +365,7 @@ class _CharacterSelectScreenState extends ConsumerState<CharacterSelectScreen>
               Padding(
                 padding: const EdgeInsets.all(24),
                 child: KitaButton(
-                  label: 'Tiep tuc \u{1F389}',
+                  label: 'Tiếp tục \u{1F389}',
                   onPressed: selectedId != null
                       ? () {
                           ref

@@ -53,7 +53,7 @@ class _ParentGateScreenState extends ConsumerState<ParentGateScreen>
     if (_nameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Vui long nhap ten cua be'),
+          content: Text('Vui lòng nhập tên của bé'),
           backgroundColor: AppColors.warning,
         ),
       );
@@ -73,7 +73,7 @@ class _ParentGateScreenState extends ConsumerState<ParentGateScreen>
         hour: _selectedTime.hour,
         minute: _selectedTime.minute,
       ),
-      helpText: 'Chon gio nhac nho hoc bai',
+      helpText: 'Chọn giờ nhắc nhở học bài',
     );
     if (picked != null) {
       setState(() {
@@ -165,7 +165,7 @@ class _ParentGateScreenState extends ConsumerState<ParentGateScreen>
 
                 // Welcome message
                 Text(
-                  'Xin chao phu huynh! \u{1F44B}',
+                  'Xin chào phụ huynh! \u{1F44B}',
                   style: AppTypography.headlineMedium.copyWith(
                     color: AppColors.primary,
                     fontWeight: FontWeight.w800,
@@ -174,7 +174,7 @@ class _ParentGateScreenState extends ConsumerState<ParentGateScreen>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Cho chung toi biet them ve be\nde ca nhan hoa trai nghiem hoc',
+                  'Cho chúng tôi biết thêm về bé\nđể cá nhân hóa trải nghiệm học',
                   style: AppTypography.bodyMedium.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -185,13 +185,13 @@ class _ParentGateScreenState extends ConsumerState<ParentGateScreen>
                 // Kid's display name
                 _buildSectionCard(
                   icon: '\u{1F466}',
-                  title: 'Ten cua be',
+                  title: 'Tên của bé',
                   child: TextFormField(
                     controller: _nameController,
                     style: AppTypography.bodyLarge,
                     textCapitalization: TextCapitalization.words,
                     decoration: InputDecoration(
-                      hintText: 'Nhap ten be (vd: Minh)',
+                      hintText: 'Nhập tên bé (vd: Minh)',
                       prefixIcon:
                           const Icon(Icons.child_care, size: 24, color: AppColors.primary),
                       filled: true,
@@ -226,7 +226,7 @@ class _ParentGateScreenState extends ConsumerState<ParentGateScreen>
                 // Age slider - big and visual
                 _buildSectionCard(
                   icon: '\u{1F382}',
-                  title: 'Tuoi cua be',
+                  title: 'Tuổi của bé',
                   child: Column(
                     children: [
                       // Big bouncy age number
@@ -268,7 +268,7 @@ class _ParentGateScreenState extends ConsumerState<ParentGateScreen>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'tuoi',
+                        'tuổi',
                         style: AppTypography.labelMedium.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -304,7 +304,7 @@ class _ParentGateScreenState extends ConsumerState<ParentGateScreen>
                                 min: 5,
                                 max: 12,
                                 divisions: 7,
-                                label: '${onboardingState.age} tuoi',
+                                label: '${onboardingState.age} tuổi',
                                 onChanged: (value) {
                                   ref
                                       .read(onboardingProvider.notifier)
@@ -331,7 +331,7 @@ class _ParentGateScreenState extends ConsumerState<ParentGateScreen>
                 // English level - colorful pill buttons
                 _buildSectionCard(
                   icon: '\u{1F4DA}',
-                  title: 'Trinh do tieng Anh hien tai',
+                  title: 'Trình độ tiếng Anh hiện tại',
                   child: Column(
                     children: EnglishLevel.values.map((level) {
                       final isSelected = onboardingState.englishLevel == level;
@@ -445,7 +445,7 @@ class _ParentGateScreenState extends ConsumerState<ParentGateScreen>
                 // Notification time
                 _buildSectionCard(
                   icon: '\u{23F0}',
-                  title: 'Gio nhac nho hoc bai',
+                  title: 'Giờ nhắc nhở học bài',
                   child: GestureDetector(
                     onTap: _pickTime,
                     child: Container(
@@ -496,7 +496,7 @@ class _ParentGateScreenState extends ConsumerState<ParentGateScreen>
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              'Doi',
+                              'Đổi',
                               style: AppTypography.labelSmall.copyWith(
                                 color: AppColors.primary,
                               ),
@@ -511,7 +511,7 @@ class _ParentGateScreenState extends ConsumerState<ParentGateScreen>
 
                 // Continue button
                 KitaButton(
-                  label: 'Tiep tuc \u{1F680}',
+                  label: 'Tiếp tục \u{1F680}',
                   onPressed: _onContinue,
                   icon: Icons.arrow_forward_rounded,
                 ),

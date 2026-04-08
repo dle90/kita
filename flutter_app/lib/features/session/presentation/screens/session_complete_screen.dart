@@ -81,10 +81,10 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
         : 0;
 
     final encouragements = [
-      'Tuyet voi! Gioi lam! \u{1F31F}',
-      'Xuat sac! Be lam tot qua! \u{1F389}',
-      'Hay qua! Co len nhe! \u{1F4AA}',
-      'Sieu gioi! Tiep tuc nao! \u{1F680}',
+      'Tuyệt vời! Giỏi lắm! \u{1F31F}',
+      'Xuất sắc! Bé làm tốt quá! \u{1F389}',
+      'Hay quá! Cố lên nhé! \u{1F4AA}',
+      'Siêu giỏi! Tiếp tục nào! \u{1F680}',
     ];
     final encourageText =
         encouragements[Random().nextInt(encouragements.length)];
@@ -169,7 +169,7 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'ngoi sao \u{2B50}',
+                          'ngôi sao \u{2B50}',
                           style: AppTypography.titleMedium.copyWith(
                             color: AppColors.textSecondary,
                           ),
@@ -206,7 +206,7 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
                             ],
                           ),
                           child: Text(
-                            'Ngay ${widget.dayNumber} hoan thanh! \u{1F3C6}',
+                            'Ngày ${widget.dayNumber} hoàn thành! \u{1F3C6}',
                             style: AppTypography.titleMedium.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.w800,
@@ -255,7 +255,7 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
                                 color: AppColors.success,
                                 value:
                                     '${accuracy.toStringAsFixed(0)}%',
-                                label: 'Chinh xac',
+                                label: 'Chính xác',
                               ),
                               Container(
                                 width: 1,
@@ -279,7 +279,7 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
                                 icon: Icons.calendar_today_rounded,
                                 color: AppColors.primary,
                                 value: '${widget.dayNumber}/7',
-                                label: 'Ngay',
+                                label: 'Ngày',
                               ),
                             ],
                           ),
@@ -324,7 +324,7 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            'Luu tien trinh hoc cua be! \u{1F4BE}',
+                            'Lưu tiến trình học của bé! \u{1F4BE}',
                             style: AppTypography.titleSmall.copyWith(
                               color: AppColors.primary,
                               fontWeight: FontWeight.w700,
@@ -333,7 +333,7 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
                           ),
                           const SizedBox(height: 14),
                           KitaButton(
-                            label: 'Tao tai khoan',
+                            label: 'Tạo tài khoản',
                             onPressed: () =>
                                 context.push(RoutePaths.accountLink),
                             icon: Icons.person_add_outlined,
@@ -358,8 +358,8 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
                       ),
                       child: Text(
                         widget.dayNumber < 6
-                            ? 'Ngay mai se co bai hoc moi dang cho be! \u{1F4DA}'
-                            : 'Con mot ngay nua! Sap hoan thanh thu thach roi! \u{1F525}',
+                            ? 'Ngày mai sẽ có bài học mới đang chờ bé! \u{1F4DA}'
+                            : 'Còn một ngày nữa! Sắp hoàn thành thử thách rồi! \u{1F525}',
                         style: AppTypography.bodyMedium.copyWith(
                           color: AppColors.textSecondary,
                           fontWeight: FontWeight.w500,
@@ -372,7 +372,7 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
                   // Action buttons
                   if (isDay7) ...[
                     KitaButton(
-                      label: 'Thu am trinh dien \u{1F3A4}',
+                      label: 'Thu âm trình diễn \u{1F3A4}',
                       onPressed: () => context.go(RoutePaths.day7Record),
                       icon: Icons.mic_rounded,
                       color: AppColors.secondary,
@@ -381,7 +381,7 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
                   ],
 
                   KitaButton(
-                    label: 'Ve trang chinh \u{1F3E0}',
+                    label: 'Về trang chính \u{1F3E0}',
                     onPressed: () {
                       ref.read(sessionProvider.notifier).reset();
                       ref.invalidate(allSessionsProvider);
