@@ -7,7 +7,11 @@ enum ActivityType {
   flashcardIntro('flashcard_intro', 'Flashcard', 'Học từ mới'),
   listenAndRepeat('listen_and_repeat', 'Listen & Repeat', 'Nghe và nhắc lại'),
   listenAndChoose('listen_and_choose', 'Listen & Choose', 'Nghe và chọn'),
-  speakWord('speak_word', 'Speak', 'Phát âm');
+  speakWord('speak_word', 'Speak', 'Phát âm'),
+  buildSentence('build_sentence', 'Build Sentence', 'Xếp câu'),
+  fillBlank('fill_blank', 'Fill in the Blank', 'Điền từ'),
+  phonicsListen('phonics_listen', 'Phonics', 'Luyện âm'),
+  phonicsMatch('phonics_match', 'Sound Match', 'Nối âm');
 
   final String apiValue;
   final String englishName;

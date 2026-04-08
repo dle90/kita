@@ -44,4 +44,6 @@ class ApiEndpoints {
       '/kids/$kidId/progress/vocabulary';
   static String progressPronunciation(String kidId) =>
       '/kids/$kidId/progress/pronunciation';
+  static String progressSkills(String kidId) =>
+      '/kids/$kidId/progress/skills';
 }

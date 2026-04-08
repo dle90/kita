@@ -21,6 +21,22 @@ type ContentRepository interface {
 	InsertSessionTemplate(ctx context.Context, tmpl *SessionTemplate) error
 	CountVocabulary(ctx context.Context) (int, error)
 	CountSessionTemplates(ctx context.Context) (int, error)
+
+	// Phonemes
+	InsertPhoneme(ctx context.Context, p *Phoneme) error
+	GetPhonemes(ctx context.Context) ([]*Phoneme, error)
+	GetPhonemeByID(ctx context.Context, id string) (*Phoneme, error)
+	CountPhonemes(ctx context.Context) (int, error)
+
+	// Grammar & Patterns
+	InsertGrammarStructure(ctx context.Context, gs *GrammarStructure) error
+	InsertPattern(ctx context.Context, p *Pattern) error
+	InsertCommunicationFunction(ctx context.Context, cf *CommunicationFunction) error
+	GetGrammarStructures(ctx context.Context) ([]*GrammarStructure, error)
+	GetPatterns(ctx context.Context, day int) ([]*Pattern, error)
+	GetPatternsByFunction(ctx context.Context, function string) ([]*Pattern, error)
+	GetCommunicationFunctions(ctx context.Context) ([]*CommunicationFunction, error)
+	CountGrammarStructures(ctx context.Context) (int, error)
 }
 
 type pgContentRepository struct {
@@ -201,6 +217,184 @@ func (r *pgContentRepository) CountVocabulary(ctx context.Context) (int, error) 
 func (r *pgContentRepository) CountSessionTemplates(ctx context.Context) (int, error) {
 	var count int
 	err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM session_templates`).Scan(&count)
+	return count, err
+}
+
+func (r *pgContentRepository) InsertGrammarStructure(ctx context.Context, gs *GrammarStructure) error {
+	_, err := r.pool.Exec(ctx,
+		`INSERT INTO grammar_structures (id, name, description_vi, template, cefr_level, difficulty, prerequisite_ids, common_l1_errors)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		 ON CONFLICT (id) DO NOTHING`,
+		gs.ID, gs.Name, gs.DescriptionVI, gs.Template, gs.CEFRLevel, gs.Difficulty, gs.PrerequisiteIDs, gs.CommonL1Errors,
+	)
+	return err
+}
+
+func (r *pgContentRepository) InsertPattern(ctx context.Context, p *Pattern) error {
+	_, err := r.pool.Exec(ctx,
+		`INSERT INTO patterns (id, grammar_structure_id, template, template_vi, communication_function, slots, difficulty, day_introduced, example_sentences)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		 ON CONFLICT (id) DO NOTHING`,
+		p.ID, p.GrammarStructureID, p.Template, p.TemplateVI, p.CommunicationFunction, p.Slots, p.Difficulty, p.DayIntroduced, p.ExampleSentences,
+	)
+	return err
+}
+
+func (r *pgContentRepository) InsertCommunicationFunction(ctx context.Context, cf *CommunicationFunction) error {
+	_, err := r.pool.Exec(ctx,
+		`INSERT INTO communication_functions (id, name, name_vi, description_vi, cefr_level, situations, pattern_ids)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)
+		 ON CONFLICT (id) DO NOTHING`,
+		cf.ID, cf.Name, cf.NameVI, cf.DescriptionVI, cf.CEFRLevel, cf.Situations, cf.PatternIDs,
+	)
+	return err
+}
+
+func (r *pgContentRepository) GetGrammarStructures(ctx context.Context) ([]*GrammarStructure, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT id, name, description_vi, template, cefr_level, difficulty, prerequisite_ids, common_l1_errors
+		 FROM grammar_structures ORDER BY difficulty`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []*GrammarStructure
+	for rows.Next() {
+		gs := &GrammarStructure{}
+		if err := rows.Scan(&gs.ID, &gs.Name, &gs.DescriptionVI, &gs.Template, &gs.CEFRLevel, &gs.Difficulty, &gs.PrerequisiteIDs, &gs.CommonL1Errors); err != nil {
+			return nil, err
+		}
+		result = append(result, gs)
+	}
+	return result, nil
+}
+
+func (r *pgContentRepository) GetPatterns(ctx context.Context, day int) ([]*Pattern, error) {
+	query := `SELECT id, grammar_structure_id, template, template_vi, communication_function, slots, difficulty, day_introduced, example_sentences
+		 FROM patterns`
+	args := []interface{}{}
+	if day > 0 {
+		query += ` WHERE day_introduced = $1`
+		args = append(args, day)
+	}
+	query += ` ORDER BY difficulty, day_introduced`
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []*Pattern
+	for rows.Next() {
+		p := &Pattern{}
+		if err := rows.Scan(&p.ID, &p.GrammarStructureID, &p.Template, &p.TemplateVI, &p.CommunicationFunction, &p.Slots, &p.Difficulty, &p.DayIntroduced, &p.ExampleSentences); err != nil {
+			return nil, err
+		}
+		result = append(result, p)
+	}
+	return result, nil
+}
+
+func (r *pgContentRepository) GetPatternsByFunction(ctx context.Context, function string) ([]*Pattern, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT id, grammar_structure_id, template, template_vi, communication_function, slots, difficulty, day_introduced, example_sentences
+		 FROM patterns WHERE communication_function = $1 ORDER BY difficulty`, function)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []*Pattern
+	for rows.Next() {
+		p := &Pattern{}
+		if err := rows.Scan(&p.ID, &p.GrammarStructureID, &p.Template, &p.TemplateVI, &p.CommunicationFunction, &p.Slots, &p.Difficulty, &p.DayIntroduced, &p.ExampleSentences); err != nil {
+			return nil, err
+		}
+		result = append(result, p)
+	}
+	return result, nil
+}
+
+func (r *pgContentRepository) GetCommunicationFunctions(ctx context.Context) ([]*CommunicationFunction, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT id, name, name_vi, description_vi, cefr_level, situations, pattern_ids
+		 FROM communication_functions ORDER BY name`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []*CommunicationFunction
+	for rows.Next() {
+		cf := &CommunicationFunction{}
+		if err := rows.Scan(&cf.ID, &cf.Name, &cf.NameVI, &cf.DescriptionVI, &cf.CEFRLevel, &cf.Situations, &cf.PatternIDs); err != nil {
+			return nil, err
+		}
+		result = append(result, cf)
+	}
+	return result, nil
+}
+
+func (r *pgContentRepository) CountGrammarStructures(ctx context.Context) (int, error) {
+	var count int
+	err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM grammar_structures`).Scan(&count)
+	return count, err
+}
+
+// Phoneme repository methods
+
+func (r *pgContentRepository) InsertPhoneme(ctx context.Context, p *Phoneme) error {
+	_, err := r.pool.Exec(ctx,
+		`INSERT INTO phonemes (id, symbol, example_word, example_word_vi, graphemes, is_new_for_vietnamese, common_substitution, substitution_vi, mouth_position_vi, difficulty, priority_northern, priority_central, priority_southern, minimal_pairs, practice_words)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+		 ON CONFLICT (id) DO NOTHING`,
+		p.ID, p.Symbol, p.ExampleWord, p.ExampleWordVI, p.Graphemes, p.IsNewForVietnamese,
+		p.CommonSubstitution, p.SubstitutionVI, p.MouthPositionVI, p.Difficulty,
+		p.PriorityNorthern, p.PriorityCentral, p.PrioritySouthern, p.MinimalPairs, p.PracticeWords,
+	)
+	return err
+}
+
+func (r *pgContentRepository) GetPhonemes(ctx context.Context) ([]*Phoneme, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT id, symbol, example_word, COALESCE(example_word_vi,''), graphemes, is_new_for_vietnamese, COALESCE(common_substitution,''), COALESCE(substitution_vi,''), COALESCE(mouth_position_vi,''), difficulty, priority_northern, priority_central, priority_southern, minimal_pairs, practice_words
+		 FROM phonemes ORDER BY difficulty DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []*Phoneme
+	for rows.Next() {
+		p := &Phoneme{}
+		if err := rows.Scan(&p.ID, &p.Symbol, &p.ExampleWord, &p.ExampleWordVI, &p.Graphemes, &p.IsNewForVietnamese, &p.CommonSubstitution, &p.SubstitutionVI, &p.MouthPositionVI, &p.Difficulty, &p.PriorityNorthern, &p.PriorityCentral, &p.PrioritySouthern, &p.MinimalPairs, &p.PracticeWords); err != nil {
+			return nil, err
+		}
+		result = append(result, p)
+	}
+	return result, nil
+}
+
+func (r *pgContentRepository) GetPhonemeByID(ctx context.Context, id string) (*Phoneme, error) {
+	p := &Phoneme{}
+	err := r.pool.QueryRow(ctx,
+		`SELECT id, symbol, example_word, COALESCE(example_word_vi,''), graphemes, is_new_for_vietnamese, COALESCE(common_substitution,''), COALESCE(substitution_vi,''), COALESCE(mouth_position_vi,''), difficulty, priority_northern, priority_central, priority_southern, minimal_pairs, practice_words
+		 FROM phonemes WHERE id = $1`, id,
+	).Scan(&p.ID, &p.Symbol, &p.ExampleWord, &p.ExampleWordVI, &p.Graphemes, &p.IsNewForVietnamese, &p.CommonSubstitution, &p.SubstitutionVI, &p.MouthPositionVI, &p.Difficulty, &p.PriorityNorthern, &p.PriorityCentral, &p.PrioritySouthern, &p.MinimalPairs, &p.PracticeWords)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+func (r *pgContentRepository) CountPhonemes(ctx context.Context) (int, error) {
+	var count int
+	err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM phonemes`).Scan(&count)
 	return count, err
 }
 

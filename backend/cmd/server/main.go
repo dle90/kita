@@ -72,6 +72,7 @@ func main() {
 	sessionRepo := session.NewSessionRepository(dbPool)
 	activityRepo := session.NewActivityResultRepository(dbPool)
 	srsRepo := srs.NewSrsRepository(dbPool)
+	skillMasteryRepo := srs.NewSkillMasteryRepository(dbPool)
 	progressRepo := progress.NewProgressRepository(dbPool)
 	pronRepo := pronunciation.NewPronunciationRepository(dbPool)
 
@@ -79,10 +80,10 @@ func main() {
 	authService := auth.NewAuthService(authRepo, cfg.JWT)
 	onboardingService := onboarding.NewOnboardingService(kidRepo)
 	srsService := srs.NewSrsService(srsRepo)
-	sessionService := session.NewSessionService(sessionRepo, activityRepo, contentRepo, kidRepo, srsRepo)
+	sessionService := session.NewSessionService(sessionRepo, activityRepo, contentRepo, kidRepo, srsRepo, skillMasteryRepo)
 	azureClient := pronunciation.NewAzureSpeechClient(cfg.Azure)
 	pronService := pronunciation.NewPronunciationService(pronRepo, azureClient, storage)
-	progressService := progress.NewProgressService(progressRepo, sessionRepo, activityRepo, srsRepo, pronRepo)
+	progressService := progress.NewProgressService(progressRepo, sessionRepo, activityRepo, srsRepo, pronRepo, skillMasteryRepo)
 	_ = notification.NewNotificationService()
 
 	srsHandler := srs.NewSrsHandler(srsService)

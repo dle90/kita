@@ -13,11 +13,12 @@ import (
 )
 
 type ProgressService struct {
-	progressRepo ProgressRepository
-	sessionRepo  session.SessionRepository
-	activityRepo session.ActivityResultRepository
-	srsRepo      srs.SrsRepository
-	pronRepo     pronunciation.PronunciationRepository
+	progressRepo     ProgressRepository
+	sessionRepo      session.SessionRepository
+	activityRepo     session.ActivityResultRepository
+	srsRepo          srs.SrsRepository
+	pronRepo         pronunciation.PronunciationRepository
+	skillMasteryRepo srs.SkillMasteryRepository
 }
 
 func NewProgressService(
@@ -26,14 +27,19 @@ func NewProgressService(
 	activityRepo session.ActivityResultRepository,
 	srsRepo srs.SrsRepository,
 	pronRepo pronunciation.PronunciationRepository,
+	skillMasteryRepo ...srs.SkillMasteryRepository,
 ) *ProgressService {
-	return &ProgressService{
+	s := &ProgressService{
 		progressRepo: progressRepo,
 		sessionRepo:  sessionRepo,
 		activityRepo: activityRepo,
 		srsRepo:      srsRepo,
 		pronRepo:     pronRepo,
 	}
+	if len(skillMasteryRepo) > 0 && skillMasteryRepo[0] != nil {
+		s.skillMasteryRepo = skillMasteryRepo[0]
+	}
+	return s
 }
 
 func (s *ProgressService) RecordSessionProgress(ctx context.Context, kidID uuid.UUID, sess *session.KidSession) error {
@@ -309,5 +315,84 @@ func calculateStreak(sessions []*session.KidSession) int {
 		}
 	}
 	return streak
+}
+
+func (s *ProgressService) GetSkillSummary(ctx context.Context, kidID uuid.UUID) (*SkillSummary, error) {
+	if s.skillMasteryRepo == nil {
+		return &SkillSummary{
+			WeakestSkill: "listening",
+			WeakestWords: []WeakestWord{},
+		}, nil
+	}
+
+	// Get average scores per skill
+	skillAvgs, err := s.skillMasteryRepo.GetSkillSummary(ctx, kidID)
+	if err != nil {
+		return nil, common.ErrInternal("failed to get skill summary")
+	}
+
+	summary := &SkillSummary{
+		Listening:    skillAvgs[srs.SkillListening],
+		Speaking:     skillAvgs[srs.SkillSpeaking],
+		Reading:      skillAvgs[srs.SkillReading],
+		Writing:      skillAvgs[srs.SkillWriting],
+		WeakestWords: []WeakestWord{},
+	}
+
+	// Find weakest skill
+	weakest := srs.SkillListening
+	weakestScore := summary.Listening
+	if summary.Speaking < weakestScore {
+		weakest = srs.SkillSpeaking
+		weakestScore = summary.Speaking
+	}
+	if summary.Reading < weakestScore {
+		weakest = srs.SkillReading
+		weakestScore = summary.Reading
+	}
+	if summary.Writing < weakestScore {
+		weakest = srs.SkillWriting
+	}
+	summary.WeakestSkill = string(weakest)
+	_ = weakestScore
+
+	// Get mastered / in-progress counts
+	mastered, inProgress, err := s.skillMasteryRepo.GetMasteredCount(ctx, kidID)
+	if err == nil {
+		summary.WordsMastered = mastered
+		summary.WordsInProgress = inProgress
+	}
+
+	// Get weakest words with vocabulary info
+	weakWords, err := s.skillMasteryRepo.GetWeakestSkillWords(ctx, kidID, 5)
+	if err == nil && len(weakWords) > 0 {
+		// Look up word names from content
+		vocabIDs := make([]uuid.UUID, len(weakWords))
+		for i, w := range weakWords {
+			vocabIDs[i] = w.VocabularyID
+		}
+
+		for _, w := range weakWords {
+			// Find the weakest individual skill score for this word
+			minScore := w.ListeningScore
+			if w.SpeakingScore < minScore && w.SpeakingAttempts > 0 {
+				minScore = w.SpeakingScore
+			}
+			if w.ReadingScore < minScore && w.ReadingAttempts > 0 {
+				minScore = w.ReadingScore
+			}
+			if w.WritingScore < minScore && w.WritingAttempts > 0 {
+				minScore = w.WritingScore
+			}
+
+			summary.WeakestWords = append(summary.WeakestWords, WeakestWord{
+				Word:         w.VocabularyID.String(), // will be enriched by handler if content repo available
+				WeakestScore: minScore,
+				Overall:      w.OverallMastery,
+			})
+		}
+	}
+
+	return summary, nil
 }
 

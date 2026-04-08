@@ -47,3 +47,22 @@ type L1ErrorCount struct {
 	ErrorType string `json:"error_type"`
 	Count     int    `json:"count"`
 }
+
+// SkillSummary is the response for the GET /kids/:kidId/skills endpoint.
+type SkillSummary struct {
+	Listening      float64         `json:"listening"`
+	Speaking       float64         `json:"speaking"`
+	Reading        float64         `json:"reading"`
+	Writing        float64         `json:"writing"`
+	WordsMastered  int             `json:"words_mastered"`
+	WordsInProgress int            `json:"words_in_progress"`
+	WeakestSkill   string          `json:"weakest_skill"`
+	WeakestWords   []WeakestWord   `json:"weakest_words"`
+}
+
+// WeakestWord holds a word and its weakest skill score for the API response.
+type WeakestWord struct {
+	Word           string  `json:"word"`
+	WeakestScore   float64 `json:"weakest_score"`
+	Overall        float64 `json:"overall"`
+}

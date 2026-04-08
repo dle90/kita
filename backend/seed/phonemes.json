@@ -1,0 +1,529 @@
+[
+  {
+    "id": "ph_theta",
+    "symbol": "\u03b8",
+    "example_word": "think",
+    "example_word_vi": "(kh\u00f4ng c\u00f3 trong ti\u1ebfng Vi\u1ec7t)",
+    "graphemes": ["th"],
+    "is_new_for_vietnamese": true,
+    "common_substitution": "t",
+    "substitution_vi": "Tr\u1ebb Vi\u1ec7t th\u01b0\u1eddng n\u00f3i /t/ thay v\u00ec /\u03b8/",
+    "mouth_position_vi": "\u0110\u1eb7t \u0111\u1ea7u l\u01b0\u1ee1i gi\u1eefa hai h\u00e0m r\u0103ng, th\u1ed5i h\u01a1i ra nh\u1eb9 nh\u00e0ng",
+    "difficulty": 8,
+    "priority_northern": 9,
+    "priority_central": 9,
+    "priority_southern": 9,
+    "minimal_pairs": [
+      {"word1": "think", "word2": "tink", "word1_meaning": "ngh\u0129", "word2_meaning": "(sai)"},
+      {"word1": "three", "word2": "tree", "word1_meaning": "ba", "word2_meaning": "c\u00e2y"},
+      {"word1": "thin", "word2": "tin", "word1_meaning": "m\u1ecfng", "word2_meaning": "thi\u1ebfc"}
+    ],
+    "practice_words": ["think", "three", "thank", "thin", "thick", "tooth"]
+  },
+  {
+    "id": "ph_eth",
+    "symbol": "\u00f0",
+    "example_word": "this",
+    "example_word_vi": "(kh\u00f4ng c\u00f3 trong ti\u1ebfng Vi\u1ec7t)",
+    "graphemes": ["th"],
+    "is_new_for_vietnamese": true,
+    "common_substitution": "d",
+    "substitution_vi": "Tr\u1ebb Vi\u1ec7t th\u01b0\u1eddng n\u00f3i /d/ thay v\u00ec /\u00f0/",
+    "mouth_position_vi": "\u0110\u1eb7t l\u01b0\u1ee1i gi\u1eefa hai h\u00e0m r\u0103ng, rung d\u00e2y thanh",
+    "difficulty": 8,
+    "priority_northern": 9,
+    "priority_central": 9,
+    "priority_southern": 9,
+    "minimal_pairs": [
+      {"word1": "this", "word2": "dis", "word1_meaning": "c\u00e1i n\u00e0y", "word2_meaning": "(sai)"},
+      {"word1": "that", "word2": "dat", "word1_meaning": "c\u00e1i \u0111\u00f3", "word2_meaning": "(sai)"},
+      {"word1": "they", "word2": "day", "word1_meaning": "h\u1ecd", "word2_meaning": "ng\u00e0y"}
+    ],
+    "practice_words": ["this", "that", "the", "they", "them", "there"]
+  },
+  {
+    "id": "ph_final_t",
+    "symbol": "t\u032a",
+    "example_word": "cat",
+    "example_word_vi": "cu\u1ed1i t\u1eeb (th\u01b0\u1eddng b\u1ecb b\u1ecf)",
+    "graphemes": ["t"],
+    "is_new_for_vietnamese": false,
+    "common_substitution": "\u2205",
+    "substitution_vi": "Tr\u1ebb Vi\u1ec7t hay b\u1ecf \u00e2m /t/ cu\u1ed1i t\u1eeb: 'cat' \u2192 'ca'",
+    "mouth_position_vi": "\u0110\u1ea7u l\u01b0\u1ee1i ch\u1ea1m v\u00f2m mi\u1ec7ng, ng\u1eaft h\u01a1i nhanh",
+    "difficulty": 6,
+    "priority_northern": 7,
+    "priority_central": 8,
+    "priority_southern": 8,
+    "minimal_pairs": [
+      {"word1": "cat", "word2": "ca", "word1_meaning": "con m\u00e8o", "word2_meaning": "(sai)"},
+      {"word1": "hat", "word2": "ha", "word1_meaning": "c\u00e1i m\u0169", "word2_meaning": "(sai)"},
+      {"word1": "sit", "word2": "see", "word1_meaning": "ng\u1ed3i", "word2_meaning": "nh\u00ecn"}
+    ],
+    "practice_words": ["cat", "hat", "sit", "hot", "but", "pet"]
+  },
+  {
+    "id": "ph_final_k",
+    "symbol": "k\u032a",
+    "example_word": "book",
+    "example_word_vi": "cu\u1ed1i t\u1eeb (th\u01b0\u1eddng b\u1ecb b\u1ecf)",
+    "graphemes": ["k", "ck"],
+    "is_new_for_vietnamese": false,
+    "common_substitution": "\u2205",
+    "substitution_vi": "Tr\u1ebb Vi\u1ec7t hay b\u1ecf \u00e2m /k/ cu\u1ed1i t\u1eeb: 'book' \u2192 'boo'",
+    "mouth_position_vi": "Ph\u1ea7n sau l\u01b0\u1ee1i ch\u1ea1m v\u00f2m m\u1ec1m, ng\u1eaft h\u01a1i nhanh",
+    "difficulty": 6,
+    "priority_northern": 7,
+    "priority_central": 8,
+    "priority_southern": 8,
+    "minimal_pairs": [
+      {"word1": "book", "word2": "boo", "word1_meaning": "s\u00e1ch", "word2_meaning": "(sai)"},
+      {"word1": "back", "word2": "ba", "word1_meaning": "l\u01b0ng", "word2_meaning": "(sai)"}
+    ],
+    "practice_words": ["book", "look", "back", "duck", "kick", "pick"]
+  },
+  {
+    "id": "ph_final_p",
+    "symbol": "p\u032a",
+    "example_word": "stop",
+    "example_word_vi": "cu\u1ed1i t\u1eeb (th\u01b0\u1eddng b\u1ecb b\u1ecf)",
+    "graphemes": ["p"],
+    "is_new_for_vietnamese": false,
+    "common_substitution": "\u2205",
+    "substitution_vi": "Tr\u1ebb Vi\u1ec7t hay b\u1ecf \u00e2m /p/ cu\u1ed1i t\u1eeb: 'stop' \u2192 'sto'",
+    "mouth_position_vi": "Hai m\u00f4i ch\u1ea1m nhau, ng\u1eaft h\u01a1i nhanh",
+    "difficulty": 5,
+    "priority_northern": 7,
+    "priority_central": 7,
+    "priority_southern": 7,
+    "minimal_pairs": [
+      {"word1": "stop", "word2": "sto", "word1_meaning": "d\u1eebng", "word2_meaning": "(sai)"},
+      {"word1": "cup", "word2": "cu", "word1_meaning": "c\u1ed1c", "word2_meaning": "(sai)"}
+    ],
+    "practice_words": ["stop", "cup", "top", "map", "help", "jump"]
+  },
+  {
+    "id": "ph_final_d",
+    "symbol": "d\u032a",
+    "example_word": "bed",
+    "example_word_vi": "cu\u1ed1i t\u1eeb (th\u01b0\u1eddng b\u1ecb b\u1ecf)",
+    "graphemes": ["d"],
+    "is_new_for_vietnamese": false,
+    "common_substitution": "\u2205",
+    "substitution_vi": "Tr\u1ebb Vi\u1ec7t hay b\u1ecf \u00e2m /d/ cu\u1ed1i t\u1eeb: 'bed' \u2192 'be'",
+    "mouth_position_vi": "\u0110\u1ea7u l\u01b0\u1ee1i ch\u1ea1m v\u00f2m mi\u1ec7ng, rung d\u00e2y thanh v\u00e0 th\u1ea3 ra",
+    "difficulty": 6,
+    "priority_northern": 7,
+    "priority_central": 8,
+    "priority_southern": 8,
+    "minimal_pairs": [
+      {"word1": "bed", "word2": "be", "word1_meaning": "gi\u01b0\u1eddng", "word2_meaning": "(sai)"},
+      {"word1": "red", "word2": "re", "word1_meaning": "\u0111\u1ecf", "word2_meaning": "(sai)"}
+    ],
+    "practice_words": ["bed", "red", "sad", "good", "hand", "food"]
+  },
+  {
+    "id": "ph_final_g",
+    "symbol": "g\u032a",
+    "example_word": "dog",
+    "example_word_vi": "cu\u1ed1i t\u1eeb (th\u01b0\u1eddng b\u1ecb b\u1ecf)",
+    "graphemes": ["g"],
+    "is_new_for_vietnamese": false,
+    "common_substitution": "\u2205",
+    "substitution_vi": "Tr\u1ebb Vi\u1ec7t hay b\u1ecf \u00e2m /g/ cu\u1ed1i t\u1eeb: 'dog' \u2192 'do'",
+    "mouth_position_vi": "Ph\u1ea7n sau l\u01b0\u1ee1i ch\u1ea1m v\u00f2m m\u1ec1m, rung d\u00e2y thanh v\u00e0 th\u1ea3 ra",
+    "difficulty": 6,
+    "priority_northern": 7,
+    "priority_central": 7,
+    "priority_southern": 8,
+    "minimal_pairs": [
+      {"word1": "dog", "word2": "do", "word1_meaning": "con ch\u00f3", "word2_meaning": "l\u00e0m"},
+      {"word1": "big", "word2": "bee", "word1_meaning": "to", "word2_meaning": "con ong"}
+    ],
+    "practice_words": ["dog", "big", "bag", "leg", "frog", "egg"]
+  },
+  {
+    "id": "ph_final_s",
+    "symbol": "s\u032a",
+    "example_word": "bus",
+    "example_word_vi": "cu\u1ed1i t\u1eeb (th\u01b0\u1eddng b\u1ecb b\u1ecf)",
+    "graphemes": ["s", "ss"],
+    "is_new_for_vietnamese": false,
+    "common_substitution": "\u2205",
+    "substitution_vi": "Tr\u1ebb Vi\u1ec7t hay b\u1ecf \u00e2m /s/ cu\u1ed1i t\u1eeb: 'bus' \u2192 'bu'",
+    "mouth_position_vi": "\u0110\u1ea7u l\u01b0\u1ee1i g\u1ea7n v\u00f2m mi\u1ec7ng, th\u1ed5i h\u01a1i xi\u00eat qua k\u1ebb h\u1eb9p",
+    "difficulty": 5,
+    "priority_northern": 7,
+    "priority_central": 7,
+    "priority_southern": 7,
+    "minimal_pairs": [
+      {"word1": "bus", "word2": "bu", "word1_meaning": "xe bu\u00fdt", "word2_meaning": "(sai)"},
+      {"word1": "yes", "word2": "ye", "word1_meaning": "c\u00f3", "word2_meaning": "(sai)"}
+    ],
+    "practice_words": ["bus", "yes", "miss", "dress", "nice", "house"]
+  },
+  {
+    "id": "ph_final_z",
+    "symbol": "z\u032a",
+    "example_word": "dogs",
+    "example_word_vi": "cu\u1ed1i t\u1eeb (th\u01b0\u1eddng b\u1ecb b\u1ecf)",
+    "graphemes": ["s", "z"],
+    "is_new_for_vietnamese": false,
+    "common_substitution": "\u2205",
+    "substitution_vi": "Tr\u1ebb Vi\u1ec7t hay b\u1ecf \u00e2m /z/ cu\u1ed1i t\u1eeb: 'dogs' \u2192 'dog'",
+    "mouth_position_vi": "Gi\u1ed1ng /s/ nh\u01b0ng rung d\u00e2y thanh",
+    "difficulty": 6,
+    "priority_northern": 7,
+    "priority_central": 7,
+    "priority_southern": 7,
+    "minimal_pairs": [
+      {"word1": "dogs", "word2": "dog", "word1_meaning": "nh\u1eefng con ch\u00f3", "word2_meaning": "con ch\u00f3"},
+      {"word1": "plays", "word2": "play", "word1_meaning": "ch\u01a1i (s)", "word2_meaning": "ch\u01a1i"}
+    ],
+    "practice_words": ["dogs", "plays", "runs", "eyes", "is", "has"]
+  },
+  {
+    "id": "ph_r",
+    "symbol": "\u0279",
+    "example_word": "red",
+    "example_word_vi": "kh\u00e1c /l/ trong ti\u1ebfng Vi\u1ec7t",
+    "graphemes": ["r"],
+    "is_new_for_vietnamese": true,
+    "common_substitution": "l",
+    "substitution_vi": "Tr\u1ebb mi\u1ec1n Nam th\u01b0\u1eddng n\u00f3i /l/ thay v\u00ec /r/",
+    "mouth_position_vi": "Cu\u1ed9n l\u01b0\u1ee1i h\u01a1i ra sau, kh\u00f4ng ch\u1ea1m v\u00f2m mi\u1ec7ng",
+    "difficulty": 7,
+    "priority_northern": 5,
+    "priority_central": 7,
+    "priority_southern": 9,
+    "minimal_pairs": [
+      {"word1": "red", "word2": "led", "word1_meaning": "\u0111\u1ecf", "word2_meaning": "d\u1eabn"},
+      {"word1": "right", "word2": "light", "word1_meaning": "\u0111\u00fang", "word2_meaning": "\u00e1nh s\u00e1ng"},
+      {"word1": "rice", "word2": "lice", "word1_meaning": "c\u01a1m", "word2_meaning": "ch\u1ea5y"}
+    ],
+    "practice_words": ["red", "run", "rain", "right", "read", "room"]
+  },
+  {
+    "id": "ph_l",
+    "symbol": "l",
+    "example_word": "look",
+    "example_word_vi": "gi\u1ed1ng /l/ ti\u1ebfng Vi\u1ec7t",
+    "graphemes": ["l"],
+    "is_new_for_vietnamese": false,
+    "common_substitution": "r",
+    "substitution_vi": "Tr\u1ebb mi\u1ec1n Nam hay nh\u1ea7m /l/ v\u00e0 /r/",
+    "mouth_position_vi": "\u0110\u1ea7u l\u01b0\u1ee1i ch\u1ea1m v\u00f2m mi\u1ec7ng, h\u01a1i tho\u00e1t hai b\u00ean",
+    "difficulty": 4,
+    "priority_northern": 3,
+    "priority_central": 5,
+    "priority_southern": 8,
+    "minimal_pairs": [
+      {"word1": "light", "word2": "right", "word1_meaning": "\u00e1nh s\u00e1ng", "word2_meaning": "\u0111\u00fang"},
+      {"word1": "long", "word2": "wrong", "word1_meaning": "d\u00e0i", "word2_meaning": "sai"}
+    ],
+    "practice_words": ["look", "long", "like", "love", "little", "let"]
+  },
+  {
+    "id": "ph_w",
+    "symbol": "w",
+    "example_word": "water",
+    "example_word_vi": "kh\u00e1c /v/ trong ti\u1ebfng Vi\u1ec7t",
+    "graphemes": ["w"],
+    "is_new_for_vietnamese": true,
+    "common_substitution": "v",
+    "substitution_vi": "Tr\u1ebb mi\u1ec1n B\u1eafc th\u01b0\u1eddng n\u00f3i /v/ thay v\u00ec /w/",
+    "mouth_position_vi": "Hai m\u00f4i tr\u00f2n l\u1ea1i, kh\u00f4ng ch\u1ea1m r\u0103ng",
+    "difficulty": 6,
+    "priority_northern": 9,
+    "priority_central": 5,
+    "priority_southern": 5,
+    "minimal_pairs": [
+      {"word1": "west", "word2": "vest", "word1_meaning": "t\u00e2y", "word2_meaning": "\u00e1o gile"},
+      {"word1": "wine", "word2": "vine", "word1_meaning": "r\u01b0\u1ee3u", "word2_meaning": "d\u00e2y leo"},
+      {"word1": "wet", "word2": "vet", "word1_meaning": "\u01b0\u1edbt", "word2_meaning": "b\u00e1c s\u0129 th\u00fa y"}
+    ],
+    "practice_words": ["water", "what", "where", "we", "want", "with"]
+  },
+  {
+    "id": "ph_v",
+    "symbol": "v",
+    "example_word": "very",
+    "example_word_vi": "gi\u1ed1ng /v/ ti\u1ebfng Vi\u1ec7t",
+    "graphemes": ["v"],
+    "is_new_for_vietnamese": false,
+    "common_substitution": "w",
+    "substitution_vi": "Tr\u1ebb mi\u1ec1n B\u1eafc hay nh\u1ea7m /v/ v\u00e0 /w/",
+    "mouth_position_vi": "R\u0103ng tr\u00ean ch\u1ea1m m\u00f4i d\u01b0\u1edbi, rung d\u00e2y thanh",
+    "difficulty": 4,
+    "priority_northern": 8,
+    "priority_central": 4,
+    "priority_southern": 4,
+    "minimal_pairs": [
+      {"word1": "vest", "word2": "west", "word1_meaning": "\u00e1o gile", "word2_meaning": "t\u00e2y"},
+      {"word1": "very", "word2": "wary", "word1_meaning": "r\u1ea5t", "word2_meaning": "c\u1ea9n th\u1eadn"}
+    ],
+    "practice_words": ["very", "van", "voice", "visit", "five", "have"]
+  },
+  {
+    "id": "ph_str",
+    "symbol": "str",
+    "example_word": "street",
+    "example_word_vi": "(kh\u00f4ng c\u00f3 trong ti\u1ebfng Vi\u1ec7t)",
+    "graphemes": ["str"],
+    "is_new_for_vietnamese": true,
+    "common_substitution": "s",
+    "substitution_vi": "Tr\u1ebb Vi\u1ec7t th\u01b0\u1eddng \u0111\u01a1n gi\u1ea3n 'str' th\u00e0nh 's' ho\u1eb7c 'st'",
+    "mouth_position_vi": "N\u00f3i /s/ r\u1ed3i /t/ r\u1ed3i /r/ li\u00ean t\u1ee5c, kh\u00f4ng ng\u1eaft",
+    "difficulty": 9,
+    "priority_northern": 8,
+    "priority_central": 8,
+    "priority_southern": 8,
+    "minimal_pairs": [
+      {"word1": "street", "word2": "seat", "word1_meaning": "\u0111\u01b0\u1eddng ph\u1ed1", "word2_meaning": "ch\u1ed7 ng\u1ed3i"},
+      {"word1": "strong", "word2": "song", "word1_meaning": "m\u1ea1nh", "word2_meaning": "b\u00e0i h\u00e1t"}
+    ],
+    "practice_words": ["street", "strong", "string", "star", "story", "stream"]
+  },
+  {
+    "id": "ph_bl",
+    "symbol": "bl",
+    "example_word": "blue",
+    "example_word_vi": "(kh\u00f4ng c\u00f3 trong ti\u1ebfng Vi\u1ec7t)",
+    "graphemes": ["bl"],
+    "is_new_for_vietnamese": true,
+    "common_substitution": "b",
+    "substitution_vi": "Tr\u1ebb Vi\u1ec7t th\u01b0\u1eddng b\u1ecf /l/: 'blue' \u2192 'boo'",
+    "mouth_position_vi": "N\u00f3i /b/ r\u1ed3i /l/ li\u00ean t\u1ee5c, kh\u00f4ng ng\u1eaft",
+    "difficulty": 7,
+    "priority_northern": 7,
+    "priority_central": 7,
+    "priority_southern": 7,
+    "minimal_pairs": [
+      {"word1": "blue", "word2": "boo", "word1_meaning": "xanh", "word2_meaning": "(sai)"},
+      {"word1": "black", "word2": "back", "word1_meaning": "\u0111en", "word2_meaning": "l\u01b0ng"}
+    ],
+    "practice_words": ["blue", "black", "blow", "blend", "bless", "block"]
+  },
+  {
+    "id": "ph_cr",
+    "symbol": "kr",
+    "example_word": "cry",
+    "example_word_vi": "(kh\u00f4ng c\u00f3 trong ti\u1ebfng Vi\u1ec7t)",
+    "graphemes": ["cr"],
+    "is_new_for_vietnamese": true,
+    "common_substitution": "c",
+    "substitution_vi": "Tr\u1ebb Vi\u1ec7t th\u01b0\u1eddng b\u1ecf /r/: 'cry' \u2192 'cai'",
+    "mouth_position_vi": "N\u00f3i /k/ r\u1ed3i /r/ li\u00ean t\u1ee5c, kh\u00f4ng ng\u1eaft",
+    "difficulty": 8,
+    "priority_northern": 7,
+    "priority_central": 7,
+    "priority_southern": 8,
+    "minimal_pairs": [
+      {"word1": "cry", "word2": "kai", "word1_meaning": "kh\u00f3c", "word2_meaning": "(sai)"},
+      {"word1": "cream", "word2": "key", "word1_meaning": "kem", "word2_meaning": "ch\u00eca kh\u00f3a"}
+    ],
+    "practice_words": ["cry", "cream", "cross", "crab", "crown", "crack"]
+  },
+  {
+    "id": "ph_pl",
+    "symbol": "pl",
+    "example_word": "play",
+    "example_word_vi": "(kh\u00f4ng c\u00f3 trong ti\u1ebfng Vi\u1ec7t)",
+    "graphemes": ["pl"],
+    "is_new_for_vietnamese": true,
+    "common_substitution": "p",
+    "substitution_vi": "Tr\u1ebb Vi\u1ec7t th\u01b0\u1eddng b\u1ecf /l/: 'play' \u2192 'pay'",
+    "mouth_position_vi": "N\u00f3i /p/ r\u1ed3i /l/ li\u00ean t\u1ee5c, kh\u00f4ng ng\u1eaft",
+    "difficulty": 7,
+    "priority_northern": 7,
+    "priority_central": 7,
+    "priority_southern": 7,
+    "minimal_pairs": [
+      {"word1": "play", "word2": "pay", "word1_meaning": "ch\u01a1i", "word2_meaning": "tr\u1ea3 ti\u1ec1n"},
+      {"word1": "please", "word2": "peas", "word1_meaning": "l\u00e0m \u01a1n", "word2_meaning": "\u0111\u1eadu"}
+    ],
+    "practice_words": ["play", "please", "place", "plan", "plant", "plus"]
+  },
+  {
+    "id": "ph_tr",
+    "symbol": "tr",
+    "example_word": "tree",
+    "example_word_vi": "kh\u00e1c /tr/ ti\u1ebfng Vi\u1ec7t",
+    "graphemes": ["tr"],
+    "is_new_for_vietnamese": false,
+    "common_substitution": "ch",
+    "substitution_vi": "Ti\u1ebfng Anh /tr/ kh\u00e1c ti\u1ebfng Vi\u1ec7t: l\u01b0\u1ee1i cu\u1ed9n h\u01a1n",
+    "mouth_position_vi": "N\u00f3i /t/ r\u1ed3i /r/ li\u00ean t\u1ee5c, l\u01b0\u1ee1i cu\u1ed9n",
+    "difficulty": 7,
+    "priority_northern": 6,
+    "priority_central": 7,
+    "priority_southern": 8,
+    "minimal_pairs": [
+      {"word1": "tree", "word2": "three", "word1_meaning": "c\u00e2y", "word2_meaning": "ba"},
+      {"word1": "try", "word2": "tie", "word1_meaning": "th\u1eed", "word2_meaning": "c\u00e0 v\u1ea1t"}
+    ],
+    "practice_words": ["tree", "try", "train", "true", "truck", "trip"]
+  },
+  {
+    "id": "ph_i_short",
+    "symbol": "\u026a",
+    "example_word": "sit",
+    "example_word_vi": "ng\u1eafn h\u01a1n /i/ ti\u1ebfng Vi\u1ec7t",
+    "graphemes": ["i"],
+    "is_new_for_vietnamese": true,
+    "common_substitution": "i\u02d0",
+    "substitution_vi": "Tr\u1ebb Vi\u1ec7t th\u01b0\u1eddng n\u00f3i /i/ d\u00e0i thay v\u00ec /\u026a/ ng\u1eafn",
+    "mouth_position_vi": "Mi\u1ec7ng h\u01a1i m\u1edf h\u01a1n khi n\u00f3i 'i' ti\u1ebfng Vi\u1ec7t, ng\u1eafn h\u01a1n",
+    "difficulty": 5,
+    "priority_northern": 6,
+    "priority_central": 6,
+    "priority_southern": 6,
+    "minimal_pairs": [
+      {"word1": "sit", "word2": "seat", "word1_meaning": "ng\u1ed3i", "word2_meaning": "gh\u1ebf"},
+      {"word1": "ship", "word2": "sheep", "word1_meaning": "t\u00e0u", "word2_meaning": "c\u1eebu"},
+      {"word1": "hit", "word2": "heat", "word1_meaning": "\u0111\u00e1nh", "word2_meaning": "n\u00f3ng"}
+    ],
+    "practice_words": ["sit", "ship", "hit", "big", "fish", "six"]
+  },
+  {
+    "id": "ph_i_long",
+    "symbol": "i\u02d0",
+    "example_word": "see",
+    "example_word_vi": "gi\u1ed1ng /i/ ti\u1ebfng Vi\u1ec7t",
+    "graphemes": ["ee", "ea", "e"],
+    "is_new_for_vietnamese": false,
+    "common_substitution": "\u026a",
+    "substitution_vi": "C\u1ea7n ph\u00e2n bi\u1ec7t /i\u02d0/ d\u00e0i v\u00e0 /\u026a/ ng\u1eafn",
+    "mouth_position_vi": "Mi\u1ec7ng h\u1eb9p, l\u01b0\u1ee1i l\u00ean cao, k\u00e9o d\u00e0i \u00e2m",
+    "difficulty": 4,
+    "priority_northern": 5,
+    "priority_central": 5,
+    "priority_southern": 5,
+    "minimal_pairs": [
+      {"word1": "seat", "word2": "sit", "word1_meaning": "gh\u1ebf", "word2_meaning": "ng\u1ed3i"},
+      {"word1": "sheep", "word2": "ship", "word1_meaning": "c\u1eebu", "word2_meaning": "t\u00e0u"}
+    ],
+    "practice_words": ["see", "tree", "eat", "read", "green", "sleep"]
+  },
+  {
+    "id": "ph_u_short",
+    "symbol": "\u028a",
+    "example_word": "book",
+    "example_word_vi": "ng\u1eafn h\u01a1n /u/ ti\u1ebfng Vi\u1ec7t",
+    "graphemes": ["oo", "u"],
+    "is_new_for_vietnamese": true,
+    "common_substitution": "u\u02d0",
+    "substitution_vi": "Tr\u1ebb Vi\u1ec7t th\u01b0\u1eddng n\u00f3i /u/ d\u00e0i thay v\u00ec /\u028a/ ng\u1eafn",
+    "mouth_position_vi": "Mi\u1ec7ng h\u01a1i tr\u00f2n, kh\u00f4ng c\u0103ng, ng\u1eafn",
+    "difficulty": 5,
+    "priority_northern": 6,
+    "priority_central": 6,
+    "priority_southern": 6,
+    "minimal_pairs": [
+      {"word1": "look", "word2": "Luke", "word1_meaning": "nh\u00ecn", "word2_meaning": "(t\u00ean)"},
+      {"word1": "pull", "word2": "pool", "word1_meaning": "k\u00e9o", "word2_meaning": "h\u1ed3 b\u01a1i"}
+    ],
+    "practice_words": ["book", "look", "good", "put", "foot", "cook"]
+  },
+  {
+    "id": "ph_u_long",
+    "symbol": "u\u02d0",
+    "example_word": "food",
+    "example_word_vi": "gi\u1ed1ng /u/ ti\u1ebfng Vi\u1ec7t",
+    "graphemes": ["oo", "ue", "ew"],
+    "is_new_for_vietnamese": false,
+    "common_substitution": "\u028a",
+    "substitution_vi": "C\u1ea7n ph\u00e2n bi\u1ec7t /u\u02d0/ d\u00e0i v\u00e0 /\u028a/ ng\u1eafn",
+    "mouth_position_vi": "Mi\u1ec7ng tr\u00f2n, l\u01b0\u1ee1i l\u00f9i sau, k\u00e9o d\u00e0i \u00e2m",
+    "difficulty": 4,
+    "priority_northern": 5,
+    "priority_central": 5,
+    "priority_southern": 5,
+    "minimal_pairs": [
+      {"word1": "pool", "word2": "pull", "word1_meaning": "h\u1ed3 b\u01a1i", "word2_meaning": "k\u00e9o"},
+      {"word1": "food", "word2": "foot", "word1_meaning": "th\u1ee9c \u0103n", "word2_meaning": "b\u00e0n ch\u00e2n"}
+    ],
+    "practice_words": ["food", "moon", "blue", "school", "shoe", "two"]
+  },
+  {
+    "id": "ph_schwa",
+    "symbol": "\u0259",
+    "example_word": "about",
+    "example_word_vi": "(kh\u00f4ng c\u00f3 trong ti\u1ebfng Vi\u1ec7t)",
+    "graphemes": ["a", "e", "o", "u"],
+    "is_new_for_vietnamese": true,
+    "common_substitution": "a",
+    "substitution_vi": "Tr\u1ebb Vi\u1ec7t th\u01b0\u1eddng n\u00f3i nguy\u00ean \u00e2m r\u00f5 thay v\u00ec \u00e2m \u01a1 nh\u1eb9",
+    "mouth_position_vi": "\u00c2m 'uh' r\u1ea5t nh\u1eb9, mi\u1ec7ng th\u01b0 gi\u00e3n kh\u00f4ng c\u0103ng",
+    "difficulty": 6,
+    "priority_northern": 6,
+    "priority_central": 6,
+    "priority_southern": 6,
+    "minimal_pairs": [
+      {"word1": "about", "word2": "a-bout", "word1_meaning": "v\u1ec1", "word2_meaning": "(nh\u1ea5n sai)"},
+      {"word1": "banana", "word2": "ba-na-na", "word1_meaning": "chu\u1ed1i", "word2_meaning": "(nh\u1ea5n sai)"}
+    ],
+    "practice_words": ["about", "banana", "again", "open", "family", "animal"]
+  },
+  {
+    "id": "ph_sh",
+    "symbol": "\u0283",
+    "example_word": "she",
+    "example_word_vi": "(kh\u00f4ng c\u00f3 trong ti\u1ebfng Vi\u1ec7t)",
+    "graphemes": ["sh"],
+    "is_new_for_vietnamese": true,
+    "common_substitution": "s",
+    "substitution_vi": "Tr\u1ebb Vi\u1ec7t th\u01b0\u1eddng n\u00f3i /s/ thay v\u00ec /\u0283/",
+    "mouth_position_vi": "M\u00f4i h\u01a1i ch\u00fam ra, l\u01b0\u1ee1i r\u1ed9ng h\u01a1n khi n\u00f3i /s/",
+    "difficulty": 6,
+    "priority_northern": 7,
+    "priority_central": 7,
+    "priority_southern": 7,
+    "minimal_pairs": [
+      {"word1": "she", "word2": "see", "word1_meaning": "c\u00f4 \u1ea5y", "word2_meaning": "nh\u00ecn"},
+      {"word1": "ship", "word2": "sip", "word1_meaning": "t\u00e0u", "word2_meaning": "nh\u1ea5p"},
+      {"word1": "shop", "word2": "sop", "word1_meaning": "c\u1eeda h\u00e0ng", "word2_meaning": "(sai)"}
+    ],
+    "practice_words": ["she", "ship", "shop", "shoe", "fish", "wash"]
+  },
+  {
+    "id": "ph_ch",
+    "symbol": "t\u0283",
+    "example_word": "child",
+    "example_word_vi": "gi\u1ed1ng /ch/ mi\u1ec1n B\u1eafc",
+    "graphemes": ["ch", "tch"],
+    "is_new_for_vietnamese": false,
+    "common_substitution": "t",
+    "substitution_vi": "Tr\u1ebb mi\u1ec1n Nam hay n\u00f3i /t/ thay v\u00ec /t\u0283/",
+    "mouth_position_vi": "\u0110\u1ea7u l\u01b0\u1ee1i ch\u1ea1m v\u00f2m mi\u1ec7ng r\u1ed3i th\u1ea3 ra nh\u01b0 'ch' ti\u1ebfng Vi\u1ec7t",
+    "difficulty": 5,
+    "priority_northern": 4,
+    "priority_central": 6,
+    "priority_southern": 7,
+    "minimal_pairs": [
+      {"word1": "chip", "word2": "tip", "word1_meaning": "mi\u1ebfng", "word2_meaning": "ti\u1ec1n tip"},
+      {"word1": "chair", "word2": "tear", "word1_meaning": "gh\u1ebf", "word2_meaning": "n\u01b0\u1edbc m\u1eaft"}
+    ],
+    "practice_words": ["child", "chair", "cheese", "chicken", "lunch", "catch"]
+  },
+  {
+    "id": "ph_dj",
+    "symbol": "d\u0292",
+    "example_word": "jump",
+    "example_word_vi": "(kh\u00f4ng c\u00f3 trong ti\u1ebfng Vi\u1ec7t)",
+    "graphemes": ["j", "g", "dg"],
+    "is_new_for_vietnamese": true,
+    "common_substitution": "d",
+    "substitution_vi": "Tr\u1ebb Vi\u1ec7t th\u01b0\u1eddng n\u00f3i /d/ thay v\u00ec /d\u0292/",
+    "mouth_position_vi": "Gi\u1ed1ng /t\u0283/ nh\u01b0ng rung d\u00e2y thanh, m\u1ea1nh h\u01a1n",
+    "difficulty": 6,
+    "priority_northern": 7,
+    "priority_central": 7,
+    "priority_southern": 7,
+    "minimal_pairs": [
+      {"word1": "jump", "word2": "dump", "word1_meaning": "nh\u1ea3y", "word2_meaning": "b\u00e3i r\u00e1c"},
+      {"word1": "jam", "word2": "dam", "word1_meaning": "m\u1ee9t", "word2_meaning": "\u0111\u1eadp"}
+    ],
+    "practice_words": ["jump", "just", "jam", "jelly", "orange", "bridge"]
+  }
+]

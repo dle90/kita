@@ -1,0 +1,568 @@
+[
+  {
+    "id": "p_hello",
+    "grammar_structure_id": "gs_how_are_you",
+    "template": "Hello!",
+    "template_vi": "Xin chào!",
+    "communication_function": "greeting",
+    "slots": [],
+    "difficulty": 1,
+    "day_introduced": 1,
+    "example_sentences": [
+      {"en": "Hello!", "vi": "Xin chào!"}
+    ]
+  },
+  {
+    "id": "p_goodbye",
+    "grammar_structure_id": "gs_how_are_you",
+    "template": "Goodbye!",
+    "template_vi": "Tạm biệt!",
+    "communication_function": "social",
+    "slots": [],
+    "difficulty": 1,
+    "day_introduced": 1,
+    "example_sentences": [
+      {"en": "Goodbye!", "vi": "Tạm biệt!"}
+    ]
+  },
+  {
+    "id": "p_i_am_feeling",
+    "grammar_structure_id": "gs_i_am",
+    "template": "I am {feeling}.",
+    "template_vi": "Tôi {cảm xúc}.",
+    "communication_function": "expressing_feelings",
+    "slots": [
+      {"name": "feeling", "category": "greetings", "part_of_speech": "adjective"}
+    ],
+    "difficulty": 1,
+    "day_introduced": 1,
+    "example_sentences": [
+      {"en": "I am happy.", "vi": "Tôi vui."},
+      {"en": "I am sad.", "vi": "Tôi buồn."},
+      {"en": "I am hungry.", "vi": "Tôi đói."},
+      {"en": "I am tired.", "vi": "Tôi mệt."}
+    ]
+  },
+  {
+    "id": "p_i_am_fine",
+    "grammar_structure_id": "gs_how_are_you",
+    "template": "I am fine.",
+    "template_vi": "Tôi khỏe.",
+    "communication_function": "social",
+    "slots": [],
+    "difficulty": 1,
+    "day_introduced": 1,
+    "example_sentences": [
+      {"en": "I am fine.", "vi": "Tôi khỏe."}
+    ]
+  },
+  {
+    "id": "p_how_are_you",
+    "grammar_structure_id": "gs_how_are_you",
+    "template": "How are you?",
+    "template_vi": "Bạn khỏe không?",
+    "communication_function": "greeting",
+    "slots": [],
+    "difficulty": 1,
+    "day_introduced": 1,
+    "example_sentences": [
+      {"en": "How are you?", "vi": "Bạn khỏe không?"}
+    ]
+  },
+  {
+    "id": "p_my_name_is",
+    "grammar_structure_id": "gs_my_name_is",
+    "template": "My name is {name}.",
+    "template_vi": "Tên tôi là {tên}.",
+    "communication_function": "self_introduction",
+    "slots": [
+      {"name": "name", "category": "names", "part_of_speech": "noun"}
+    ],
+    "difficulty": 1,
+    "day_introduced": 1,
+    "example_sentences": [
+      {"en": "My name is Minh.", "vi": "Tên tôi là Minh."},
+      {"en": "My name is Lan.", "vi": "Tên tôi là Lan."}
+    ]
+  },
+  {
+    "id": "p_i_am_age",
+    "grammar_structure_id": "gs_i_am",
+    "template": "I am a {identity}.",
+    "template_vi": "Tôi là một {danh tính}.",
+    "communication_function": "self_introduction",
+    "slots": [
+      {"name": "identity", "category": "greetings", "part_of_speech": "noun"}
+    ],
+    "difficulty": 1,
+    "day_introduced": 1,
+    "example_sentences": [
+      {"en": "I am a boy.", "vi": "Tôi là con trai."},
+      {"en": "I am a girl.", "vi": "Tôi là con gái."}
+    ]
+  },
+
+  {
+    "id": "p_this_is_my_family",
+    "grammar_structure_id": "gs_this_is_my",
+    "template": "This is my {family_member}.",
+    "template_vi": "Đây là {thành viên gia đình} của tôi.",
+    "communication_function": "introducing_family",
+    "slots": [
+      {"name": "family_member", "category": "family", "part_of_speech": "noun"}
+    ],
+    "difficulty": 2,
+    "day_introduced": 2,
+    "example_sentences": [
+      {"en": "This is my mom.", "vi": "Đây là mẹ tôi."},
+      {"en": "This is my dad.", "vi": "Đây là bố tôi."},
+      {"en": "This is my brother.", "vi": "Đây là anh trai tôi."},
+      {"en": "This is my sister.", "vi": "Đây là chị gái tôi."}
+    ]
+  },
+  {
+    "id": "p_i_love_family",
+    "grammar_structure_id": "gs_i_have",
+    "template": "I love my {family_member}.",
+    "template_vi": "Tôi yêu {thành viên gia đình} của tôi.",
+    "communication_function": "introducing_family",
+    "slots": [
+      {"name": "family_member", "category": "family", "part_of_speech": "noun"}
+    ],
+    "difficulty": 2,
+    "day_introduced": 2,
+    "example_sentences": [
+      {"en": "I love my mom.", "vi": "Tôi yêu mẹ."},
+      {"en": "I love my dad.", "vi": "Tôi yêu bố."},
+      {"en": "I love my family.", "vi": "Tôi yêu gia đình."}
+    ]
+  },
+  {
+    "id": "p_this_is_thing",
+    "grammar_structure_id": "gs_this_is",
+    "template": "This is a {thing}.",
+    "template_vi": "Đây là một {đồ vật}.",
+    "communication_function": "naming",
+    "slots": [
+      {"name": "thing", "category": "family", "part_of_speech": "noun"}
+    ],
+    "difficulty": 1,
+    "day_introduced": 2,
+    "example_sentences": [
+      {"en": "This is a baby.", "vi": "Đây là em bé."},
+      {"en": "This is a book.", "vi": "Đây là quyển sách."}
+    ]
+  },
+  {
+    "id": "p_i_have_thing",
+    "grammar_structure_id": "gs_i_have",
+    "template": "I have a {thing}.",
+    "template_vi": "Tôi có một {đồ vật}.",
+    "communication_function": "possession",
+    "slots": [
+      {"name": "thing", "category": "family", "part_of_speech": "noun"}
+    ],
+    "difficulty": 2,
+    "day_introduced": 2,
+    "example_sentences": [
+      {"en": "I have a brother.", "vi": "Tôi có anh trai."},
+      {"en": "I have a sister.", "vi": "Tôi có chị gái."}
+    ]
+  },
+
+  {
+    "id": "p_i_like_food",
+    "grammar_structure_id": "gs_i_like",
+    "template": "I like {food}.",
+    "template_vi": "Tôi thích {đồ ăn}.",
+    "communication_function": "expressing_preference",
+    "slots": [
+      {"name": "food", "category": "food", "part_of_speech": "noun"}
+    ],
+    "difficulty": 2,
+    "day_introduced": 3,
+    "example_sentences": [
+      {"en": "I like rice.", "vi": "Tôi thích cơm."},
+      {"en": "I like chicken.", "vi": "Tôi thích gà."},
+      {"en": "I like ice cream.", "vi": "Tôi thích kem."}
+    ]
+  },
+  {
+    "id": "p_i_dont_like_food",
+    "grammar_structure_id": "gs_i_like",
+    "template": "I don't like {food}.",
+    "template_vi": "Tôi không thích {đồ ăn}.",
+    "communication_function": "expressing_preference",
+    "slots": [
+      {"name": "food", "category": "food", "part_of_speech": "noun"}
+    ],
+    "difficulty": 2,
+    "day_introduced": 3,
+    "example_sentences": [
+      {"en": "I don't like fish.", "vi": "Tôi không thích cá."},
+      {"en": "I don't like milk.", "vi": "Tôi không thích sữa."}
+    ]
+  },
+  {
+    "id": "p_i_eat",
+    "grammar_structure_id": "gs_i_verb_time",
+    "template": "I eat {food}.",
+    "template_vi": "Tôi ăn {đồ ăn}.",
+    "communication_function": "daily_routine",
+    "slots": [
+      {"name": "food", "category": "food", "part_of_speech": "noun"}
+    ],
+    "difficulty": 2,
+    "day_introduced": 3,
+    "example_sentences": [
+      {"en": "I eat rice.", "vi": "Tôi ăn cơm."},
+      {"en": "I eat bread.", "vi": "Tôi ăn bánh mì."},
+      {"en": "I eat fruit.", "vi": "Tôi ăn trái cây."}
+    ]
+  },
+  {
+    "id": "p_i_drink",
+    "grammar_structure_id": "gs_i_verb_time",
+    "template": "I drink {drink}.",
+    "template_vi": "Tôi uống {đồ uống}.",
+    "communication_function": "daily_routine",
+    "slots": [
+      {"name": "drink", "category": "food", "part_of_speech": "noun"}
+    ],
+    "difficulty": 2,
+    "day_introduced": 3,
+    "example_sentences": [
+      {"en": "I drink water.", "vi": "Tôi uống nước."},
+      {"en": "I drink milk.", "vi": "Tôi uống sữa."}
+    ]
+  },
+  {
+    "id": "p_do_you_like",
+    "grammar_structure_id": "gs_do_you_like",
+    "template": "Do you like {food}?",
+    "template_vi": "Bạn có thích {đồ ăn} không?",
+    "communication_function": "asking_questions",
+    "slots": [
+      {"name": "food", "category": "food", "part_of_speech": "noun"}
+    ],
+    "difficulty": 3,
+    "day_introduced": 3,
+    "example_sentences": [
+      {"en": "Do you like rice?", "vi": "Bạn có thích cơm không?"},
+      {"en": "Do you like ice cream?", "vi": "Bạn có thích kem không?"}
+    ]
+  },
+
+  {
+    "id": "p_i_can_action",
+    "grammar_structure_id": "gs_i_can",
+    "template": "I can {action}.",
+    "template_vi": "Tôi có thể {hành động}.",
+    "communication_function": "expressing_ability",
+    "slots": [
+      {"name": "action", "category": "actions", "part_of_speech": "verb"}
+    ],
+    "difficulty": 2,
+    "day_introduced": 4,
+    "example_sentences": [
+      {"en": "I can run.", "vi": "Tôi biết chạy."},
+      {"en": "I can swim.", "vi": "Tôi biết bơi."},
+      {"en": "I can sing.", "vi": "Tôi biết hát."},
+      {"en": "I can draw.", "vi": "Tôi biết vẽ."}
+    ]
+  },
+  {
+    "id": "p_i_cant_action",
+    "grammar_structure_id": "gs_i_can",
+    "template": "I can't {action}.",
+    "template_vi": "Tôi không thể {hành động}.",
+    "communication_function": "expressing_ability",
+    "slots": [
+      {"name": "action", "category": "actions", "part_of_speech": "verb"}
+    ],
+    "difficulty": 2,
+    "day_introduced": 4,
+    "example_sentences": [
+      {"en": "I can't fly.", "vi": "Tôi không biết bay."},
+      {"en": "I can't swim.", "vi": "Tôi không biết bơi."}
+    ]
+  },
+  {
+    "id": "p_i_like_to_action",
+    "grammar_structure_id": "gs_i_like",
+    "template": "I like to {action}.",
+    "template_vi": "Tôi thích {hành động}.",
+    "communication_function": "expressing_preference",
+    "slots": [
+      {"name": "action", "category": "actions", "part_of_speech": "verb"}
+    ],
+    "difficulty": 2,
+    "day_introduced": 4,
+    "example_sentences": [
+      {"en": "I like to sing.", "vi": "Tôi thích hát."},
+      {"en": "I like to dance.", "vi": "Tôi thích nhảy múa."},
+      {"en": "I like to play.", "vi": "Tôi thích chơi."}
+    ]
+  },
+  {
+    "id": "p_lets_action",
+    "grammar_structure_id": "gs_lets",
+    "template": "Let's {action}!",
+    "template_vi": "Mình {hành động} nào!",
+    "communication_function": "suggestion",
+    "slots": [
+      {"name": "action", "category": "actions", "part_of_speech": "verb"}
+    ],
+    "difficulty": 2,
+    "day_introduced": 4,
+    "example_sentences": [
+      {"en": "Let's play!", "vi": "Mình chơi nào!"},
+      {"en": "Let's run!", "vi": "Mình chạy nào!"},
+      {"en": "Let's dance!", "vi": "Mình nhảy múa nào!"}
+    ]
+  },
+  {
+    "id": "p_lets_play",
+    "grammar_structure_id": "gs_lets",
+    "template": "Let's play!",
+    "template_vi": "Mình chơi nào!",
+    "communication_function": "suggestion",
+    "slots": [],
+    "difficulty": 1,
+    "day_introduced": 4,
+    "example_sentences": [
+      {"en": "Let's play!", "vi": "Mình chơi nào!"}
+    ]
+  },
+
+  {
+    "id": "p_i_wake_up",
+    "grammar_structure_id": "gs_i_verb_time",
+    "template": "I wake up in the {time_of_day}.",
+    "template_vi": "Tôi thức dậy vào buổi {thời gian}.",
+    "communication_function": "daily_routine",
+    "slots": [
+      {"name": "time_of_day", "category": "daily_routine", "part_of_speech": "noun"}
+    ],
+    "difficulty": 3,
+    "day_introduced": 5,
+    "example_sentences": [
+      {"en": "I wake up in the morning.", "vi": "Tôi thức dậy vào buổi sáng."}
+    ]
+  },
+  {
+    "id": "p_i_eat_time",
+    "grammar_structure_id": "gs_i_verb_time",
+    "template": "I eat in the {time_of_day}.",
+    "template_vi": "Tôi ăn vào buổi {thời gian}.",
+    "communication_function": "daily_routine",
+    "slots": [
+      {"name": "time_of_day", "category": "daily_routine", "part_of_speech": "noun"}
+    ],
+    "difficulty": 3,
+    "day_introduced": 5,
+    "example_sentences": [
+      {"en": "I eat in the morning.", "vi": "Tôi ăn vào buổi sáng."},
+      {"en": "I eat in the afternoon.", "vi": "Tôi ăn vào buổi chiều."}
+    ]
+  },
+  {
+    "id": "p_i_go_to_school",
+    "grammar_structure_id": "gs_i_go_to",
+    "template": "I go to school.",
+    "template_vi": "Tôi đi học.",
+    "communication_function": "movement",
+    "slots": [],
+    "difficulty": 2,
+    "day_introduced": 5,
+    "example_sentences": [
+      {"en": "I go to school.", "vi": "Tôi đi học."}
+    ]
+  },
+  {
+    "id": "p_i_go_to_place",
+    "grammar_structure_id": "gs_i_go_to",
+    "template": "I go to {place}.",
+    "template_vi": "Tôi đi đến {nơi}.",
+    "communication_function": "movement",
+    "slots": [
+      {"name": "place", "category": "daily_routine", "part_of_speech": "noun"}
+    ],
+    "difficulty": 2,
+    "day_introduced": 5,
+    "example_sentences": [
+      {"en": "I go to school.", "vi": "Tôi đi học."}
+    ]
+  },
+  {
+    "id": "p_i_sleep",
+    "grammar_structure_id": "gs_i_verb_time",
+    "template": "I sleep at {time_of_day}.",
+    "template_vi": "Tôi ngủ vào buổi {thời gian}.",
+    "communication_function": "daily_routine",
+    "slots": [
+      {"name": "time_of_day", "category": "daily_routine", "part_of_speech": "noun"}
+    ],
+    "difficulty": 3,
+    "day_introduced": 5,
+    "example_sentences": [
+      {"en": "I sleep at night.", "vi": "Tôi ngủ vào buổi tối."}
+    ]
+  },
+  {
+    "id": "p_good_morning",
+    "grammar_structure_id": "gs_how_are_you",
+    "template": "Good {time_of_day}!",
+    "template_vi": "Chào buổi {thời gian}!",
+    "communication_function": "greeting",
+    "slots": [
+      {"name": "time_of_day", "category": "daily_routine", "part_of_speech": "noun"}
+    ],
+    "difficulty": 1,
+    "day_introduced": 5,
+    "example_sentences": [
+      {"en": "Good morning!", "vi": "Chào buổi sáng!"},
+      {"en": "Good afternoon!", "vi": "Chào buổi chiều!"},
+      {"en": "Good night!", "vi": "Chúc ngủ ngon!"}
+    ]
+  },
+
+  {
+    "id": "p_it_is_weather",
+    "grammar_structure_id": "gs_it_is",
+    "template": "It is {weather}.",
+    "template_vi": "Trời {thời tiết}.",
+    "communication_function": "describing",
+    "slots": [
+      {"name": "weather", "category": "review", "part_of_speech": "adjective"}
+    ],
+    "difficulty": 2,
+    "day_introduced": 6,
+    "example_sentences": [
+      {"en": "It is hot.", "vi": "Trời nóng."},
+      {"en": "It is cold.", "vi": "Trời lạnh."}
+    ]
+  },
+  {
+    "id": "p_it_is_description",
+    "grammar_structure_id": "gs_it_is",
+    "template": "It is {description}.",
+    "template_vi": "Nó {mô tả}.",
+    "communication_function": "describing",
+    "slots": [
+      {"name": "description", "category": "review", "part_of_speech": "adjective"}
+    ],
+    "difficulty": 2,
+    "day_introduced": 6,
+    "example_sentences": [
+      {"en": "It is big.", "vi": "Nó to."},
+      {"en": "It is small.", "vi": "Nó nhỏ."}
+    ]
+  },
+  {
+    "id": "p_what_is_this",
+    "grammar_structure_id": "gs_what_is",
+    "template": "What is this?",
+    "template_vi": "Đây là cái gì?",
+    "communication_function": "asking_questions",
+    "slots": [],
+    "difficulty": 2,
+    "day_introduced": 6,
+    "example_sentences": [
+      {"en": "What is this?", "vi": "Đây là cái gì?"}
+    ]
+  },
+  {
+    "id": "p_thank_you",
+    "grammar_structure_id": "gs_politeness",
+    "template": "Thank you!",
+    "template_vi": "Cảm ơn!",
+    "communication_function": "politeness",
+    "slots": [],
+    "difficulty": 1,
+    "day_introduced": 6,
+    "example_sentences": [
+      {"en": "Thank you!", "vi": "Cảm ơn!"},
+      {"en": "Thank you very much!", "vi": "Cảm ơn rất nhiều!"}
+    ]
+  },
+  {
+    "id": "p_youre_welcome",
+    "grammar_structure_id": "gs_politeness",
+    "template": "You're welcome!",
+    "template_vi": "Không có gì!",
+    "communication_function": "politeness",
+    "slots": [],
+    "difficulty": 2,
+    "day_introduced": 6,
+    "example_sentences": [
+      {"en": "You're welcome!", "vi": "Không có gì!"}
+    ]
+  },
+
+  {
+    "id": "p_i_can_speak",
+    "grammar_structure_id": "gs_i_can",
+    "template": "I can speak English!",
+    "template_vi": "Tôi nói được tiếng Anh!",
+    "communication_function": "expressing_ability",
+    "slots": [],
+    "difficulty": 2,
+    "day_introduced": 7,
+    "example_sentences": [
+      {"en": "I can speak English!", "vi": "Tôi nói được tiếng Anh!"}
+    ]
+  },
+  {
+    "id": "p_you_are_my_friend",
+    "grammar_structure_id": "gs_i_am",
+    "template": "You are my friend.",
+    "template_vi": "Bạn là bạn của tôi.",
+    "communication_function": "social",
+    "slots": [],
+    "difficulty": 2,
+    "day_introduced": 7,
+    "example_sentences": [
+      {"en": "You are my friend.", "vi": "Bạn là bạn của tôi."}
+    ]
+  },
+  {
+    "id": "p_i_learn_english",
+    "grammar_structure_id": "gs_i_verb_time",
+    "template": "I learn English.",
+    "template_vi": "Tôi học tiếng Anh.",
+    "communication_function": "self_introduction",
+    "slots": [],
+    "difficulty": 2,
+    "day_introduced": 7,
+    "example_sentences": [
+      {"en": "I learn English.", "vi": "Tôi học tiếng Anh."}
+    ]
+  },
+  {
+    "id": "p_you_are_a_star",
+    "grammar_structure_id": "gs_i_am",
+    "template": "You are a star!",
+    "template_vi": "Bạn là ngôi sao!",
+    "communication_function": "social",
+    "slots": [],
+    "difficulty": 2,
+    "day_introduced": 7,
+    "example_sentences": [
+      {"en": "You are a star!", "vi": "Bạn là ngôi sao!"}
+    ]
+  },
+  {
+    "id": "p_what_is_your_name",
+    "grammar_structure_id": "gs_what_is",
+    "template": "What is your name?",
+    "template_vi": "Bạn tên gì?",
+    "communication_function": "asking_questions",
+    "slots": [],
+    "difficulty": 2,
+    "day_introduced": 7,
+    "example_sentences": [
+      {"en": "What is your name?", "vi": "Bạn tên gì?"}
+    ]
+  }
+]

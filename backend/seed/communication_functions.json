@@ -1,0 +1,137 @@
+[
+  {
+    "id": "fn_greeting",
+    "name": "Greeting",
+    "name_vi": "Chào hỏi",
+    "description_vi": "Chào ai đó khi gặp mặt",
+    "cefr_level": "pre_a1",
+    "situations": ["meeting someone", "starting a conversation"],
+    "pattern_ids": ["p_hello", "p_how_are_you", "p_my_name_is"]
+  },
+  {
+    "id": "fn_self_introduction",
+    "name": "Self Introduction",
+    "name_vi": "Tự giới thiệu",
+    "description_vi": "Giới thiệu bản thân với người khác",
+    "cefr_level": "pre_a1",
+    "situations": ["meeting new people", "first day of school"],
+    "pattern_ids": ["p_my_name_is", "p_i_am_age", "p_i_am_feeling"]
+  },
+  {
+    "id": "fn_expressing_feelings",
+    "name": "Expressing Feelings",
+    "name_vi": "Diễn tả cảm xúc",
+    "description_vi": "Nói về cảm xúc, tâm trạng của mình",
+    "cefr_level": "pre_a1",
+    "situations": ["telling how you feel", "responding to how are you"],
+    "pattern_ids": ["p_i_am_feeling", "p_i_am_fine"]
+  },
+  {
+    "id": "fn_naming",
+    "name": "Naming Things",
+    "name_vi": "Gọi tên sự vật",
+    "description_vi": "Chỉ và gọi tên đồ vật, con vật",
+    "cefr_level": "pre_a1",
+    "situations": ["pointing at objects", "learning new words"],
+    "pattern_ids": ["p_this_is_thing", "p_what_is_this"]
+  },
+  {
+    "id": "fn_introducing_family",
+    "name": "Introducing Family",
+    "name_vi": "Giới thiệu gia đình",
+    "description_vi": "Giới thiệu các thành viên trong gia đình",
+    "cefr_level": "pre_a1",
+    "situations": ["showing family photo", "talking about family"],
+    "pattern_ids": ["p_this_is_my_family", "p_i_love_family"]
+  },
+  {
+    "id": "fn_expressing_preference",
+    "name": "Expressing Preference",
+    "name_vi": "Nói về sở thích",
+    "description_vi": "Nói về những gì mình thích hoặc không thích",
+    "cefr_level": "pre_a1",
+    "situations": ["choosing food", "talking about hobbies"],
+    "pattern_ids": ["p_i_like_food", "p_i_dont_like_food", "p_do_you_like"]
+  },
+  {
+    "id": "fn_expressing_ability",
+    "name": "Expressing Ability",
+    "name_vi": "Nói về khả năng",
+    "description_vi": "Nói về những gì mình làm được hoặc không làm được",
+    "cefr_level": "pre_a1",
+    "situations": ["showing skills", "playground"],
+    "pattern_ids": ["p_i_can_action", "p_i_cant_action"]
+  },
+  {
+    "id": "fn_describing",
+    "name": "Describing",
+    "name_vi": "Mô tả",
+    "description_vi": "Mô tả tính chất, đặc điểm của sự vật",
+    "cefr_level": "pre_a1",
+    "situations": ["describing weather", "describing objects"],
+    "pattern_ids": ["p_it_is_weather", "p_it_is_description"]
+  },
+  {
+    "id": "fn_daily_routine",
+    "name": "Daily Routine",
+    "name_vi": "Thói quen hàng ngày",
+    "description_vi": "Nói về các hoạt động hàng ngày",
+    "cefr_level": "pre_a1",
+    "situations": ["talking about schedule", "bedtime routine"],
+    "pattern_ids": ["p_i_wake_up", "p_i_eat_time", "p_i_go_to_school", "p_i_sleep"]
+  },
+  {
+    "id": "fn_asking_questions",
+    "name": "Asking Questions",
+    "name_vi": "Đặt câu hỏi",
+    "description_vi": "Hỏi về sự vật, sở thích",
+    "cefr_level": "pre_a1",
+    "situations": ["curious about something", "making conversation"],
+    "pattern_ids": ["p_what_is_this", "p_do_you_like"]
+  },
+  {
+    "id": "fn_social",
+    "name": "Social Interaction",
+    "name_vi": "Giao tiếp xã hội",
+    "description_vi": "Các cụm từ giao tiếp hàng ngày",
+    "cefr_level": "pre_a1",
+    "situations": ["meeting someone", "leaving"],
+    "pattern_ids": ["p_how_are_you", "p_i_am_fine", "p_goodbye"]
+  },
+  {
+    "id": "fn_suggestion",
+    "name": "Making Suggestions",
+    "name_vi": "Đề nghị",
+    "description_vi": "Rủ ai đó làm gì cùng",
+    "cefr_level": "pre_a1",
+    "situations": ["playground", "choosing activity"],
+    "pattern_ids": ["p_lets_action", "p_lets_play"]
+  },
+  {
+    "id": "fn_movement",
+    "name": "Talking About Movement",
+    "name_vi": "Nói về di chuyển",
+    "description_vi": "Nói về việc đi đến đâu",
+    "cefr_level": "pre_a1",
+    "situations": ["going somewhere", "daily commute"],
+    "pattern_ids": ["p_i_go_to_school", "p_i_go_to_place"]
+  },
+  {
+    "id": "fn_politeness",
+    "name": "Being Polite",
+    "name_vi": "Lịch sự",
+    "description_vi": "Cảm ơn và đáp lại lịch sự",
+    "cefr_level": "pre_a1",
+    "situations": ["receiving gift", "someone helps you"],
+    "pattern_ids": ["p_thank_you", "p_youre_welcome"]
+  },
+  {
+    "id": "fn_possession",
+    "name": "Talking About Possession",
+    "name_vi": "Nói về sở hữu",
+    "description_vi": "Nói về những gì mình có",
+    "cefr_level": "pre_a1",
+    "situations": ["show and tell", "talking about pets"],
+    "pattern_ids": ["p_i_have_thing", "p_this_is_my_family"]
+  }
+]

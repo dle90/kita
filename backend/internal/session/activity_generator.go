@@ -3,11 +3,28 @@ package session
 import (
 	"context"
 	"encoding/json"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/kitaenglish/backend/internal/content"
 	"github.com/kitaenglish/backend/internal/srs"
 )
+
+// ActivityTypeToSkill maps an activity type string to the language skill it exercises.
+func ActivityTypeToSkill(activityType string) srs.SkillType {
+	switch activityType {
+	case "listen_and_choose", "listen_and_repeat", "flashcard_intro":
+		return srs.SkillListening
+	case "speak_word", "speak_sentence":
+		return srs.SkillSpeaking
+	case "read_word", "read_sentence", "word_match":
+		return srs.SkillReading
+	case "spell_word", "build_sentence", "fill_blank":
+		return srs.SkillWriting
+	default:
+		return srs.SkillListening
+	}
+}
 
 // VocabData holds the minimal vocabulary info embedded into activity configs.
 type VocabData struct {
@@ -109,6 +126,12 @@ func GenerateSessionActivities(
 		}
 	}
 
+	// Collect all vocab into a flat pool for sentence generation
+	var vocabPool []*content.Vocabulary
+	for _, v := range vocabByID {
+		vocabPool = append(vocabPool, v)
+	}
+
 	// Generate activities from templates
 	for _, tmpl := range templates {
 		config := tmpl.Config
@@ -116,6 +139,11 @@ func GenerateSessionActivities(
 		// Adjust config based on difficulty offset
 		if difficultyOffset != 0 {
 			config = adjustDifficulty(config, difficultyOffset)
+		}
+
+		// For build_sentence and fill_blank, generate sentence-based configs
+		if tmpl.ActivityType == "build_sentence" || tmpl.ActivityType == "fill_blank" {
+			config = enrichSentenceActivity(config, tmpl.ActivityType, vocabPool)
 		}
 
 		// Enrich template config with vocabulary data if available
@@ -271,6 +299,87 @@ func enrichConfigWithVocab(config json.RawMessage, vocabIDs []uuid.UUID, vocabBy
 	return enriched
 }
 
+// enrichSentenceActivity builds the config for build_sentence or fill_blank activities.
+// It reads "sentence" and "sentence_vi" from the template config,
+// then produces scrambled tiles or blank/options as appropriate.
+func enrichSentenceActivity(config json.RawMessage, activityType string, vocabPool []*content.Vocabulary) json.RawMessage {
+	var cfgMap map[string]interface{}
+	if err := json.Unmarshal(config, &cfgMap); err != nil {
+		return config
+	}
+
+	sentence, _ := cfgMap["sentence"].(string)
+	sentenceVI, _ := cfgMap["sentence_vi"].(string)
+
+	if sentence == "" {
+		return config
+	}
+
+	if activityType == "build_sentence" {
+		shuffled, correct := ScrambleWords(sentence)
+		cfgMap["scrambled_words"] = shuffled
+		cfgMap["correct_order"] = correct
+		cfgMap["sentence"] = sentence
+		cfgMap["sentence_vi"] = sentenceVI
+	} else if activityType == "fill_blank" {
+		// Determine which word to blank out
+		blankWord, _ := cfgMap["blank_word"].(string)
+		if blankWord == "" {
+			// Pick a content word from the sentence (skip small function words)
+			words := strings.Fields(strings.TrimRight(sentence, ".!?"))
+			skip := map[string]bool{"I": true, "a": true, "the": true, "is": true, "am": true, "are": true, "to": true, "in": true, "do": true, "you": true, "my": true}
+			for _, w := range words {
+				if !skip[w] {
+					blankWord = w
+					break
+				}
+			}
+			if blankWord == "" && len(words) > 0 {
+				blankWord = words[len(words)-1]
+			}
+		}
+
+		// Build display sentence with blank
+		displaySentence := strings.Replace(sentence, blankWord, "___", 1)
+		cfgMap["display_sentence"] = displaySentence
+		cfgMap["correct_word"] = blankWord
+		cfgMap["sentence"] = sentence
+		cfgMap["sentence_vi"] = sentenceVI
+
+		// Generate distractors from same category
+		var correctVocab *content.Vocabulary
+		for _, v := range vocabPool {
+			if strings.EqualFold(v.Word, blankWord) {
+				correctVocab = v
+				break
+			}
+		}
+
+		options := []string{blankWord}
+		if correctVocab != nil {
+			distractors := GenerateDistractorsFromCategory(correctVocab, vocabPool, 3)
+			options = append(options, distractors...)
+		} else {
+			// Fallback distractors
+			fallback := []string{"happy", "sad", "big", "run", "eat", "go", "mom", "rice"}
+			count := 0
+			for _, f := range fallback {
+				if f != blankWord && count < 3 {
+					options = append(options, f)
+					count++
+				}
+			}
+		}
+		cfgMap["options"] = options
+	}
+
+	enriched, err := json.Marshal(cfgMap)
+	if err != nil {
+		return config
+	}
+	return enriched
+}
+
 // GetVocabularyForActivity looks up vocabulary details from the content repository
 // and returns them as a map keyed by ID for easy embedding into activity configs.
 func GetVocabularyForActivity(ctx context.Context, contentRepo content.ContentRepository, vocabIDs []uuid.UUID) (map[uuid.UUID]*content.Vocabulary, error) {
@@ -288,6 +397,83 @@ func GetVocabularyForActivity(ctx context.Context, contentRepo content.ContentRe
 		result[v.ID] = v
 	}
 	return result, nil
+}
+
+// BuildPhonicsListenConfig creates the config for a phonics_listen (minimal pair discrimination) activity.
+func BuildPhonicsListenConfig(phoneme *content.Phoneme) map[string]interface{} {
+	cfg := map[string]interface{}{
+		"phoneme_id":        phoneme.ID,
+		"symbol":            phoneme.Symbol,
+		"mouth_position_vi": phoneme.MouthPositionVI,
+		"substitution_vi":   phoneme.SubstitutionVI,
+	}
+
+	// Parse minimal pairs
+	var pairs []map[string]interface{}
+	if err := json.Unmarshal(phoneme.MinimalPairs, &pairs); err == nil && len(pairs) > 0 {
+		// Pick first pair for the activity
+		pair := pairs[0]
+		cfg["word1"] = pair["word1"]
+		cfg["word2"] = pair["word2"]
+		cfg["word1_meaning"] = pair["word1_meaning"]
+		cfg["word2_meaning"] = pair["word2_meaning"]
+		cfg["are_different"] = true
+	}
+
+	return cfg
+}
+
+// BuildPhonicsMatchConfig creates the config for a phonics_match (sound-letter matching) activity.
+func BuildPhonicsMatchConfig(phoneme *content.Phoneme, allPhonemes []*content.Phoneme) map[string]interface{} {
+	// Pick a practice word
+	targetWord := phoneme.ExampleWord
+	if len(phoneme.PracticeWords) > 0 {
+		targetWord = phoneme.PracticeWords[0]
+	}
+
+	// Build options: correct grapheme + distractors from other phonemes
+	correctGrapheme := ""
+	if len(phoneme.Graphemes) > 0 {
+		correctGrapheme = phoneme.Graphemes[0]
+	}
+
+	options := []map[string]interface{}{
+		{"grapheme": correctGrapheme, "correct": true},
+	}
+
+	// Add distractor graphemes from other phonemes
+	used := map[string]bool{correctGrapheme: true}
+	for _, other := range allPhonemes {
+		if other.ID == phoneme.ID {
+			continue
+		}
+		for _, g := range other.Graphemes {
+			if !used[g] {
+				options = append(options, map[string]interface{}{
+					"grapheme": g,
+					"correct":  false,
+				})
+				used[g] = true
+				break
+			}
+		}
+		if len(options) >= 4 {
+			break
+		}
+	}
+
+	cfg := map[string]interface{}{
+		"phoneme_id":        phoneme.ID,
+		"symbol":            phoneme.Symbol,
+		"target_word":       targetWord,
+		"correct_grapheme":  correctGrapheme,
+		"options":           options,
+		"mouth_position_vi": phoneme.MouthPositionVI,
+		"substitution_vi":   phoneme.SubstitutionVI,
+		"example_word":      phoneme.ExampleWord,
+	}
+
+	return cfg
 }
 
 // MapAttemptsToSM2Quality converts activity attempt count and correctness

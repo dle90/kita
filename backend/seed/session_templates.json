@@ -120,6 +120,19 @@
   {
     "day_number": 1,
     "level": "beginner",
+    "phase": "practice",
+    "activity_type": "build_sentence",
+    "config": {
+      "sentence": "I am happy.",
+      "sentence_vi": "Tôi vui.",
+      "pattern_id": "p_i_am_feeling"
+    },
+    "sort_order": 8,
+    "word_refs": ["happy"]
+  },
+  {
+    "day_number": 1,
+    "level": "beginner",
     "phase": "fun_finish",
     "activity_type": "word_match",
     "config": {
@@ -130,7 +143,7 @@
         {"english": "tired", "match": "😴 mệt"}
       ]
     },
-    "sort_order": 8,
+    "sort_order": 9,
     "word_refs": ["boy", "girl", "hungry", "tired"]
   },
 
@@ -260,6 +273,19 @@
   {
     "day_number": 2,
     "level": "beginner",
+    "phase": "practice",
+    "activity_type": "build_sentence",
+    "config": {
+      "sentence": "This is my mom.",
+      "sentence_vi": "Đây là mẹ tôi.",
+      "pattern_id": "p_this_is_my_family"
+    },
+    "sort_order": 8,
+    "word_refs": ["this", "mom"]
+  },
+  {
+    "day_number": 2,
+    "level": "beginner",
     "phase": "fun_finish",
     "activity_type": "word_match",
     "config": {
@@ -270,7 +296,7 @@
         {"english": "sister", "match": "👧 chị/em gái"}
       ]
     },
-    "sort_order": 8,
+    "sort_order": 9,
     "word_refs": ["family", "love", "brother", "sister"]
   },
 
@@ -399,6 +425,33 @@
   {
     "day_number": 3,
     "level": "beginner",
+    "phase": "practice",
+    "activity_type": "fill_blank",
+    "config": {
+      "sentence": "I like rice.",
+      "sentence_vi": "Tôi thích cơm.",
+      "blank_word": "like",
+      "pattern_id": "p_i_like_food"
+    },
+    "sort_order": 8,
+    "word_refs": ["like", "rice"]
+  },
+  {
+    "day_number": 3,
+    "level": "beginner",
+    "phase": "practice",
+    "activity_type": "build_sentence",
+    "config": {
+      "sentence": "I don't like fish.",
+      "sentence_vi": "Tôi không thích cá.",
+      "pattern_id": "p_i_dont_like_food"
+    },
+    "sort_order": 9,
+    "word_refs": ["don't", "like", "fish"]
+  },
+  {
+    "day_number": 3,
+    "level": "beginner",
     "phase": "fun_finish",
     "activity_type": "word_match",
     "config": {
@@ -409,7 +462,7 @@
         {"english": "bread", "match": "🍞 bánh mì"}
       ]
     },
-    "sort_order": 8,
+    "sort_order": 10,
     "word_refs": ["ice cream", "fruit", "like", "bread"]
   },
 
@@ -538,6 +591,19 @@
   {
     "day_number": 4,
     "level": "beginner",
+    "phase": "practice",
+    "activity_type": "build_sentence",
+    "config": {
+      "sentence": "I can run.",
+      "sentence_vi": "Tôi biết chạy.",
+      "pattern_id": "p_i_can_action"
+    },
+    "sort_order": 8,
+    "word_refs": ["can", "run"]
+  },
+  {
+    "day_number": 4,
+    "level": "beginner",
     "phase": "fun_finish",
     "activity_type": "word_match",
     "config": {
@@ -548,7 +614,7 @@
         {"english": "swim", "match": "🏊 bơi"}
       ]
     },
-    "sort_order": 8,
+    "sort_order": 9,
     "word_refs": ["dance", "draw", "fly", "swim"]
   },
 
@@ -675,6 +741,33 @@
   {
     "day_number": 5,
     "level": "beginner",
+    "phase": "practice",
+    "activity_type": "fill_blank",
+    "config": {
+      "sentence": "I eat in the morning.",
+      "sentence_vi": "Tôi ăn vào buổi sáng.",
+      "blank_word": "eat",
+      "pattern_id": "p_i_eat_time"
+    },
+    "sort_order": 8,
+    "word_refs": ["eat", "morning"]
+  },
+  {
+    "day_number": 5,
+    "level": "beginner",
+    "phase": "practice",
+    "activity_type": "build_sentence",
+    "config": {
+      "sentence": "I go to school.",
+      "sentence_vi": "Tôi đi học.",
+      "pattern_id": "p_i_go_to_school"
+    },
+    "sort_order": 9,
+    "word_refs": ["go", "school"]
+  },
+  {
+    "day_number": 5,
+    "level": "beginner",
     "phase": "fun_finish",
     "activity_type": "word_match",
     "config": {
@@ -685,7 +778,7 @@
         {"english": "school", "match": "🏫 trường học"}
       ]
     },
-    "sort_order": 8,
+    "sort_order": 10,
     "word_refs": ["wake up", "go", "afternoon", "school"]
   },
 
@@ -812,6 +905,32 @@
   {
     "day_number": 6,
     "level": "beginner",
+    "phase": "practice",
+    "activity_type": "build_sentence",
+    "config": {
+      "sentence": "It is hot.",
+      "sentence_vi": "Trời nóng.",
+      "pattern_id": "p_it_is_weather"
+    },
+    "sort_order": 8,
+    "word_refs": ["hot"]
+  },
+  {
+    "day_number": 6,
+    "level": "beginner",
+    "phase": "practice",
+    "activity_type": "build_sentence",
+    "config": {
+      "sentence": "I like to play.",
+      "sentence_vi": "Tôi thích chơi.",
+      "pattern_id": "p_i_like_to_action"
+    },
+    "sort_order": 9,
+    "word_refs": ["like", "play"]
+  },
+  {
+    "day_number": 6,
+    "level": "beginner",
     "phase": "fun_finish",
     "activity_type": "word_match",
     "config": {
@@ -822,7 +941,7 @@
         {"english": "thank you", "match": "🙏 cảm ơn"}
       ]
     },
-    "sort_order": 8,
+    "sort_order": 10,
     "word_refs": ["hello", "love", "color", "thank you"]
   },
 
@@ -951,6 +1070,19 @@
   {
     "day_number": 7,
     "level": "beginner",
+    "phase": "practice",
+    "activity_type": "build_sentence",
+    "config": {
+      "sentence": "I can speak English!",
+      "sentence_vi": "Tôi nói được tiếng Anh!",
+      "pattern_id": "p_i_can_speak"
+    },
+    "sort_order": 8,
+    "word_refs": ["can", "English"]
+  },
+  {
+    "day_number": 7,
+    "level": "beginner",
     "phase": "fun_finish",
     "activity_type": "word_match",
     "config": {
@@ -962,7 +1094,7 @@
         {"english": "star", "match": "⭐ ngôi sao"}
       ]
     },
-    "sort_order": 8,
+    "sort_order": 9,
     "word_refs": ["love", "happy", "friend", "star"]
   }
 ]

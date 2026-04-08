@@ -1,0 +1,183 @@
+[
+  {
+    "id": "gs_this_is",
+    "name": "This is + noun",
+    "description_vi": "Cấu trúc 'Đây là' + danh từ để giới thiệu/chỉ vật",
+    "template": "This is + noun",
+    "cefr_level": "pre_a1",
+    "difficulty": 1,
+    "prerequisite_ids": [],
+    "common_l1_errors": [
+      {"error": "th_substitution", "example_wrong": "Dis is a cat", "example_correct": "This is a cat", "reason_vi": "Âm 'th' không có trong tiếng Việt, trẻ hay thay bằng 'd'"}
+    ]
+  },
+  {
+    "id": "gs_i_am",
+    "name": "I am + adjective",
+    "description_vi": "Cấu trúc 'Tôi là/đang' + tính từ để diễn tả cảm xúc/trạng thái",
+    "template": "I am + adj",
+    "cefr_level": "pre_a1",
+    "difficulty": 1,
+    "prerequisite_ids": [],
+    "common_l1_errors": [
+      {"error": "missing_verb", "example_wrong": "I happy", "example_correct": "I am happy", "reason_vi": "Tiếng Việt không cần 'am/is/are'"}
+    ]
+  },
+  {
+    "id": "gs_my_name_is",
+    "name": "My name is + name",
+    "description_vi": "Cấu trúc tự giới thiệu tên",
+    "template": "My name is + name",
+    "cefr_level": "pre_a1",
+    "difficulty": 1,
+    "prerequisite_ids": [],
+    "common_l1_errors": [
+      {"error": "word_order", "example_wrong": "Name my is Lan", "example_correct": "My name is Lan", "reason_vi": "Tiếng Việt đặt từ sở hữu sau danh từ"}
+    ]
+  },
+  {
+    "id": "gs_i_like",
+    "name": "I like / I don't like + noun",
+    "description_vi": "Cấu trúc diễn tả sở thích",
+    "template": "I like/don't like + noun",
+    "cefr_level": "pre_a1",
+    "difficulty": 2,
+    "prerequisite_ids": ["gs_i_am"],
+    "common_l1_errors": [
+      {"error": "missing_subject", "example_wrong": "Like rice", "example_correct": "I like rice", "reason_vi": "Tiếng Việt thường bỏ chủ ngữ"},
+      {"error": "negation_form", "example_wrong": "I no like fish", "example_correct": "I don't like fish", "reason_vi": "Phủ định trong tiếng Anh dùng 'don't', không phải 'no'"}
+    ]
+  },
+  {
+    "id": "gs_i_can",
+    "name": "I can / I can't + verb",
+    "description_vi": "Cấu trúc diễn tả khả năng",
+    "template": "I can/can't + verb",
+    "cefr_level": "pre_a1",
+    "difficulty": 2,
+    "prerequisite_ids": ["gs_i_am"],
+    "common_l1_errors": [
+      {"error": "verb_form", "example_wrong": "I can swimming", "example_correct": "I can swim", "reason_vi": "Sau 'can' dùng động từ nguyên mẫu, không thêm -ing"}
+    ]
+  },
+  {
+    "id": "gs_i_have",
+    "name": "I have + noun",
+    "description_vi": "Cấu trúc diễn tả sở hữu",
+    "template": "I have + noun",
+    "cefr_level": "pre_a1",
+    "difficulty": 2,
+    "prerequisite_ids": ["gs_i_am"],
+    "common_l1_errors": [
+      {"error": "missing_article", "example_wrong": "I have brother", "example_correct": "I have a brother", "reason_vi": "Tiếng Việt không có mạo từ a/an"}
+    ]
+  },
+  {
+    "id": "gs_it_is",
+    "name": "It is + adjective",
+    "description_vi": "Cấu trúc mô tả sự vật/thời tiết",
+    "template": "It is + adj",
+    "cefr_level": "pre_a1",
+    "difficulty": 1,
+    "prerequisite_ids": [],
+    "common_l1_errors": [
+      {"error": "missing_subject", "example_wrong": "Is hot", "example_correct": "It is hot", "reason_vi": "Tiếng Anh luôn cần chủ ngữ, tiếng Việt thường bỏ"}
+    ]
+  },
+  {
+    "id": "gs_this_is_my",
+    "name": "This is my + noun",
+    "description_vi": "Cấu trúc giới thiệu người thân/đồ vật của mình",
+    "template": "This is my + noun",
+    "cefr_level": "pre_a1",
+    "difficulty": 2,
+    "prerequisite_ids": ["gs_this_is"],
+    "common_l1_errors": [
+      {"error": "possessive_order", "example_wrong": "This is mom my", "example_correct": "This is my mom", "reason_vi": "Tiếng Việt đặt từ sở hữu sau: 'mẹ tôi', tiếng Anh đặt trước: 'my mom'"}
+    ]
+  },
+  {
+    "id": "gs_i_verb_time",
+    "name": "I + verb + in the morning/afternoon/night",
+    "description_vi": "Cấu trúc nói về thói quen hàng ngày",
+    "template": "I + verb + time_of_day",
+    "cefr_level": "pre_a1",
+    "difficulty": 3,
+    "prerequisite_ids": ["gs_i_am", "gs_i_can"],
+    "common_l1_errors": [
+      {"error": "preposition_missing", "example_wrong": "I eat morning", "example_correct": "I eat in the morning", "reason_vi": "Tiếng Anh cần giới từ 'in the' trước thời gian trong ngày"}
+    ]
+  },
+  {
+    "id": "gs_what_is",
+    "name": "What is + noun?",
+    "description_vi": "Cấu trúc câu hỏi 'Cái gì'",
+    "template": "What is + noun?",
+    "cefr_level": "pre_a1",
+    "difficulty": 2,
+    "prerequisite_ids": ["gs_this_is"],
+    "common_l1_errors": [
+      {"error": "word_order", "example_wrong": "This is what?", "example_correct": "What is this?", "reason_vi": "Tiếng Việt đặt từ hỏi cuối câu, tiếng Anh đặt đầu câu"}
+    ]
+  },
+  {
+    "id": "gs_do_you_like",
+    "name": "Do you like + noun?",
+    "description_vi": "Cấu trúc câu hỏi yes/no về sở thích",
+    "template": "Do you like + noun?",
+    "cefr_level": "pre_a1",
+    "difficulty": 3,
+    "prerequisite_ids": ["gs_i_like"],
+    "common_l1_errors": [
+      {"error": "missing_auxiliary", "example_wrong": "You like rice?", "example_correct": "Do you like rice?", "reason_vi": "Tiếng Anh cần 'Do' ở đầu câu hỏi yes/no"}
+    ]
+  },
+  {
+    "id": "gs_how_are_you",
+    "name": "How are you? / I am fine",
+    "description_vi": "Cấu trúc chào hỏi xã giao",
+    "template": "How are you? / I am + adj",
+    "cefr_level": "pre_a1",
+    "difficulty": 1,
+    "prerequisite_ids": [],
+    "common_l1_errors": [
+      {"error": "literal_translation", "example_wrong": "How you?", "example_correct": "How are you?", "reason_vi": "Dịch sát từ tiếng Việt 'Bạn thế nào?' thiếu 'are'"}
+    ]
+  },
+  {
+    "id": "gs_lets",
+    "name": "Let's + verb!",
+    "description_vi": "Cấu trúc rủ/đề nghị làm gì đó",
+    "template": "Let's + verb!",
+    "cefr_level": "pre_a1",
+    "difficulty": 2,
+    "prerequisite_ids": [],
+    "common_l1_errors": [
+      {"error": "verb_form", "example_wrong": "Let's playing!", "example_correct": "Let's play!", "reason_vi": "Sau 'Let's' dùng động từ nguyên mẫu"}
+    ]
+  },
+  {
+    "id": "gs_i_go_to",
+    "name": "I go to + place",
+    "description_vi": "Cấu trúc nói về di chuyển đến nơi nào đó",
+    "template": "I go to + place",
+    "cefr_level": "pre_a1",
+    "difficulty": 2,
+    "prerequisite_ids": ["gs_i_am"],
+    "common_l1_errors": [
+      {"error": "preposition_missing", "example_wrong": "I go school", "example_correct": "I go to school", "reason_vi": "Tiếng Anh cần giới từ 'to' sau 'go'"}
+    ]
+  },
+  {
+    "id": "gs_politeness",
+    "name": "Thank you / You're welcome",
+    "description_vi": "Cấu trúc lịch sự cảm ơn và đáp lại",
+    "template": "Thank you / You're welcome",
+    "cefr_level": "pre_a1",
+    "difficulty": 1,
+    "prerequisite_ids": [],
+    "common_l1_errors": [
+      {"error": "th_substitution", "example_wrong": "Tank you", "example_correct": "Thank you", "reason_vi": "Âm 'th' không có trong tiếng Việt"}
+    ]
+  }
+]

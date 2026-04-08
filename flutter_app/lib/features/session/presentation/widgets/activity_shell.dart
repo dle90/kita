@@ -9,9 +9,12 @@ import 'package:kita_english/features/session/domain/entities/activity.dart';
 import 'package:kita_english/features/session/domain/entities/activity_result.dart';
 import 'package:kita_english/features/session/domain/entities/activity_type.dart';
 import 'package:kita_english/features/session/presentation/providers/session_provider.dart';
+import 'package:kita_english/features/session/presentation/widgets/build_sentence_activity.dart';
+import 'package:kita_english/features/session/presentation/widgets/fill_blank_activity.dart';
 import 'package:kita_english/features/session/presentation/widgets/listen_tap_activity.dart';
 import 'package:kita_english/features/session/presentation/widgets/repeat_after_me_activity.dart';
 import 'package:kita_english/features/session/presentation/widgets/sentence_builder_activity.dart';
+import 'package:kita_english/features/session/presentation/widgets/phonics_activity.dart';
 import 'package:kita_english/features/session/presentation/widgets/word_match_activity.dart';
 import 'package:kita_english/shared/widgets/character_avatar.dart';
 
@@ -485,6 +488,22 @@ class _ActivityShellState extends ConsumerState<ActivityShell>
         );
       case ActivityType.sentenceBuilder:
         return SentenceBuilderActivity(
+          activity: activity,
+          onComplete: _onActivityComplete,
+        );
+      case ActivityType.buildSentence:
+        return BuildSentenceActivity(
+          activity: activity,
+          onComplete: _onActivityComplete,
+        );
+      case ActivityType.fillBlank:
+        return FillBlankActivity(
+          activity: activity,
+          onComplete: _onActivityComplete,
+        );
+      case ActivityType.phonicsListen:
+      case ActivityType.phonicsMatch:
+        return PhonicsActivity(
           activity: activity,
           onComplete: _onActivityComplete,
         );

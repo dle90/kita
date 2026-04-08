@@ -12,11 +12,12 @@ import (
 )
 
 type SessionService struct {
-	sessionRepo  SessionRepository
-	activityRepo ActivityResultRepository
-	contentRepo  content.ContentRepository
-	kidRepo      onboarding.KidRepository
-	srsRepo      srs.SrsRepository
+	sessionRepo      SessionRepository
+	activityRepo     ActivityResultRepository
+	contentRepo      content.ContentRepository
+	kidRepo          onboarding.KidRepository
+	srsRepo          srs.SrsRepository
+	skillMasteryRepo srs.SkillMasteryRepository
 }
 
 func NewSessionService(
@@ -25,14 +26,19 @@ func NewSessionService(
 	contentRepo content.ContentRepository,
 	kidRepo onboarding.KidRepository,
 	srsRepo srs.SrsRepository,
+	skillMasteryRepo ...srs.SkillMasteryRepository,
 ) *SessionService {
-	return &SessionService{
+	s := &SessionService{
 		sessionRepo:  sessionRepo,
 		activityRepo: activityRepo,
 		contentRepo:  contentRepo,
 		kidRepo:      kidRepo,
 		srsRepo:      srsRepo,
 	}
+	if len(skillMasteryRepo) > 0 && skillMasteryRepo[0] != nil {
+		s.skillMasteryRepo = skillMasteryRepo[0]
+	}
+	return s
 }
 
 func (s *SessionService) GetOrCreateSessions(ctx context.Context, kidID uuid.UUID) ([]*KidSession, error) {
@@ -204,6 +210,9 @@ func (s *SessionService) CompleteSession(ctx context.Context, kidID uuid.UUID, d
 	// Review SRS cards based on activity results (map attempts to SM-2 quality)
 	s.reviewSRSCardsFromResults(ctx, kidID, results)
 
+	// Update per-skill mastery for all activity results in this session
+	s.updateSkillMasteryFromResults(ctx, kidID, results)
+
 	// Update kid's current day
 	kid, _ := s.kidRepo.GetKid(ctx, kidID)
 	if kid != nil && dayNumber >= kid.CurrentDay && dayNumber < 7 {
@@ -248,7 +257,38 @@ func (s *SessionService) SubmitActivityResult(ctx context.Context, kidID uuid.UU
 		return nil, common.ErrInternal("failed to save activity result")
 	}
 
+	// Update per-skill mastery tracking
+	if s.skillMasteryRepo != nil && result.VocabularyID != nil {
+		skill := ActivityTypeToSkill(result.ActivityType)
+		score := scoreFromActivityResult(result)
+		_ = s.skillMasteryRepo.UpdateSkillScore(ctx, kidID, *result.VocabularyID, skill, score)
+	}
+
 	return result, nil
+}
+
+// scoreFromActivityResult converts an activity result into a 0-100 score for skill mastery.
+func scoreFromActivityResult(result *ActivityResult) float64 {
+	if !result.IsCorrect {
+		// Wrong answers still give partial credit based on attempts
+		if result.Attempts >= 3 {
+			return 20
+		}
+		return 30
+	}
+	// Correct answers: first attempt = 100, degrading with more attempts
+	switch result.Attempts {
+	case 0:
+		return 50 // skipped/auto
+	case 1:
+		return 100
+	case 2:
+		return 80
+	case 3:
+		return 60
+	default:
+		return 50
+	}
 }
 
 func (s *SessionService) getRecentAccuracy(ctx context.Context, kidID uuid.UUID) float64 {
@@ -324,5 +364,20 @@ func (s *SessionService) reviewSRSCardsFromResults(ctx context.Context, kidID uu
 
 		quality := MapAttemptsToSM2Quality(result.Attempts, result.IsCorrect)
 		_, _ = srsService.ReviewCard(ctx, card.ID, quality)
+	}
+}
+
+// updateSkillMasteryFromResults updates per-skill mastery for all vocabulary in the session results.
+func (s *SessionService) updateSkillMasteryFromResults(ctx context.Context, kidID uuid.UUID, results []*ActivityResult) {
+	if s.skillMasteryRepo == nil {
+		return
+	}
+	for _, result := range results {
+		if result.VocabularyID == nil {
+			continue
+		}
+		skill := ActivityTypeToSkill(result.ActivityType)
+		score := scoreFromActivityResult(result)
+		_ = s.skillMasteryRepo.UpdateSkillScore(ctx, kidID, *result.VocabularyID, skill, score)
 	}
 }

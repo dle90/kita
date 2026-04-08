@@ -36,6 +36,38 @@ func SeedContent(ctx context.Context, repo ContentRepository, seedDir string) er
 	}
 	log.Printf("Seeded %d session templates", count)
 
+	// Seed phonemes
+	phCount, err := seedPhonemes(ctx, repo, seedDir+"/phonemes.json")
+	if err != nil {
+		log.Printf("Warning: could not seed phonemes: %v", err)
+	} else {
+		log.Printf("Seeded %d phonemes", phCount)
+	}
+
+	// Seed grammar structures
+	gsCount, err := seedGrammarStructures(ctx, repo, seedDir+"/grammar_structures.json")
+	if err != nil {
+		log.Printf("Warning: could not seed grammar structures: %v", err)
+	} else {
+		log.Printf("Seeded %d grammar structures", gsCount)
+	}
+
+	// Seed patterns
+	pCount, err := seedPatterns(ctx, repo, seedDir+"/patterns.json")
+	if err != nil {
+		log.Printf("Warning: could not seed patterns: %v", err)
+	} else {
+		log.Printf("Seeded %d patterns", pCount)
+	}
+
+	// Seed communication functions
+	cfCount, err := seedCommunicationFunctions(ctx, repo, seedDir+"/communication_functions.json")
+	if err != nil {
+		log.Printf("Warning: could not seed communication functions: %v", err)
+	} else {
+		log.Printf("Seeded %d communication functions", cfCount)
+	}
+
 	return nil
 }
 
@@ -106,6 +138,143 @@ func seedSessionTemplates(ctx context.Context, repo ContentRepository, filePath 
 		}
 		if err := repo.InsertSessionTemplate(ctx, tmpl); err != nil {
 			return 0, fmt.Errorf("inserting session template: %w", err)
+		}
+		count++
+	}
+	return count, nil
+}
+
+func seedGrammarStructures(ctx context.Context, repo ContentRepository, filePath string) (int, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return 0, fmt.Errorf("reading grammar structures file: %w", err)
+	}
+
+	var seeds []GrammarStructureSeed
+	if err := json.Unmarshal(data, &seeds); err != nil {
+		return 0, fmt.Errorf("parsing grammar structures JSON: %w", err)
+	}
+
+	count := 0
+	for _, s := range seeds {
+		gs := &GrammarStructure{
+			ID:              s.ID,
+			Name:            s.Name,
+			DescriptionVI:   s.DescriptionVI,
+			Template:        s.Template,
+			CEFRLevel:       s.CEFRLevel,
+			Difficulty:      s.Difficulty,
+			PrerequisiteIDs: s.PrerequisiteIDs,
+			CommonL1Errors:  s.CommonL1Errors,
+		}
+		if gs.PrerequisiteIDs == nil {
+			gs.PrerequisiteIDs = []string{}
+		}
+		if err := repo.InsertGrammarStructure(ctx, gs); err != nil {
+			return 0, fmt.Errorf("inserting grammar structure %q: %w", s.ID, err)
+		}
+		count++
+	}
+	return count, nil
+}
+
+func seedPatterns(ctx context.Context, repo ContentRepository, filePath string) (int, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return 0, fmt.Errorf("reading patterns file: %w", err)
+	}
+
+	var seeds []PatternSeed
+	if err := json.Unmarshal(data, &seeds); err != nil {
+		return 0, fmt.Errorf("parsing patterns JSON: %w", err)
+	}
+
+	count := 0
+	for _, s := range seeds {
+		p := &Pattern{
+			ID:                    s.ID,
+			GrammarStructureID:    s.GrammarStructureID,
+			Template:              s.Template,
+			TemplateVI:            s.TemplateVI,
+			CommunicationFunction: s.CommunicationFunction,
+			Slots:                 s.Slots,
+			Difficulty:            s.Difficulty,
+			DayIntroduced:         s.DayIntroduced,
+			ExampleSentences:      s.ExampleSentences,
+		}
+		if err := repo.InsertPattern(ctx, p); err != nil {
+			return 0, fmt.Errorf("inserting pattern %q: %w", s.ID, err)
+		}
+		count++
+	}
+	return count, nil
+}
+
+func seedPhonemes(ctx context.Context, repo ContentRepository, filePath string) (int, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return 0, fmt.Errorf("reading phonemes file: %w", err)
+	}
+
+	var seeds []PhonemeSeed
+	if err := json.Unmarshal(data, &seeds); err != nil {
+		return 0, fmt.Errorf("parsing phonemes JSON: %w", err)
+	}
+
+	count := 0
+	for _, s := range seeds {
+		p := &Phoneme{
+			ID:                 s.ID,
+			Symbol:             s.Symbol,
+			ExampleWord:        s.ExampleWord,
+			ExampleWordVI:      s.ExampleWordVI,
+			Graphemes:          s.Graphemes,
+			IsNewForVietnamese: s.IsNewForVietnamese,
+			CommonSubstitution: s.CommonSubstitution,
+			SubstitutionVI:     s.SubstitutionVI,
+			MouthPositionVI:    s.MouthPositionVI,
+			Difficulty:         s.Difficulty,
+			PriorityNorthern:   s.PriorityNorthern,
+			PriorityCentral:    s.PriorityCentral,
+			PrioritySouthern:   s.PrioritySouthern,
+			MinimalPairs:       s.MinimalPairs,
+			PracticeWords:      s.PracticeWords,
+		}
+		if err := repo.InsertPhoneme(ctx, p); err != nil {
+			return 0, fmt.Errorf("inserting phoneme %q: %w", s.ID, err)
+		}
+		count++
+	}
+	return count, nil
+}
+
+func seedCommunicationFunctions(ctx context.Context, repo ContentRepository, filePath string) (int, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return 0, fmt.Errorf("reading communication functions file: %w", err)
+	}
+
+	var seeds []CommunicationFunctionSeed
+	if err := json.Unmarshal(data, &seeds); err != nil {
+		return 0, fmt.Errorf("parsing communication functions JSON: %w", err)
+	}
+
+	count := 0
+	for _, s := range seeds {
+		cf := &CommunicationFunction{
+			ID:            s.ID,
+			Name:          s.Name,
+			NameVI:        s.NameVI,
+			DescriptionVI: s.DescriptionVI,
+			CEFRLevel:     s.CEFRLevel,
+			Situations:    s.Situations,
+			PatternIDs:    s.PatternIDs,
+		}
+		if cf.PatternIDs == nil {
+			cf.PatternIDs = []string{}
+		}
+		if err := repo.InsertCommunicationFunction(ctx, cf); err != nil {
+			return 0, fmt.Errorf("inserting communication function %q: %w", s.ID, err)
 		}
 		count++
 	}

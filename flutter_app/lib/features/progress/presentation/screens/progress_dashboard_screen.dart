@@ -6,6 +6,7 @@ import 'package:kita_english/core/constants/app_typography.dart';
 import 'package:kita_english/features/progress/domain/entities/challenge_summary.dart';
 import 'package:kita_english/features/progress/domain/entities/daily_progress.dart';
 import 'package:kita_english/features/progress/presentation/providers/progress_provider.dart';
+import 'package:kita_english/features/progress/presentation/widgets/skill_radar.dart';
 
 /// Parent-facing progress dashboard with Vietnamese UI.
 class ProgressDashboardScreen extends ConsumerWidget {
@@ -15,6 +16,7 @@ class ProgressDashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final summaryAsync = ref.watch(progressOverviewProvider);
     final dailyAsync = ref.watch(dailyProgressProvider);
+    final skillAsync = ref.watch(skillSummaryProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -51,6 +53,39 @@ class ProgressDashboardScreen extends ConsumerWidget {
                 loading: () => const SizedBox.shrink(),
                 error: (_, __) =>
                     const _StatsRow(summary: ChallengeSummary()),
+              ),
+              const SizedBox(height: 24),
+
+              // Skill radar chart
+              skillAsync.when(
+                data: (skills) => SkillRadar(
+                  listening: skills.listening,
+                  speaking: skills.speaking,
+                  reading: skills.reading,
+                  writing: skills.writing,
+                ),
+                loading: () => const SizedBox(
+                  height: 200,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (_, __) => const SkillRadar(
+                  listening: 0,
+                  speaking: 0,
+                  reading: 0,
+                  writing: 0,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Mastery stats from skill data
+              skillAsync.when(
+                data: (skills) => _MasteryStatsRow(
+                  wordsMastered: skills.wordsMastered,
+                  wordsInProgress: skills.wordsInProgress,
+                  weakestSkill: skills.weakestSkill,
+                ),
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
               ),
               const SizedBox(height: 24),
 
@@ -400,5 +435,66 @@ class _DailyProgressTile extends StatelessWidget {
     if (score >= 80) return AppColors.pronExcellent;
     if (score >= 50) return AppColors.pronGood;
     return AppColors.pronNeedsWork;
+  }
+}
+
+class _MasteryStatsRow extends StatelessWidget {
+  final int wordsMastered;
+  final int wordsInProgress;
+  final String weakestSkill;
+
+  const _MasteryStatsRow({
+    required this.wordsMastered,
+    required this.wordsInProgress,
+    required this.weakestSkill,
+  });
+
+  String _skillLabel(String skill) {
+    switch (skill) {
+      case 'listening':
+        return 'Nghe';
+      case 'speaking':
+        return 'Noi';
+      case 'reading':
+        return 'Doc';
+      case 'writing':
+        return 'Viet';
+      default:
+        return skill;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _StatItem(
+            icon: Icons.star_rounded,
+            value: '$wordsMastered',
+            label: 'Tu da thong thao',
+            color: AppColors.success,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _StatItem(
+            icon: Icons.trending_up_rounded,
+            value: '$wordsInProgress',
+            label: 'Dang hoc',
+            color: AppColors.primary,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _StatItem(
+            icon: Icons.warning_amber_rounded,
+            value: _skillLabel(weakestSkill),
+            label: 'Can luyen them',
+            color: AppColors.secondary,
+          ),
+        ),
+      ],
+    );
   }
 }
