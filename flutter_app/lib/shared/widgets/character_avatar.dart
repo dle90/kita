@@ -36,10 +36,10 @@ class _CharacterAvatarState extends State<CharacterAvatar>
       vsync: this,
       duration: const Duration(milliseconds: 2000),
     );
-    _bounceAnimation = Tween<double>(begin: 0, end: -6).animate(
+    _bounceAnimation = Tween<double>(begin: 0, end: -10).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.04).animate(
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.06).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
 
@@ -88,10 +88,16 @@ class _CharacterAvatarState extends State<CharacterAvatar>
           ),
           boxShadow: [
             BoxShadow(
-              color: data.color.withValues(alpha: 0.25),
-              blurRadius: 12,
-              spreadRadius: 1,
-              offset: const Offset(0, 4),
+              color: data.color.withValues(alpha: 0.35),
+              blurRadius: 18,
+              spreadRadius: 3,
+              offset: const Offset(0, 6),
+            ),
+            BoxShadow(
+              color: data.color.withValues(alpha: 0.12),
+              blurRadius: 32,
+              spreadRadius: 6,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
