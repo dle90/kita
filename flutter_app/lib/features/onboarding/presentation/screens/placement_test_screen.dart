@@ -430,16 +430,25 @@ class _SayHelloRoundState extends State<_SayHelloRound> {
   }
 
   void _onWebDone() {
-    if (_submitted) return;
-    setState(() => _submitted = true);
-    Future.delayed(const Duration(milliseconds: 500), () {
-      widget.onAnswer({
-        'round': 2,
-        'type': 'say_hello',
-        'recorded': false,
-        'correct': true, // Always passes on web
-      });
+    widget.onAnswer({
+      'round': 2,
+      'type': 'say_hello',
+      'recorded': true,
+      'correct': true,
     });
+  }
+
+  Future<void> _onMicTap() async {
+    if (_submitted) return;
+    setState(() => _isRecording = true);
+    try { _tts.speak('Hello'); } catch (_) {}
+    await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
+    setState(() { _isRecording = false; _hasRecorded = true; _submitted = true; });
+    try { SoundEffects().playCorrect(); } catch (_) {}
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
+    _onWebDone();
   }
 
   @override
@@ -474,32 +483,7 @@ class _SayHelloRoundState extends State<_SayHelloRound> {
           const SizedBox(height: 40),
           // Big mic button — tap to "record", fake listening, auto-complete
           GestureDetector(
-            onTap: _submitted ? null : () {
-              setState(() => _isRecording = true);
-              _tts.speak('Hello');
-              // Fake listening for 2 seconds then complete
-              Future.delayed(const Duration(seconds: 2), () {
-                if (mounted) {
-                  setState(() {
-                    _isRecording = false;
-                    _hasRecorded = true;
-                  });
-                  SoundEffects().playCorrect();
-                  // Submit after showing checkmark briefly
-                  Future.delayed(const Duration(milliseconds: 500), () {
-                    if (mounted && !_submitted) {
-                      _submitted = true;
-                      widget.onAnswer({
-                        'round': 2,
-                        'type': 'say_hello',
-                        'recorded': true,
-                        'correct': true,
-                      });
-                    }
-                  });
-                }
-              });
-            },
+            onTap: _submitted ? null : _onMicTap,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               width: _isRecording ? 120 : 100,
