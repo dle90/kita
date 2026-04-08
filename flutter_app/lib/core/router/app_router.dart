@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kita_english/core/storage/secure_storage.dart';
-import 'package:kita_english/features/auth/presentation/screens/login_screen.dart';
 import 'package:kita_english/features/auth/presentation/screens/link_account_screen.dart';
-import 'package:kita_english/features/auth/presentation/screens/signup_screen.dart';
 import 'package:kita_english/features/day7/presentation/screens/certificate_screen.dart';
 import 'package:kita_english/features/day7/presentation/screens/showcase_recording_screen.dart';
 import 'package:kita_english/features/onboarding/presentation/screens/character_select_screen.dart';
@@ -249,17 +247,3 @@ Widget _scaleTransition(
   );
 }
 
-// --- Splash placeholder (redirect handles navigation) ---
-
-class _SplashScreen extends StatelessWidget {
-  const _SplashScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-  }
-}

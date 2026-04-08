@@ -22,16 +22,14 @@ dependencies:
   # Networking
   dio: ^5.4.0
 
-  # Local database
-  isar: ^3.1.0+1
-  isar_flutter_libs: ^3.1.0+1
+  # Path provider (for temp files)
   path_provider: ^2.1.2
 
   # Secure storage
   flutter_secure_storage: ^9.0.0
 
   # Audio recording
-  record: ^5.0.5
+  record: ^6.0.0
 
   # Audio playback
   just_audio: ^0.9.36
@@ -39,9 +37,6 @@ dependencies:
   # Animations
   lottie: ^3.0.0
   flutter_animate: ^4.3.0
-
-  # Notifications
-  flutter_local_notifications: ^16.3.2
 
   # Connectivity
   connectivity_plus: ^5.0.2
@@ -65,7 +60,6 @@ dev_dependencies:
   riverpod_generator: ^2.3.9
   freezed: ^2.4.6
   json_serializable: ^6.7.1
-  isar_generator: ^3.1.0+1
 
 flutter:
   uses-material-design: true

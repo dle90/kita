@@ -31,13 +31,22 @@ class RepeatAfterMeActivity extends ConsumerStatefulWidget {
       _RepeatAfterMeActivityState();
 }
 
-class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
+class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity>
+    with TickerProviderStateMixin {
   bool _hasListened = false;
   bool _isRecording = false;
   bool _hasRecorded = false;
   PronunciationScore? _fullScore;
   bool _showFeedback = false;
   final _tts = TtsService();
+
+  // Mic pulse animation
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
+  // Recording ring animation
+  late AnimationController _ringController;
+  late Animation<double> _ringAnimation;
 
   // Fallback words for when activity has no target word
   static const _fallbackWords = [
@@ -52,6 +61,31 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
     _word = widget.activity.targetWord ??
         widget.activity.config['target_word'] as String? ??
         _fallbackWords[DateTime.now().millisecond % _fallbackWords.length];
+
+    // Idle pulsing animation for mic
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
+    // Recording ring animation
+    _ringController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    _ringAnimation = Tween<double>(begin: 1.0, end: 1.5).animate(
+      CurvedAnimation(parent: _ringController, curve: Curves.easeOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    _ringController.dispose();
+    super.dispose();
   }
 
   Future<void> _playNativeAudio() async {
@@ -112,6 +146,7 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
       final started = await recorder.start();
       if (started && mounted) {
         setState(() => _isRecording = true);
+        _ringController.repeat();
         // Auto-stop after 5 seconds
         Future.delayed(const Duration(seconds: 5), () {
           if (mounted && _isRecording) _stopWebRecording();
@@ -124,8 +159,11 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
     // Fallback: fake recording if mic access fails
     if (!mounted) return;
     setState(() => _isRecording = true);
+    _ringController.repeat();
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
+    _ringController.stop();
+    _ringController.reset();
     setState(() {
       _isRecording = false;
       _hasRecorded = true;
@@ -153,6 +191,8 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
   }
 
   Future<void> _stopWebRecording() async {
+    _ringController.stop();
+    _ringController.reset();
     final recorder = ref.read(webRecorderProvider);
     final audioBytes = await recorder.stop();
     if (!mounted) return;
@@ -207,86 +247,125 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         // Instruction
-        const Text(
-          'Nghe v\u00E0 n\u00F3i theo!',
-          style: AppTypography.titleLarge,
+        Text(
+          'Nghe v\u00E0 n\u00F3i theo! \u{1F3A4}',
+          style: AppTypography.titleLarge.copyWith(fontSize: 22),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
 
-        // English word/sentence
+        // English word/sentence card with gradient
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+          width: double.infinity,
+          margin: const EdgeInsets.symmetric(horizontal: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
           decoration: BoxDecoration(
-            color: AppColors.primaryLight.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              colors: [
+                AppColors.primaryLight.withValues(alpha: 0.15),
+                AppColors.primary.withValues(alpha: 0.06),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.15),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.08),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             children: [
               Text(
                 displayText,
                 style: AppTypography.englishWord.copyWith(
-                  fontSize: displayText.length > 15 ? 22 : 28,
+                  fontSize: displayText.length > 15 ? 26 : 34,
                 ),
                 textAlign: TextAlign.center,
               ),
+              // Vietnamese translation card
               if (vietnameseHint != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  vietnameseHint,
-                  style: AppTypography.vietnameseHint,
-                  textAlign: TextAlign.center,
+                const SizedBox(height: 12),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceVariant.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    vietnameseHint,
+                    style: AppTypography.vietnameseHint.copyWith(fontSize: 17),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ],
             ],
           ),
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 28),
 
-        // Play native speaker audio button
+        // Play native speaker audio button — big orange circle
         GestureDetector(
           onTap: _playNativeAudio,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+            width: 72,
+            height: 72,
             decoration: BoxDecoration(
-              color: _hasListened
-                  ? AppColors.surfaceVariant
-                  : AppColors.secondary,
-              borderRadius: BorderRadius.circular(28),
+              gradient: _hasListened
+                  ? null
+                  : AppColors.secondaryGradient,
+              color: _hasListened ? AppColors.surfaceVariant : null,
+              shape: BoxShape.circle,
               boxShadow: !_hasListened
                   ? [
                       BoxShadow(
-                        color: AppColors.secondary.withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
+                        color: AppColors.secondary.withValues(alpha: 0.4),
+                        blurRadius: 14,
+                        spreadRadius: 1,
+                        offset: const Offset(0, 4),
                       ),
                     ]
-                  : null,
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
                   Icons.volume_up,
                   color:
                       _hasListened ? AppColors.textSecondary : Colors.white,
-                  size: 28,
+                  size: 30,
                 ),
-                const SizedBox(width: 8),
                 Text(
-                  _hasListened ? 'Nghe l\u1EA1i' : 'Nghe ph\u00E1t \u00E2m',
-                  style: AppTypography.labelLarge.copyWith(
+                  _hasListened ? 'Nghe l\u1EA1i' : 'Nghe',
+                  style: TextStyle(
                     color:
                         _hasListened ? AppColors.textSecondary : Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
             ),
           ),
         ),
-        const SizedBox(height: 40),
+        const SizedBox(height: 32),
 
-        // Record button — real web recording with Azure scoring
+        // Record button — large with pulse/ring animation
         if (kIsWeb)
           GestureDetector(
             onTap: _hasRecorded
@@ -296,46 +375,105 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
                     : _startWebRecording,
             child: Column(
               children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  width: _isRecording ? 100 : 80,
-                  height: _isRecording ? 100 : 80,
-                  decoration: BoxDecoration(
-                    color: _hasRecorded
-                        ? AppColors.success
-                        : _isRecording
-                            ? AppColors.error
-                            : AppColors.primary,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: (_isRecording
-                                ? AppColors.error
-                                : AppColors.primary)
-                            .withValues(alpha: 0.4),
-                        blurRadius: _isRecording ? 24 : 12,
-                        spreadRadius: _isRecording ? 4 : 0,
+                SizedBox(
+                  width: 140,
+                  height: 140,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Pulsing ring when recording
+                      if (_isRecording)
+                        AnimatedBuilder(
+                          animation: _ringAnimation,
+                          builder: (context, child) {
+                            return Container(
+                              width: 110 * _ringAnimation.value,
+                              height: 110 * _ringAnimation.value,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppColors.error.withValues(
+                                      alpha: 1.0 -
+                                          (_ringAnimation.value - 1.0)),
+                                  width: 3,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      // Main mic button with idle pulse
+                      AnimatedBuilder(
+                        animation: _pulseAnimation,
+                        builder: (context, child) {
+                          final scale = _isRecording
+                              ? 1.0
+                              : _hasRecorded
+                                  ? 1.0
+                                  : _pulseAnimation.value;
+                          return Transform.scale(
+                            scale: scale,
+                            child: child,
+                          );
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          width: 110,
+                          height: 110,
+                          decoration: BoxDecoration(
+                            gradient: _hasRecorded
+                                ? const LinearGradient(colors: [
+                                    AppColors.success,
+                                    AppColors.successLight
+                                  ])
+                                : _isRecording
+                                    ? const LinearGradient(colors: [
+                                        AppColors.error,
+                                        AppColors.errorLight
+                                      ])
+                                    : AppColors.primaryGradient,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: (_isRecording
+                                        ? AppColors.error
+                                        : _hasRecorded
+                                            ? AppColors.success
+                                            : AppColors.primary)
+                                    .withValues(alpha: 0.4),
+                                blurRadius: _isRecording ? 28 : 16,
+                                spreadRadius: _isRecording ? 4 : 1,
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            _hasRecorded
+                                ? Icons.check
+                                : _isRecording
+                                    ? Icons.stop
+                                    : Icons.mic,
+                            color: Colors.white,
+                            size: 48,
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                  child: Icon(
-                    _hasRecorded
-                        ? Icons.check
-                        : _isRecording
-                            ? Icons.stop
-                            : Icons.mic,
-                    color: Colors.white,
-                    size: 40,
-                  ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Text(
                   _isRecording
-                      ? 'Nh\u1EA5n \u0111\u1EC3 d\u1EEBng...'
+                      ? '\u0110ang ghi... nh\u1EA5n \u0111\u1EC3 d\u1EEBng'
                       : _hasRecorded
-                          ? 'Tuy\u1EC7t v\u1EDDi!'
-                          : 'Nh\u1EA5n \u0111\u1EC3 n\u00F3i',
-                  style: AppTypography.bodySmall,
+                          ? 'Tuy\u1EC7t v\u1EDDi! \u{1F389}'
+                          : 'Nh\u1EA5n \u0111\u1EC3 n\u00F3i \u{1F3A4}',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: _isRecording
+                        ? AppColors.error
+                        : _hasRecorded
+                            ? AppColors.success
+                            : AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -371,13 +509,13 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                 decoration: BoxDecoration(
-                  color: AppColors.secondary,
-                  borderRadius: BorderRadius.circular(28),
+                  gradient: AppColors.secondaryGradient,
+                  borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.secondary.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
+                      color: AppColors.secondary.withValues(alpha: 0.35),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
@@ -387,7 +525,7 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity> {
                     const Icon(Icons.refresh, color: Colors.white, size: 24),
                     const SizedBox(width: 8),
                     Text(
-                      'Th\u1EED l\u1EA1i',
+                      'Th\u1EED l\u1EA1i \u{1F4AA}',
                       style: AppTypography.labelLarge.copyWith(
                         color: Colors.white,
                       ),

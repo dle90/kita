@@ -22,12 +22,13 @@ class PlacementTestScreen extends ConsumerStatefulWidget {
 }
 
 class _PlacementTestScreenState extends ConsumerState<PlacementTestScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   int _currentRound = 0;
   final List<Map<String, dynamic>> _answers = [];
   late final AnimationController _encourageController;
   late final Animation<double> _encourageAnimation;
-  String _encourageText = 'Bắt đầu nhé!';
+  late final AnimationController _sparkleController;
+  String _encourageText = 'Bat dau nhe! \u{1F31F}';
   bool _isSubmitting = false;
 
   @override
@@ -41,12 +42,17 @@ class _PlacementTestScreenState extends ConsumerState<PlacementTestScreen>
       parent: _encourageController,
       curve: Curves.elasticOut,
     );
+    _sparkleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
     _encourageController.forward();
   }
 
   @override
   void dispose() {
     _encourageController.dispose();
+    _sparkleController.dispose();
     super.dispose();
   }
 
@@ -56,17 +62,23 @@ class _PlacementTestScreenState extends ConsumerState<PlacementTestScreen>
     _encourageController.forward();
   }
 
+  void _playSparkle() {
+    _sparkleController.reset();
+    _sparkleController.forward();
+  }
+
   void _submitAnswer(Map<String, dynamic> answer) {
     final isCorrect = answer['correct'] == true;
 
     if (isCorrect) {
       ref.read(soundEffectsProvider).playCorrect();
+      _playSparkle();
       _answers.add(answer);
       final encouragements = [
-        'Tuyệt vời! ⭐',
-        'Giỏi lắm! 🎉',
-        'Đúng rồi! ✨',
-        'Hay quá! 👏',
+        'Tuyet voi! \u{2B50}',
+        'Gioi lam! \u{1F389}',
+        'Dung roi! \u{2728}',
+        'Hay qua! \u{1F44F}',
       ];
       _showEncouragement(
         encouragements[Random().nextInt(encouragements.length)],
@@ -81,11 +93,11 @@ class _PlacementTestScreenState extends ConsumerState<PlacementTestScreen>
       });
     } else {
       ref.read(soundEffectsProvider).playWrong();
-      // Gentle wrong-answer feedback — don't record, let them retry
+      // Gentle wrong-answer feedback -- don't record, let them retry
       final nudges = [
-        'Gần đúng rồi! Thử lại nha! 💪',
-        'Chưa đúng, thử lần nữa nhé! 😊',
-        'Không sao, chọn lại nha! 🌟',
+        'Gan dung roi! Thu lai nha! \u{1F4AA}',
+        'Chua dung, thu lan nua nhe! \u{1F60A}',
+        'Khong sao, chon lai nha! \u{1F31F}',
       ];
       _showEncouragement(
         nudges[Random().nextInt(nudges.length)],
@@ -119,7 +131,7 @@ class _PlacementTestScreenState extends ConsumerState<PlacementTestScreen>
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Đã xảy ra lỗi. Vui lòng thử lại.'),
+            content: Text('Da xay ra loi. Vui long thu lai.'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -130,100 +142,263 @@ class _PlacementTestScreenState extends ConsumerState<PlacementTestScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Khám phá cùng bạn!'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.pop(),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFF8F6FF), Color(0xFFEDE7FF)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
         ),
-      ),
-      body: SafeArea(
-        child: _isSubmitting
-            ? const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+        child: SafeArea(
+          child: _isSubmitting
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                            strokeWidth: 3,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Dang chuan bi bai hoc cho be... \u{1F4DA}',
+                        style: AppTypography.bodyLarge.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Cho chut nhe!',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : Stack(
                   children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 24),
-                    Text(
-                      'Đang chuẩn bị bài học cho bé...',
-                      style: AppTypography.bodyLarge,
+                    Column(
+                      children: [
+                        // Top bar
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          child: Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.arrow_back_rounded,
+                                    color: AppColors.primary),
+                                onPressed: () => context.pop(),
+                              ),
+                              const Spacer(),
+                              _buildStepIndicator(3, 3),
+                              const Spacer(),
+                              const SizedBox(width: 48),
+                            ],
+                          ),
+                        ),
+
+                        // Progress bar - round pills
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 8,
+                          ),
+                          child: Row(
+                            children: List.generate(4, (index) {
+                              final isComplete = index < _currentRound;
+                              final isCurrent = index == _currentRound;
+                              return Expanded(
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 400),
+                                  curve: Curves.easeOutBack,
+                                  height: 10,
+                                  margin:
+                                      const EdgeInsets.symmetric(horizontal: 3),
+                                  decoration: BoxDecoration(
+                                    gradient: (isComplete || isCurrent)
+                                        ? LinearGradient(
+                                            colors: isCurrent
+                                                ? [
+                                                    AppColors.primary,
+                                                    AppColors.primaryLight,
+                                                  ]
+                                                : [
+                                                    AppColors.success,
+                                                    AppColors.successLight,
+                                                  ],
+                                          )
+                                        : null,
+                                    color: (isComplete || isCurrent)
+                                        ? null
+                                        : AppColors.surfaceVariant,
+                                    borderRadius: BorderRadius.circular(5),
+                                    boxShadow: isCurrent
+                                        ? [
+                                            BoxShadow(
+                                              color: AppColors.primary
+                                                  .withValues(alpha: 0.3),
+                                              blurRadius: 6,
+                                            ),
+                                          ]
+                                        : null,
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        // Round counter
+                        Text(
+                          'Cau ${_currentRound + 1} / 4',
+                          style: AppTypography.labelSmall.copyWith(
+                            color: AppColors.textHint,
+                          ),
+                        ),
+
+                        // Buddy encouragement bubble - more prominent
+                        ScaleTransition(
+                          scale: _encourageAnimation,
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 32,
+                              vertical: 10,
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  AppColors.primaryLight.withValues(alpha: 0.15),
+                                  AppColors.mochiCatAccent
+                                      .withValues(alpha: 0.15),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                color: AppColors.primaryLight
+                                    .withValues(alpha: 0.3),
+                                width: 1.5,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color:
+                                      AppColors.primary.withValues(alpha: 0.08),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.mochiCat
+                                        .withValues(alpha: 0.2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Center(
+                                    child: Text('\u{1F431}',
+                                        style: TextStyle(fontSize: 28)),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Flexible(
+                                  child: Text(
+                                    _encourageText,
+                                    style:
+                                        AppTypography.characterBubble.copyWith(
+                                      color: AppColors.primary,
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // Current round
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: _buildRound(_currentRound),
+                          ),
+                        ),
+                      ],
                     ),
+
+                    // Sparkle overlay on correct answers
+                    if (_sparkleController.isAnimating)
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: AnimatedBuilder(
+                            animation: _sparkleController,
+                            builder: (context, _) {
+                              return CustomPaint(
+                                painter: _SparklePainter(
+                                  progress: _sparkleController.value,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
                   ],
                 ),
-              )
-            : Column(
-                children: [
-                  // Progress indicator
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
-                    ),
-                    child: Row(
-                      children: List.generate(4, (index) {
-                        return Expanded(
-                          child: Container(
-                            height: 8,
-                            margin: const EdgeInsets.symmetric(horizontal: 2),
-                            decoration: BoxDecoration(
-                              color: index <= _currentRound
-                                  ? AppColors.primary
-                                  : AppColors.surfaceVariant,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                        );
-                      }),
-                    ),
-                  ),
-
-                  // Buddy encouragement bubble
-                  ScaleTransition(
-                    scale: _encourageAnimation,
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 40,
-                        vertical: 8,
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryLight.withValues(alpha:0.15),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('🐱', style: TextStyle(fontSize: 28)),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: Text(
-                              _encourageText,
-                              style: AppTypography.characterBubble.copyWith(
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Current round
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: _buildRound(_currentRound),
-                    ),
-                  ),
-                ],
-              ),
+        ),
       ),
+    );
+  }
+
+  Widget _buildStepIndicator(int current, int total) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(total, (index) {
+        final isActive = index < current;
+        final isCurrent = index == current - 1;
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          width: isCurrent ? 32 : 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: isActive ? AppColors.primary : AppColors.surfaceVariant,
+            borderRadius: BorderRadius.circular(6),
+            boxShadow: isCurrent
+                ? [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                      blurRadius: 6,
+                    ),
+                  ]
+                : null,
+          ),
+        );
+      }),
     );
   }
 
@@ -241,6 +416,45 @@ class _PlacementTestScreenState extends ConsumerState<PlacementTestScreen>
         return const SizedBox.shrink();
     }
   }
+}
+
+/// Sparkle particle painter for correct answers.
+class _SparklePainter extends CustomPainter {
+  final double progress;
+  _SparklePainter({required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rng = Random(42);
+    final paint = Paint()..style = PaintingStyle.fill;
+    final opacity = (1.0 - progress).clamp(0.0, 1.0);
+
+    for (int i = 0; i < 12; i++) {
+      final startX = rng.nextDouble() * size.width;
+      final startY = rng.nextDouble() * size.height * 0.6 + size.height * 0.2;
+      final dx = (rng.nextDouble() - 0.5) * 100 * progress;
+      final dy = -rng.nextDouble() * 150 * progress;
+      final radius = (3.0 + rng.nextDouble() * 4) * (1.0 - progress * 0.5);
+
+      final colors = [
+        AppColors.starFilled,
+        AppColors.secondary,
+        AppColors.mochiCat,
+        AppColors.success,
+      ];
+      paint.color = colors[i % colors.length].withValues(alpha: opacity);
+
+      canvas.drawCircle(
+        Offset(startX + dx, startY + dy),
+        radius,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SparklePainter oldDelegate) =>
+      oldDelegate.progress != progress;
 }
 
 // --- Round 1: Listen & Tap ---
@@ -261,10 +475,10 @@ class _ListenAndTapRoundState extends State<_ListenAndTapRound> {
   final _tts = TtsService();
 
   final _options = [
-    {'label': 'Cat', 'emoji': '🐱'},
-    {'label': 'Apple', 'emoji': '🍎'},
-    {'label': 'Car', 'emoji': '🚗'},
-    {'label': 'Book', 'emoji': '📖'},
+    {'label': 'Cat', 'emoji': '\u{1F431}'},
+    {'label': 'Apple', 'emoji': '\u{1F34E}'},
+    {'label': 'Car', 'emoji': '\u{1F697}'},
+    {'label': 'Book', 'emoji': '\u{1F4D6}'},
   ];
 
   void _onTap(int index) {
@@ -287,7 +501,7 @@ class _ListenAndTapRoundState extends State<_ListenAndTapRound> {
       });
     } else {
       SoundEffects().playWrong();
-      // Wrong — flash red, then clear for retry
+      // Wrong -- flash red, then clear for retry
       widget.onAnswer({
         'round': 1,
         'type': 'listen_tap',
@@ -304,29 +518,54 @@ class _ListenAndTapRoundState extends State<_ListenAndTapRound> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const Text(
-          'Nghe và chọn hình đúng:',
-          style: AppTypography.titleLarge,
+        Text(
+          'Nghe va chon hinh dung:',
+          style: AppTypography.titleLarge.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 8),
-        ElevatedButton.icon(
-          onPressed: () => _tts.speak('apple'),
-          icon: const Icon(Icons.volume_up, size: 28),
-          label: const Text('Nghe'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.secondary,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        const SizedBox(height: 14),
+        // Big friendly speaker button
+        GestureDetector(
+          onTap: () => _tts.speak('apple'),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+            decoration: BoxDecoration(
+              gradient: AppColors.secondaryGradient,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.secondary.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.volume_up_rounded, size: 32, color: Colors.white),
+                const SizedBox(width: 10),
+                Text(
+                  'Nghe \u{1F50A}',
+                  style: AppTypography.titleMedium.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
         Expanded(
           child: GridView.builder(
             shrinkWrap: true,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
+              crossAxisSpacing: 14,
+              mainAxisSpacing: 14,
             ),
             itemCount: _options.length,
             itemBuilder: (context, index) {
@@ -336,44 +575,61 @@ class _ListenAndTapRoundState extends State<_ListenAndTapRound> {
               final isWrongAnswer = isSelected && _lastCorrect == false;
               return GestureDetector(
                 onTap: () => _onTap(index),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  decoration: BoxDecoration(
-                    color: isCorrectAnswer
-                        ? AppColors.successLight.withValues(alpha: 0.3)
-                        : isWrongAnswer
-                            ? AppColors.errorLight.withValues(alpha: 0.3)
-                            : AppColors.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isCorrectAnswer
-                          ? AppColors.success
-                          : isWrongAnswer
-                              ? AppColors.error
-                              : AppColors.surfaceVariant,
-                      width: isSelected ? 3 : 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(
+                    begin: 1.0,
+                    end: isSelected ? 0.95 : 1.0,
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        option['emoji']!,
-                        style: const TextStyle(fontSize: 48),
+                  duration: const Duration(milliseconds: 150),
+                  curve: Curves.easeOutBack,
+                  builder: (context, scale, child) {
+                    return Transform.scale(scale: scale, child: child);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    decoration: BoxDecoration(
+                      color: isCorrectAnswer
+                          ? AppColors.successLight.withValues(alpha: 0.3)
+                          : isWrongAnswer
+                              ? AppColors.errorLight.withValues(alpha: 0.3)
+                              : AppColors.surface,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: isCorrectAnswer
+                            ? AppColors.success
+                            : isWrongAnswer
+                                ? AppColors.error
+                                : AppColors.surfaceVariant,
+                        width: isSelected ? 3 : 1.5,
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        option['label']!,
-                        style: AppTypography.titleSmall,
-                      ),
-                    ],
+                      boxShadow: [
+                        BoxShadow(
+                          color: isCorrectAnswer
+                              ? AppColors.success.withValues(alpha: 0.2)
+                              : isWrongAnswer
+                                  ? AppColors.error.withValues(alpha: 0.2)
+                                  : Colors.black.withValues(alpha: 0.06),
+                          blurRadius: isSelected ? 16 : 6,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          option['emoji']!,
+                          style: const TextStyle(fontSize: 52),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          option['label']!,
+                          style: AppTypography.titleSmall.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -457,73 +713,119 @@ class _SayHelloRoundState extends State<_SayHelloRound> {
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text(
-            'Hello!',
-            style: AppTypography.englishWord,
-            textAlign: TextAlign.center,
+          // Big Hello text
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+            decoration: BoxDecoration(
+              gradient: AppColors.primaryGradient,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Text(
+              'Hello! \u{1F44B}',
+              style: AppTypography.englishWord.copyWith(
+                color: Colors.white,
+                fontSize: 36,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
-            'Nói "Hello!" thật to nhé!',
+            'Noi "Hello!" that to nhe!',
             style: AppTypography.bodyLarge.copyWith(
               color: AppColors.textSecondary,
             ),
           ),
-          const SizedBox(height: 24),
-          // TTS play button
-          ElevatedButton.icon(
-            onPressed: () => _tts.speak('Hello'),
-            icon: const Icon(Icons.volume_up, size: 28),
-            label: const Text('Nghe'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.secondary,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          const SizedBox(height: 20),
+          // TTS play button - big friendly speaker
+          GestureDetector(
+            onTap: () => _tts.speak('Hello'),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+              decoration: BoxDecoration(
+                gradient: AppColors.secondaryGradient,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.secondary.withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.volume_up_rounded, size: 32, color: Colors.white),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Nghe \u{1F50A}',
+                    style: AppTypography.titleMedium.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 40),
-          // Big mic button — tap to "record", fake listening, auto-complete
+          const SizedBox(height: 36),
+          // Big mic button
           GestureDetector(
             onTap: _submitted ? null : _onMicTap,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
-              width: _isRecording ? 120 : 100,
-              height: _isRecording ? 120 : 100,
+              curve: Curves.easeOutBack,
+              width: _isRecording ? 130 : 110,
+              height: _isRecording ? 130 : 110,
               decoration: BoxDecoration(
-                color: _submitted
-                    ? AppColors.success
+                gradient: _submitted
+                    ? const LinearGradient(
+                        colors: [AppColors.success, AppColors.successLight],
+                      )
                     : _isRecording
-                        ? AppColors.error
-                        : AppColors.primary,
+                        ? const LinearGradient(
+                            colors: [AppColors.error, AppColors.errorLight],
+                          )
+                        : AppColors.primaryGradient,
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
                     color: (_isRecording ? AppColors.error : AppColors.primary)
                         .withValues(alpha: 0.4),
-                    blurRadius: _isRecording ? 24 : 12,
-                    spreadRadius: _isRecording ? 4 : 0,
+                    blurRadius: _isRecording ? 30 : 16,
+                    spreadRadius: _isRecording ? 6 : 0,
                   ),
                 ],
               ),
               child: Icon(
                 _submitted
-                    ? Icons.check
+                    ? Icons.check_rounded
                     : _isRecording
-                        ? Icons.hearing
-                        : Icons.mic,
+                        ? Icons.hearing_rounded
+                        : Icons.mic_rounded,
                 color: Colors.white,
-                size: 48,
+                size: 52,
               ),
             ),
           ),
           const SizedBox(height: 16),
           Text(
             _isRecording
-                ? 'Đang nghe...'
+                ? 'Dang nghe... \u{1F442}'
                 : _submitted
-                    ? 'Tuyệt vời!'
-                    : 'Nhấn để nói',
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
+                    ? 'Tuyet voi! \u{1F389}'
+                    : 'Nhan de noi \u{1F3A4}',
+            style: AppTypography.bodyLarge.copyWith(
+              color: _submitted ? AppColors.success : AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -533,14 +835,31 @@ class _SayHelloRoundState extends State<_SayHelloRound> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
-          'Hello!',
-          style: AppTypography.englishWord,
-          textAlign: TextAlign.center,
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+          decoration: BoxDecoration(
+            gradient: AppColors.primaryGradient,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.3),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Text(
+            'Hello! \u{1F44B}',
+            style: AppTypography.englishWord.copyWith(
+              color: Colors.white,
+              fontSize: 36,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Text(
-          'Nói "Hello!" thật to nhé!',
+          'Noi "Hello!" that to nhe!',
           style: AppTypography.bodyLarge.copyWith(
             color: AppColors.textSecondary,
           ),
@@ -552,44 +871,50 @@ class _SayHelloRoundState extends State<_SayHelloRound> {
           onTap: _hasRecorded ? null : _toggleRecording,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 300),
-            width: _isRecording ? 120 : 100,
-            height: _isRecording ? 120 : 100,
+            curve: Curves.easeOutBack,
+            width: _isRecording ? 130 : 110,
+            height: _isRecording ? 130 : 110,
             decoration: BoxDecoration(
-              color: _isRecording
-                  ? AppColors.error
+              gradient: _isRecording
+                  ? const LinearGradient(
+                      colors: [AppColors.error, AppColors.errorLight],
+                    )
                   : _hasRecorded
-                      ? AppColors.success
-                      : AppColors.primary,
+                      ? const LinearGradient(
+                          colors: [AppColors.success, AppColors.successLight],
+                        )
+                      : AppColors.primaryGradient,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
                   color: (_isRecording ? AppColors.error : AppColors.primary)
-                      .withValues(alpha:0.4),
-                  blurRadius: _isRecording ? 24 : 12,
-                  spreadRadius: _isRecording ? 4 : 0,
+                      .withValues(alpha: 0.4),
+                  blurRadius: _isRecording ? 30 : 16,
+                  spreadRadius: _isRecording ? 6 : 0,
                 ),
               ],
             ),
             child: Icon(
               _hasRecorded
-                  ? Icons.check
+                  ? Icons.check_rounded
                   : _isRecording
-                      ? Icons.stop
-                      : Icons.mic,
+                      ? Icons.stop_rounded
+                      : Icons.mic_rounded,
               color: Colors.white,
-              size: 48,
+              size: 52,
             ),
           ),
         ),
         const SizedBox(height: 16),
         Text(
           _isRecording
-              ? 'Đang nghe...'
+              ? 'Dang nghe... \u{1F442}'
               : _hasRecorded
-                  ? 'Tuyệt vời!'
-                  : 'Nhấn để nói',
-          style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
+                  ? 'Tuyet voi! \u{1F389}'
+                  : 'Nhan de noi \u{1F3A4}',
+          style: AppTypography.bodyLarge.copyWith(
+            color: _hasRecorded ? AppColors.success : AppColors.textSecondary,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],
@@ -597,7 +922,7 @@ class _SayHelloRoundState extends State<_SayHelloRound> {
   }
 }
 
-// --- Round 3: Read "cat" → tap matching picture ---
+// --- Round 3: Read "cat" -> tap matching picture ---
 class _ReadAndMatchRound extends StatefulWidget {
   final void Function(Map<String, dynamic> answer) onAnswer;
 
@@ -614,10 +939,10 @@ class _ReadAndMatchRoundState extends State<_ReadAndMatchRound> {
   final int _correctIndex = 2; // "cat" is at index 2
 
   final _options = [
-    {'emoji': '🐶', 'label': 'Dog'},
-    {'emoji': '🐟', 'label': 'Fish'},
-    {'emoji': '🐱', 'label': 'Cat'},
-    {'emoji': '🐰', 'label': 'Rabbit'},
+    {'emoji': '\u{1F436}', 'label': 'Dog'},
+    {'emoji': '\u{1F41F}', 'label': 'Fish'},
+    {'emoji': '\u{1F431}', 'label': 'Cat'},
+    {'emoji': '\u{1F430}', 'label': 'Rabbit'},
   ];
 
   void _onTap(int index) {
@@ -643,23 +968,45 @@ class _ReadAndMatchRoundState extends State<_ReadAndMatchRound> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const Text('Đọc từ này:', style: AppTypography.titleLarge),
-        const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-          decoration: BoxDecoration(
-            color: AppColors.primaryLight.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Text('CAT', style: AppTypography.englishWord),
+        Text(
+          'Doc tu nay:',
+          style: AppTypography.titleLarge.copyWith(fontWeight: FontWeight.w700),
         ),
-        const SizedBox(height: 8),
-        Text('Chọn hình phù hợp:', style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary)),
-        const SizedBox(height: 24),
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppColors.primaryLight.withValues(alpha: 0.2),
+                AppColors.primary.withValues(alpha: 0.08),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.2),
+              width: 2,
+            ),
+          ),
+          child: Text(
+            'CAT \u{1F431}',
+            style: AppTypography.englishWord.copyWith(fontSize: 32),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'Chon hinh phu hop:',
+          style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+        ),
+        const SizedBox(height: 20),
         Expanded(
           child: GridView.builder(
             shrinkWrap: true,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 16, mainAxisSpacing: 16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 14,
+              mainAxisSpacing: 14,
+            ),
             itemCount: _options.length,
             itemBuilder: (context, index) {
               final option = _options[index];
@@ -668,21 +1015,52 @@ class _ReadAndMatchRoundState extends State<_ReadAndMatchRound> {
               final isWrongAnswer = isSelected && _lastCorrect == false;
               return GestureDetector(
                 onTap: () => _onTap(index),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  decoration: BoxDecoration(
-                    color: isCorrectAnswer
-                        ? AppColors.successLight.withValues(alpha: 0.3)
-                        : isWrongAnswer
-                            ? AppColors.errorLight.withValues(alpha: 0.3)
-                            : AppColors.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isCorrectAnswer ? AppColors.success : isWrongAnswer ? AppColors.error : AppColors.surfaceVariant,
-                      width: isSelected ? 3 : 1,
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(
+                    begin: 1.0,
+                    end: isSelected ? 0.95 : 1.0,
+                  ),
+                  duration: const Duration(milliseconds: 150),
+                  curve: Curves.easeOutBack,
+                  builder: (context, scale, child) {
+                    return Transform.scale(scale: scale, child: child);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    decoration: BoxDecoration(
+                      color: isCorrectAnswer
+                          ? AppColors.successLight.withValues(alpha: 0.3)
+                          : isWrongAnswer
+                              ? AppColors.errorLight.withValues(alpha: 0.3)
+                              : AppColors.surface,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: isCorrectAnswer
+                            ? AppColors.success
+                            : isWrongAnswer
+                                ? AppColors.error
+                                : AppColors.surfaceVariant,
+                        width: isSelected ? 3 : 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isCorrectAnswer
+                              ? AppColors.success.withValues(alpha: 0.2)
+                              : isWrongAnswer
+                                  ? AppColors.error.withValues(alpha: 0.2)
+                                  : Colors.black.withValues(alpha: 0.06),
+                          blurRadius: isSelected ? 16 : 6,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        option['emoji']!,
+                        style: const TextStyle(fontSize: 60),
+                      ),
                     ),
                   ),
-                  child: Center(child: Text(option['emoji']!, style: const TextStyle(fontSize: 56))),
                 ),
               );
             },
@@ -693,7 +1071,7 @@ class _ReadAndMatchRoundState extends State<_ReadAndMatchRound> {
   }
 }
 
-// --- Round 4: Phonics — which starts with same sound as "ball"? ---
+// --- Round 4: Phonics -- which starts with same sound as "ball"? ---
 class _PhonicsRound extends StatefulWidget {
   final void Function(Map<String, dynamic> answer) onAnswer;
 
@@ -710,10 +1088,10 @@ class _PhonicsRoundState extends State<_PhonicsRound> {
   final int _correctIndex = 0; // "banana" starts with "b" like "ball"
 
   final _options = [
-    {'emoji': '🍌', 'label': 'Banana'},
-    {'emoji': '🐱', 'label': 'Cat'},
-    {'emoji': '🐶', 'label': 'Dog'},
-    {'emoji': '🐟', 'label': 'Fish'},
+    {'emoji': '\u{1F34C}', 'label': 'Banana'},
+    {'emoji': '\u{1F431}', 'label': 'Cat'},
+    {'emoji': '\u{1F436}', 'label': 'Dog'},
+    {'emoji': '\u{1F41F}', 'label': 'Fish'},
   ];
 
   void _onTap(int index) {
@@ -739,28 +1117,51 @@ class _PhonicsRoundState extends State<_PhonicsRound> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const Text('Từ nào bắt đầu giống\nâm của "Ball"?', style: AppTypography.titleLarge, textAlign: TextAlign.center),
-        const SizedBox(height: 12),
+        Text(
+          'Tu nao bat dau giong\nam cua "Ball"?',
+          style: AppTypography.titleLarge.copyWith(fontWeight: FontWeight.w700),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 14),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
           decoration: BoxDecoration(
-            color: AppColors.secondaryLight.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              colors: [
+                AppColors.secondaryLight.withValues(alpha: 0.25),
+                AppColors.secondary.withValues(alpha: 0.1),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: AppColors.secondary.withValues(alpha: 0.3),
+              width: 2,
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('⚽', style: TextStyle(fontSize: 36)),
-              const SizedBox(width: 12),
-              Text('Ball', style: AppTypography.englishWord.copyWith(color: AppColors.secondary)),
+              const Text('\u{26BD}', style: TextStyle(fontSize: 40)),
+              const SizedBox(width: 14),
+              Text(
+                'Ball',
+                style: AppTypography.englishWord.copyWith(
+                  color: AppColors.secondary,
+                  fontSize: 32,
+                ),
+              ),
             ],
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
         Expanded(
           child: GridView.builder(
             shrinkWrap: true,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 16, mainAxisSpacing: 16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 14,
+              mainAxisSpacing: 14,
+            ),
             itemCount: _options.length,
             itemBuilder: (context, index) {
               final option = _options[index];
@@ -769,27 +1170,61 @@ class _PhonicsRoundState extends State<_PhonicsRound> {
               final isWrongAnswer = isSelected && _lastCorrect == false;
               return GestureDetector(
                 onTap: () => _onTap(index),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  decoration: BoxDecoration(
-                    color: isCorrectAnswer
-                        ? AppColors.successLight.withValues(alpha: 0.3)
-                        : isWrongAnswer
-                            ? AppColors.errorLight.withValues(alpha: 0.3)
-                            : AppColors.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isCorrectAnswer ? AppColors.success : isWrongAnswer ? AppColors.error : AppColors.surfaceVariant,
-                      width: isSelected ? 3 : 1,
-                    ),
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(
+                    begin: 1.0,
+                    end: isSelected ? 0.95 : 1.0,
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(option['emoji']!, style: const TextStyle(fontSize: 44)),
-                      const SizedBox(height: 8),
-                      Text(option['label']!, style: AppTypography.titleSmall),
-                    ],
+                  duration: const Duration(milliseconds: 150),
+                  curve: Curves.easeOutBack,
+                  builder: (context, scale, child) {
+                    return Transform.scale(scale: scale, child: child);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    decoration: BoxDecoration(
+                      color: isCorrectAnswer
+                          ? AppColors.successLight.withValues(alpha: 0.3)
+                          : isWrongAnswer
+                              ? AppColors.errorLight.withValues(alpha: 0.3)
+                              : AppColors.surface,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: isCorrectAnswer
+                            ? AppColors.success
+                            : isWrongAnswer
+                                ? AppColors.error
+                                : AppColors.surfaceVariant,
+                        width: isSelected ? 3 : 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isCorrectAnswer
+                              ? AppColors.success.withValues(alpha: 0.2)
+                              : isWrongAnswer
+                                  ? AppColors.error.withValues(alpha: 0.2)
+                                  : Colors.black.withValues(alpha: 0.06),
+                          blurRadius: isSelected ? 16 : 6,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          option['emoji']!,
+                          style: const TextStyle(fontSize: 48),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          option['label']!,
+                          style: AppTypography.titleSmall.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );

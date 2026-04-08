@@ -26,6 +26,7 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
     with TickerProviderStateMixin {
   late final AnimationController _starsController;
   late final AnimationController _messageController;
+  late final AnimationController _glowController;
   bool _showConfetti = true;
 
   @override
@@ -39,6 +40,10 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
+    _glowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
 
     // Play celebration sound
     Future.delayed(const Duration(milliseconds: 300), () {
@@ -58,6 +63,7 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
   void dispose() {
     _starsController.dispose();
     _messageController.dispose();
+    _glowController.dispose();
     super.dispose();
   }
 
@@ -75,10 +81,10 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
         : 0;
 
     final encouragements = [
-      'Tuyệt vời! Giỏi lắm!',
-      'Xuất sắc! Bé làm tốt quá!',
-      'Hay quá! Cố lên nhé!',
-      'Siêu giỏi! Tiếp tục nào!',
+      'Tuyet voi! Gioi lam! \u{1F31F}',
+      'Xuat sac! Be lam tot qua! \u{1F389}',
+      'Hay qua! Co len nhe! \u{1F4AA}',
+      'Sieu gioi! Tiep tuc nao! \u{1F680}',
     ];
     final encourageText =
         encouragements[Random().nextInt(encouragements.length)];
@@ -86,16 +92,18 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // Background gradient
+          // Background gradient - more celebratory
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 colors: [
                   Color(0xFFF8F6FF),
                   Color(0xFFEDE7FF),
+                  Color(0xFFFFF8E1),
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
+                stops: [0.0, 0.5, 1.0],
               ),
             ),
           ),
@@ -108,7 +116,7 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
                 children: [
                   const Spacer(flex: 1),
 
-                  // Stars animation
+                  // Stars animation with glow
                   ScaleTransition(
                     scale: CurvedAnimation(
                       parent: _starsController,
@@ -116,17 +124,52 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
                     ),
                     child: Column(
                       children: [
-                        StarRating(stars: displayStars, size: 48),
-                        const SizedBox(height: 16),
-                        Text(
-                          '$totalStars',
-                          style: AppTypography.displayLarge.copyWith(
-                            color: AppColors.starFilled,
-                            fontSize: 56,
+                        // Glowing star container
+                        AnimatedBuilder(
+                          animation: _glowController,
+                          builder: (context, child) {
+                            return Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.starFilled.withValues(
+                                      alpha: 0.2 + _glowController.value * 0.15,
+                                    ),
+                                    blurRadius:
+                                        20 + _glowController.value * 20,
+                                    spreadRadius: _glowController.value * 8,
+                                  ),
+                                ],
+                              ),
+                              child: child,
+                            );
+                          },
+                          child: StarRating(stars: displayStars, size: 52),
+                        ),
+                        const SizedBox(height: 20),
+                        // Big star count
+                        ShaderMask(
+                          shaderCallback: (bounds) => const LinearGradient(
+                            colors: [
+                              Color(0xFFFFD700),
+                              Color(0xFFFFA000),
+                              Color(0xFFFFD700),
+                            ],
+                          ).createShader(bounds),
+                          child: Text(
+                            '$totalStars',
+                            style: AppTypography.displayLarge.copyWith(
+                              color: Colors.white,
+                              fontSize: 64,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
                         ),
+                        const SizedBox(height: 4),
                         Text(
-                          'ngôi sao',
+                          'ngoi sao \u{2B50}',
                           style: AppTypography.titleMedium.copyWith(
                             color: AppColors.textSecondary,
                           ),
@@ -134,7 +177,7 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
                       ],
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 28),
 
                   // Encouragement message
                   FadeTransition(
@@ -144,47 +187,99 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
                     ),
                     child: Column(
                       children: [
-                        Text(
-                          'Ngày ${widget.dayNumber} hoàn thành!',
-                          style: AppTypography.headlineMedium.copyWith(
-                            color: AppColors.primary,
+                        // Day complete badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 10,
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          encourageText,
-                          style: AppTypography.bodyLarge.copyWith(
-                            color: AppColors.textSecondary,
+                          decoration: BoxDecoration(
+                            gradient: AppColors.primaryGradient,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    AppColors.primary.withValues(alpha: 0.3),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
-                          textAlign: TextAlign.center,
+                          child: Text(
+                            'Ngay ${widget.dayNumber} hoan thanh! \u{1F3C6}',
+                            style: AppTypography.titleMedium.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 16),
 
-                        // Accuracy display
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 12,
+                        // Encouragement text with gradient
+                        ShaderMask(
+                          shaderCallback: (bounds) =>
+                              AppColors.celebrationGradient
+                                  .createShader(bounds),
+                          child: Text(
+                            encourageText,
+                            style: AppTypography.headlineMedium.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Progress summary card
+                        Container(
+                          padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
                             color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary
+                                    .withValues(alpha: 0.08),
+                                blurRadius: 16,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
                           ),
                           child: Row(
-                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              const Icon(
-                                Icons.track_changes,
+                              // Accuracy
+                              _buildStatItem(
+                                icon: Icons.track_changes_rounded,
                                 color: AppColors.success,
-                                size: 24,
+                                value:
+                                    '${accuracy.toStringAsFixed(0)}%',
+                                label: 'Chinh xac',
                               ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Độ chính xác: ${accuracy.toStringAsFixed(0)}%',
-                                style: AppTypography.titleSmall.copyWith(
-                                  color: AppColors.success,
-                                ),
+                              Container(
+                                width: 1,
+                                height: 40,
+                                color: AppColors.surfaceVariant,
+                              ),
+                              // Stars
+                              _buildStatItem(
+                                icon: Icons.star_rounded,
+                                color: AppColors.starFilled,
+                                value: '$totalStars',
+                                label: 'Sao',
+                              ),
+                              Container(
+                                width: 1,
+                                height: 40,
+                                color: AppColors.surfaceVariant,
+                              ),
+                              // Day
+                              _buildStatItem(
+                                icon: Icons.calendar_today_rounded,
+                                color: AppColors.primary,
+                                value: '${widget.dayNumber}/7',
+                                label: 'Ngay',
                               ),
                             ],
                           ),
@@ -198,32 +293,47 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
                   // Day 1 account link prompt
                   if (widget.dayNumber == 1) ...[
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(16),
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.primary.withValues(alpha: 0.08),
+                            AppColors.primaryLight.withValues(alpha: 0.05),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.3),
+                          color: AppColors.primary.withValues(alpha: 0.2),
+                          width: 1.5,
                         ),
                       ),
                       child: Column(
                         children: [
-                          const Icon(
-                            Icons.shield_outlined,
-                            color: AppColors.primary,
-                            size: 28,
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.shield_outlined,
+                              color: AppColors.primary,
+                              size: 26,
+                            ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 10),
                           Text(
-                            'Lưu tiến trình học của bé!',
+                            'Luu tien trinh hoc cua be! \u{1F4BE}',
                             style: AppTypography.titleSmall.copyWith(
                               color: AppColors.primary,
+                              fontWeight: FontWeight.w700,
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 14),
                           KitaButton(
-                            label: 'Tạo tài khoản',
+                            label: 'Tao tai khoan',
                             onPressed: () =>
                                 context.push(RoutePaths.accountLink),
                             icon: Icons.person_add_outlined,
@@ -237,30 +347,41 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
 
                   // Teaser message
                   if (!isDay7)
-                    Text(
-                      widget.dayNumber < 6
-                          ? 'Ngày mai sẽ có bài học mới đang chờ bé!'
-                          : 'Còn một ngày nữa! Sắp hoàn thành thử thách rồi!',
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.textSecondary,
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
                       ),
-                      textAlign: TextAlign.center,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceVariant.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        widget.dayNumber < 6
+                            ? 'Ngay mai se co bai hoc moi dang cho be! \u{1F4DA}'
+                            : 'Con mot ngay nua! Sap hoan thanh thu thach roi! \u{1F525}',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
                   // Action buttons
                   if (isDay7) ...[
                     KitaButton(
-                      label: 'Thu âm trình diễn',
+                      label: 'Thu am trinh dien \u{1F3A4}',
                       onPressed: () => context.go(RoutePaths.day7Record),
-                      icon: Icons.mic,
+                      icon: Icons.mic_rounded,
                       color: AppColors.secondary,
                     ),
                     const SizedBox(height: 12),
                   ],
 
                   KitaButton(
-                    label: 'Về trang chính',
+                    label: 'Ve trang chinh \u{1F3E0}',
                     onPressed: () {
                       ref.read(sessionProvider.notifier).reset();
                       ref.invalidate(allSessionsProvider);
@@ -283,6 +404,42 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
             ),
         ],
       ),
+    );
+  }
+
+  Widget _buildStatItem({
+    required IconData icon,
+    required Color color,
+    required String value,
+    required String label,
+  }) {
+    return Column(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: color, size: 22),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: AppTypography.titleMedium.copyWith(
+            color: color,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        Text(
+          label,
+          style: AppTypography.bodySmall.copyWith(
+            fontSize: 12,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ],
     );
   }
 }

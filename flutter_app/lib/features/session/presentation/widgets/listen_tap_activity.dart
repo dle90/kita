@@ -25,7 +25,7 @@ class ListenTapActivity extends ConsumerStatefulWidget {
 }
 
 class _ListenTapActivityState extends ConsumerState<ListenTapActivity>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   int? _selectedIndex;
   int? _correctIndex;
   bool _answered = false;
@@ -33,10 +33,17 @@ class _ListenTapActivityState extends ConsumerState<ListenTapActivity>
   late Animation<double> _shakeAnimation;
   final _tts = TtsService();
 
+  // Press-down scale controllers per option
+  final Map<int, AnimationController> _pressControllers = {};
+
   // Flashcard intro state
   bool _isFlashcardMode = false;
   late List<Map<String, dynamic>> _flashcardWords;
   int _flashcardIndex = 0;
+
+  // Flashcard flip animation
+  late AnimationController _flipController;
+  late Animation<double> _flipAnimation;
 
   // Fallback word data when no options are provided
   static const _fallbackWords = [
@@ -73,6 +80,14 @@ class _ListenTapActivityState extends ConsumerState<ListenTapActivity>
       CurvedAnimation(parent: _shakeController, curve: Curves.elasticIn),
     );
 
+    _flipController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _flipAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _flipController, curve: Curves.easeOutBack),
+    );
+
     final config = widget.activity.config;
 
     // Check if this is flashcard_intro mode
@@ -83,6 +98,7 @@ class _ListenTapActivityState extends ConsumerState<ListenTapActivity>
       _targetWord = _flashcardWords.isNotEmpty
           ? (_flashcardWords[0]['word'] as String? ?? '')
           : '';
+      _flipController.forward(from: 0);
       _playAudio();
       return;
     }
@@ -150,6 +166,14 @@ class _ListenTapActivityState extends ConsumerState<ListenTapActivity>
       }
     }
 
+    // Create press controllers for each option
+    for (int i = 0; i < _quizOptions.length; i++) {
+      _pressControllers[i] = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 100),
+      );
+    }
+
     _playAudio();
   }
 
@@ -199,6 +223,10 @@ class _ListenTapActivityState extends ConsumerState<ListenTapActivity>
   @override
   void dispose() {
     _shakeController.dispose();
+    _flipController.dispose();
+    for (final c in _pressControllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -218,6 +246,7 @@ class _ListenTapActivityState extends ConsumerState<ListenTapActivity>
       setState(() {
         _flashcardIndex++;
       });
+      _flipController.forward(from: 0);
       _playAudio();
     } else {
       // All flashcards viewed
@@ -280,101 +309,154 @@ class _ListenTapActivityState extends ConsumerState<ListenTapActivity>
 
     return Column(
       children: [
-        const Text(
-          'H\u1ECDc t\u1EEB m\u1EDBi!',
-          style: AppTypography.titleLarge,
+        Text(
+          'H\u1ECDc t\u1EEB m\u1EDBi! \u{1F4DA}',
+          style: AppTypography.titleLarge.copyWith(fontSize: 24),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
-        // Progress indicator
-        Text(
-          '${_flashcardIndex + 1} / ${_flashcardWords.length}',
-          style: AppTypography.labelLarge.copyWith(
-            color: AppColors.textHint,
-          ),
+        // Progress dots
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(_flashcardWords.length, (i) {
+            return Container(
+              width: i == _flashcardIndex ? 24 : 10,
+              height: 10,
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              decoration: BoxDecoration(
+                color: i <= _flashcardIndex
+                    ? AppColors.primary
+                    : AppColors.surfaceVariant,
+                borderRadius: BorderRadius.circular(5),
+              ),
+            );
+          }),
         ),
         const Spacer(),
-        // Flashcard
-        GestureDetector(
-          onTap: _playAudio,
-          child: Container(
-            width: 280,
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: AppColors.primary, width: 2),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.15),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (emoji.isNotEmpty)
-                  Text(emoji, style: const TextStyle(fontSize: 72)),
-                if (emoji.isNotEmpty) const SizedBox(height: 16),
-                Text(
-                  word,
-                  style: AppTypography.titleLarge.copyWith(
-                    fontSize: 32,
-                    color: AppColors.primary,
+        // Flashcard with flip entrance
+        AnimatedBuilder(
+          animation: _flipAnimation,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: 0.8 + 0.2 * _flipAnimation.value,
+              child: Opacity(
+                opacity: _flipAnimation.value.clamp(0.0, 1.0),
+                child: child,
+              ),
+            );
+          },
+          child: GestureDetector(
+            onTap: _playAudio,
+            child: Container(
+              width: 300,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                    width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    blurRadius: 24,
+                    offset: const Offset(0, 8),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.volume_up,
-                        color: AppColors.secondary, size: 20),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Ch\u1EA1m \u0111\u1EC3 nghe',
-                      style: AppTypography.labelLarge.copyWith(
-                        color: AppColors.secondary,
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (emoji.isNotEmpty)
+                    Text(emoji, style: const TextStyle(fontSize: 80)),
+                  if (emoji.isNotEmpty) const SizedBox(height: 16),
+                  Text(
+                    word,
+                    style: AppTypography.englishWord.copyWith(fontSize: 34),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  // Speaker icon
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.secondary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.volume_up,
+                            color: AppColors.secondary, size: 20),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Ch\u1EA1m \u0111\u1EC3 nghe',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.secondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (vi.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceVariant.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        vi,
+                        style: AppTypography.vietnameseHint
+                            .copyWith(fontSize: 18),
+                        textAlign: TextAlign.center,
                       ),
                     ),
                   ],
-                ),
-                if (vi.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    vi,
-                    style: AppTypography.vietnameseHint.copyWith(fontSize: 18),
-                    textAlign: TextAlign.center,
-                  ),
                 ],
-              ],
+              ),
             ),
           ),
         ),
         const Spacer(),
         // Next button
         Padding(
-          padding: const EdgeInsets.only(bottom: 24),
-          child: SizedBox(
-            width: 200,
-            height: 52,
-            child: ElevatedButton(
-              onPressed: _onFlashcardNext,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 2,
+          padding: const EdgeInsets.only(bottom: 24, left: 40, right: 40),
+          child: GestureDetector(
+            onTap: _onFlashcardNext,
+            child: Container(
+              width: double.infinity,
+              height: 56,
+              decoration: BoxDecoration(
+                gradient: AppColors.primaryGradient,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.35),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
-              child: Text(
-                isLast ? 'Ho\u00E0n t\u1EA5t \u2714' : 'Ti\u1EBFp theo \u2192',
-                style: AppTypography.labelLarge.copyWith(
-                  color: Colors.white,
-                  fontSize: 18,
+              child: Center(
+                child: Text(
+                  isLast
+                      ? 'Ho\u00E0n t\u1EA5t \u2714'
+                      : 'Ti\u1EBFp theo \u2192',
+                  style: AppTypography.labelLarge.copyWith(
+                    color: Colors.white,
+                    fontSize: 19,
+                  ),
                 ),
               ),
             ),
@@ -388,97 +470,114 @@ class _ListenTapActivityState extends ConsumerState<ListenTapActivity>
     return Column(
       children: [
         // Instruction
-        const Text(
-          'Nghe v\u00E0 ch\u1ECDn h\u00ECnh \u0111\u00FAng!',
-          style: AppTypography.titleLarge,
+        Text(
+          'Nghe v\u00E0 ch\u1ECDn h\u00ECnh \u0111\u00FAng! \u{1F3A7}',
+          style: AppTypography.titleLarge.copyWith(fontSize: 22),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 16),
 
-        // Play button
+        // Large friendly circular play button
         GestureDetector(
           onTap: _playAudio,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
-              color: AppColors.secondary,
-              borderRadius: BorderRadius.circular(24),
+              gradient: AppColors.secondaryGradient,
+              shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.secondary.withValues(alpha: 0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
+                  color: AppColors.secondary.withValues(alpha: 0.4),
+                  blurRadius: 16,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+            child: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.volume_up, color: Colors.white, size: 28),
-                const SizedBox(width: 8),
+                Icon(Icons.volume_up, color: Colors.white, size: 36),
                 Text(
-                  'Nghe l\u1EA1i',
-                  style: AppTypography.labelLarge.copyWith(
-                    color: Colors.white,
-                  ),
+                  'Nghe',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700),
                 ),
               ],
             ),
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
 
-        // Options grid
+        // Options grid with bigger cards
         Expanded(
           child: GridView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
+              crossAxisSpacing: 14,
+              mainAxisSpacing: 14,
+              childAspectRatio: 0.9,
             ),
             itemCount: _quizOptions.length,
             itemBuilder: (context, index) {
               final isSelected = _selectedIndex == index;
               final isCorrectAnswer = _answered && index == _correctIndex;
+              final isWrongSelected =
+                  isSelected && !_answered && !isCorrectAnswer;
 
-              return _ShakeWrapper(
+              final pressCtrl = _pressControllers[index];
+              final scaleAnim = pressCtrl != null
+                  ? Tween<double>(begin: 1.0, end: 0.95).animate(
+                      CurvedAnimation(
+                          parent: pressCtrl, curve: Curves.easeInOut),
+                    )
+                  : null;
+
+              Widget card = _ShakeWrapper(
                 animation: _shakeAnimation,
-                shouldShake: isSelected && !_answered,
+                shouldShake: isWrongSelected,
                 direction: (index % 2 == 0) ? 1 : -1,
                 child: GestureDetector(
+                  onTapDown: (_) => pressCtrl?.forward(),
+                  onTapUp: (_) => pressCtrl?.reverse(),
+                  onTapCancel: () => pressCtrl?.reverse(),
                   onTap: () => _onOptionTap(index),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
                     decoration: BoxDecoration(
                       color: isCorrectAnswer
-                          ? AppColors.successLight.withValues(alpha: 0.3)
+                          ? AppColors.successLight.withValues(alpha: 0.25)
                           : isSelected
-                              ? AppColors.errorLight.withValues(alpha: 0.3)
+                              ? AppColors.errorLight.withValues(alpha: 0.2)
                               : AppColors.surface,
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(22),
                       border: Border.all(
                         color: isCorrectAnswer
                             ? AppColors.success
                             : isSelected
                                 ? AppColors.error
                                 : AppColors.surfaceVariant,
-                        width: (isSelected || isCorrectAnswer) ? 3 : 1,
+                        width: (isSelected || isCorrectAnswer) ? 3 : 1.5,
                       ),
                       boxShadow: isCorrectAnswer
                           ? [
                               BoxShadow(
                                 color:
-                                    AppColors.success.withValues(alpha: 0.3),
-                                blurRadius: 12,
-                                spreadRadius: 2,
+                                    AppColors.success.withValues(alpha: 0.35),
+                                blurRadius: 18,
+                                spreadRadius: 3,
                               ),
                             ]
                           : [
                               BoxShadow(
                                 color:
-                                    Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
+                                    Colors.black.withValues(alpha: 0.06),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
                               ),
                             ],
                     ),
@@ -486,6 +585,22 @@ class _ListenTapActivityState extends ConsumerState<ListenTapActivity>
                   ),
                 ),
               );
+
+              // Wrap with scale animation if controller exists
+              if (scaleAnim != null) {
+                card = AnimatedBuilder(
+                  animation: scaleAnim,
+                  builder: (context, child) {
+                    return Transform.scale(
+                      scale: scaleAnim.value,
+                      child: child,
+                    );
+                  },
+                  child: card,
+                );
+              }
+
+              return card;
             },
           ),
         ),
@@ -504,31 +619,45 @@ class _ListenTapActivityState extends ConsumerState<ListenTapActivity>
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
+        if (isCorrectAnswer)
+          const Text('\u{2B50}', style: TextStyle(fontSize: 20)),
         if (emoji.isNotEmpty)
-          Text(emoji, style: const TextStyle(fontSize: 48))
+          Text(emoji, style: const TextStyle(fontSize: 52))
         else
-          Text(
-            word.isNotEmpty ? word[0].toUpperCase() : '?',
-            style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                word.isNotEmpty ? word[0].toUpperCase() : '?',
+                style: const TextStyle(
+                    fontSize: 28, fontWeight: FontWeight.bold,
+                    color: AppColors.primary),
+              ),
+            ),
           ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Text(
           word,
-          style: AppTypography.titleMedium,
+          style: AppTypography.titleMedium.copyWith(fontSize: 18),
           textAlign: TextAlign.center,
         ),
         if (vi.isNotEmpty) ...[
           const SizedBox(height: 4),
           Text(
             vi,
-            style: AppTypography.vietnameseHint,
+            style: AppTypography.vietnameseHint.copyWith(fontSize: 14),
             textAlign: TextAlign.center,
           ),
         ],
         if (isCorrectAnswer)
           const Padding(
             padding: EdgeInsets.only(top: 4),
-            child: Icon(Icons.star, color: AppColors.starFilled, size: 24),
+            child: Text('\u{1F31F}', style: TextStyle(fontSize: 22)),
           ),
       ],
     );
