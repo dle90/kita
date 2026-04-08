@@ -476,18 +476,26 @@ class _SayHelloRoundState extends State<_SayHelloRound> {
           GestureDetector(
             onTap: _submitted ? null : () {
               setState(() => _isRecording = true);
-              _tts.speak('Hello'); // Play while "listening"
+              _tts.speak('Hello');
               // Fake listening for 2 seconds then complete
               Future.delayed(const Duration(seconds: 2), () {
                 if (mounted) {
                   setState(() {
                     _isRecording = false;
-                    _submitted = true;
                     _hasRecorded = true;
                   });
                   SoundEffects().playCorrect();
+                  // Submit after showing checkmark briefly
                   Future.delayed(const Duration(milliseconds: 500), () {
-                    _onWebDone();
+                    if (mounted && !_submitted) {
+                      _submitted = true;
+                      widget.onAnswer({
+                        'round': 2,
+                        'type': 'say_hello',
+                        'recorded': true,
+                        'correct': true,
+                      });
+                    }
                   });
                 }
               });
