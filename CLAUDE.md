@@ -1,6 +1,6 @@
 # Kita English
 
-English learning app for Vietnamese kids age 5-12. MVP is the "7-Day English Speaking Challenge."
+English learning app for Vietnamese kids age 5-12. MVP is the "7-Day English Speaking Challenge." Full curriculum covers Pre-A1 to A2 over ~18 months.
 
 ## Tech Stack
 - **Frontend**: Flutter (Riverpod, GoRouter, Dio) — web deployed on Railway
@@ -54,54 +54,119 @@ railway logs --build  # build logs
 ```
 backend/               Go API server
   cmd/server/          Entry point — auto-runs migrations + seeds on start
-  internal/auth/       Register, login, JWT, middleware
+  internal/auth/       Register, login, JWT, guest accounts, link account
   internal/onboarding/ Kid profile CRUD, placement
-  internal/session/    7-day sessions, activity generator, difficulty adjustment
+  internal/session/    Sessions, dynamic activity generator, difficulty adjustment
   internal/pronunciation/ Azure Speech client, Vietnamese L1 error classifier
-  internal/srs/        SM-2 spaced repetition
-  internal/progress/   Daily stats, challenge summary
-  internal/content/    Vocabulary, sentences, seed loader
+  internal/srs/        SM-2 spaced repetition (per-skill mastery coming)
+  internal/progress/   Daily stats, challenge summary, pronunciation trends
+  internal/content/    Vocabulary, patterns, grammar, seed loader
   internal/common/     DB, Redis, storage (R2), migrations, response helpers
-  migrations/          9 SQL migration files (auto-run on boot)
-  seed/                vocabulary.json (50 words), session_templates.json (55 templates)
+  migrations/          SQL migration files (auto-run on boot, IF NOT EXISTS)
+  seed/                vocabulary.json, patterns.json, grammar.json, session_plans.json
 
 flutter_app/           Flutter web/mobile app
-  lib/core/            Theme, network (Dio + envelope unwrapper), router, storage, audio
-  lib/features/auth/   Login, signup
+  lib/core/            Theme, network, router, storage, audio (TTS, recorder, sound FX)
+  lib/features/auth/   Login, signup, guest, link account
   lib/features/onboarding/ Parent gate, character select, placement test
-  lib/features/session/ 4 activity types, session home, activity shell
-  lib/features/pronunciation/ Record button, score display, phoneme feedback
+  lib/features/session/ Activity shell + widgets for all activity types
+  lib/features/pronunciation/ Record, score display, phoneme feedback, score history
   lib/features/srs/    Spaced repetition providers
   lib/features/progress/ Parent dashboard (Vietnamese)
   lib/features/day7/   Showcase recording, certificate
   lib/shared/widgets/  Buttons, cards, character avatar, stars, confetti
 ```
 
+## Curriculum Architecture
+
+### Three Pillars
+1. **Content Repository** — all teaching atoms (phonemes, words, grammar, patterns, functions, topics)
+2. **Curriculum Map** — the learning DAG with prerequisites (not a linear sequence)
+3. **Learner State** — per-kid, per-atom, per-skill mastery driving SRS + session assembly
+
+### 6 Content Atoms
+1. **Phoneme** (~44) — sounds with L1 interference map, minimal pairs, mouth position
+2. **Word** (~2000 for full curriculum) — form + meaning + use + collocations + word family + emoji
+3. **Grammar Structure** (~30) — named structures with prerequisite DAG, L1 error patterns
+4. **Pattern** (~200) — sentence templates with typed slots, generated sentences at runtime
+5. **Communication Function** (~30) — pragmatic functions (greeting, requesting, describing, narrating)
+6. **Topic** (~50) — thematic groups with tier-specific word lists (seeds/sprouts/explorers)
+
+### Composition Rules
+```
+Phonemes → Words (phonics: letter-sound mapping)
+Words → Pattern slots (grammar: fill slots with words from kid's vocab pool)
+Patterns → Sentences (generation: pattern + words at runtime)
+Sentences → Texts (discourse: connect sentences into dialogues/stories)
+Functions × Topics → Contextualized communication
+```
+
+### 4 Skills × 4 Content Levels
+```
+              Phoneme    Word         Pattern/Sentence    Text
+Listening     Hear /θ/   Hear word    Hear sentence       Hear dialogue
+Speaking      Produce    Say word     Say sentence        Role-play
+Reading       Letter     Read word    Read sentence       Read story
+Writing       Letter     Spell word   Build sentence      Free response
+```
+
+### Per-Skill Mastery Tracking
+Each word/pattern/phoneme tracks 4 independent skill scores (0-100). A word is MASTERED only when ALL 4 skills ≥ 80% over 5+ spaced encounters. SRS targets the weakest skill.
+
+### 3 Age Tiers (Topic Spiral)
+- **Seeds (5-7)** — Pre-A1, ~500 words, 20 patterns, phonics foundation, 40% listening
+- **Sprouts (8-10)** — A1, ~1200 words, 50 patterns, balanced 25% each skill
+- **Explorers (11-12)** — A1+→A2, ~2000 words, 80+ patterns, read/write emphasis
+
+### Grammar DAG (30 structures with prerequisites)
+Seeds: "This is ___" → "I am ___" → "I like ___" → "I can ___" → Wh-questions
+Sprouts: 3rd person -s → Present continuous → Simple past → Comparatives
+Explorers: Future → Present perfect → Modals → Conditionals → Passive
+
+### Vietnamese L1 Interference (woven into every activity)
+- /θ/ /ð/ substitution (critical, all tiers)
+- Final consonant dropping (dialect-weighted: severe in Southern VN)
+- Consonant cluster simplification
+- Missing articles (Vietnamese has none)
+- No plural marking
+- Word order (adj position differs)
+- Syllable-timed → stress-timed rhythm transition
+
+### Dynamic Session Generation
+```
+generate_session(kid):
+  1. SRS DUE — words/patterns due for review, sorted by weakest skill
+  2. CURRICULUM NEXT — next unit's target words/patterns/phonics
+  3. SKILL GAPS — identify weakest skill, problematic phonemes, grammar errors
+  4. ASSEMBLE — pick activities targeting gaps, balance 4 skills, calibrate difficulty
+```
+
+### Build Phases
+- **Phase 1**: Patterns + sentence generation (grammar templates with slots, sentence builder, fill-blank)
+- **Phase 2**: Per-skill mastery (4-skill tracking, skill-balanced activity selection, reading/writing activities)
+- **Phase 3**: Phonics track (phoneme table, phonics drills, minimal pairs)
+- **Phase 4**: Curriculum DAG (unit system, prerequisites, tier transitions, adaptive paths)
+
 ## Key Architecture Decisions
-- **Server-side pronunciation scoring**: Flutter records WAV → uploads to Go backend → Go calls Azure Speech API → runs Vietnamese L1 classifier → returns scores. Azure key stays off device.
-- **Response envelope unwrapping**: Go backend wraps all responses in `{"success":true,"data":{...}}`. Dio interceptor in `api_client.dart` unwraps this globally.
-- **Web storage fallback**: `flutter_secure_storage` doesn't work on web. `secure_storage.dart` has in-memory fallback for web platform (state lost on refresh — fine for testing).
-- **Auto-migrations**: Server reads `migrations/*.up.sql` on boot. All use `IF NOT EXISTS` for idempotency.
-- **Vietnamese L1 error classifier**: 6 error types (final consonant drop, th-substitution, r/l confusion, vowel length, cluster simplification, w/v confusion), severity weighted by dialect (northern/central/southern).
+- **Server-side pronunciation scoring**: Flutter records WAV/webm → uploads to Go backend → Go calls Azure Speech API → runs Vietnamese L1 classifier → returns phoneme-level scores
+- **Response envelope unwrapping**: Go backend wraps all responses in `{"success":true,"data":{...}}`. Dio interceptor unwraps globally
+- **Web audio recording**: JS MediaRecorder API bridged to Dart via conditional imports (dart:js_interop)
+- **Web storage fallback**: In-memory storage on web (flutter_secure_storage doesn't work). State lost on refresh
+- **Auto-migrations**: Server reads `migrations/*.up.sql` on boot. All use `IF NOT EXISTS`
+- **Guest-first onboarding**: No login required. Guest account auto-created. Link email/phone later
+- **Sound effects**: Web Audio API synthesized tones (no audio files needed)
+- **Docker cache busting**: Single COPY layer + --pwa-strategy=none for reliable deploys
 
 ## API Contracts
 - All JSON uses **snake_case** (Go backend is source of truth)
-- Auth: `POST /api/v1/auth/login` accepts `email`, `phone`, or `email_or_phone` fields
-- Sessions: `GET /api/v1/kids/:kidId/sessions/:day` returns activities from templates + SRS due cards
-- Pronunciation: `POST /api/v1/pronunciation/score` multipart with `audio` file + `reference_text` + `kid_id` form fields
-- Go dialect values: `northern`, `central`, `southern` (NOT Vietnamese enum names)
-- Go english_level values: `beginner`, `elementary`, `pre_intermediate`
-
-## Known Issues / TODO
-- **Onboarding may still fail**: Last deploy might have Docker cache issues. If `POST /kids` returns 400, check dialect/english_level mapping in `onboarding_provider.dart`
-- **No sound on placement test**: TTS added via `flutter_tts` but needs verification on deployed web build
-- **Web storage is in-memory**: Login state lost on page refresh. Need to implement localStorage fallback for web.
-- **No real audio files**: Vocabulary audio URLs in seed data are placeholders. Using TTS as interim solution.
-- **Flutter test file error**: `test/widget_test.dart` references `MyApp` — delete or fix
-- **Azure pronunciation**: Works but returns empty for non-speech audio (expected). Needs real voice input to test fully.
+- Auth: `POST /api/v1/auth/guest` (anonymous), `/login`, `/register`, `/link` (upgrade guest)
+- Sessions: `GET /api/v1/kids/:kidId/sessions/:day` returns dynamically generated activities
+- Pronunciation: `POST /api/v1/pronunciation/score` multipart with `audio` + `reference_text` + `kid_id`
+- SRS: `GET /api/v1/kids/:kidId/srs/due`, `POST .../review`
+- Progress: `GET /api/v1/kids/:kidId/progress` (summary + vocabulary + pronunciation)
 
 ## Test Accounts
-Create new ones via API:
+No login needed — app starts with guest onboarding. Or create via API:
 ```bash
 curl -X POST https://backend-production-3908.up.railway.app/api/v1/auth/register \
   -H "Content-Type: application/json" \

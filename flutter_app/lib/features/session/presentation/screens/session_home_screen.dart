@@ -5,6 +5,7 @@ import 'package:kita_english/core/audio/sound_effects.dart';
 import 'package:kita_english/core/constants/app_colors.dart';
 import 'package:kita_english/core/constants/app_typography.dart';
 import 'package:kita_english/core/router/app_router.dart';
+import 'package:kita_english/core/storage/secure_storage.dart';
 import 'package:kita_english/features/session/domain/entities/session.dart';
 import 'package:kita_english/features/session/presentation/providers/session_provider.dart';
 import 'package:kita_english/shared/widgets/character_avatar.dart';
@@ -112,19 +113,41 @@ class _SessionHomeScreenState extends ConsumerState<SessionHomeScreen>
                         ),
                       ],
                     ),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        onPressed: () => context.push(RoutePaths.progress),
-                        icon: const Icon(
-                          Icons.bar_chart_rounded,
-                          color: AppColors.primary,
-                          size: 28,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // DEV: Reset to onboarding
+                        Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            onPressed: () async {
+                              final storage = ref.read(secureStorageProvider);
+                              await storage.clearAll();
+                              if (context.mounted) context.go(RoutePaths.onboardingParent);
+                            },
+                            icon: const Icon(Icons.restart_alt, color: AppColors.error, size: 24),
+                            tooltip: 'Restart onboarding',
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 4),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            onPressed: () => context.push(RoutePaths.progress),
+                            icon: const Icon(
+                              Icons.bar_chart_rounded,
+                              color: AppColors.primary,
+                              size: 28,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

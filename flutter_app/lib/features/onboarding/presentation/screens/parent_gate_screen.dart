@@ -123,49 +123,27 @@ class _ParentGateScreenState extends ConsumerState<ParentGateScreen>
                 const SizedBox(height: 16),
 
                 // Fun header illustration
-                AnimatedBuilder(
-                  animation: _bounceAnimation,
-                  builder: (context, child) {
-                    return Transform.translate(
-                      offset: Offset(0, _bounceAnimation.value),
-                      child: child,
-                    );
-                  },
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFFFD166), Color(0xFFFF9FB0)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFFF9FB0).withValues(alpha: 0.3),
-                              blurRadius: 20,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
-                        ),
-                        child: const Center(
-                          child: Text(
-                            '\u{1F476}\u{1F4DA}',
-                            style: TextStyle(fontSize: 42),
-                          ),
-                        ),
-                      ),
-                    ],
+                Center(
+                  child: AnimatedBuilder(
+                    animation: _bounceAnimation,
+                    builder: (context, child) {
+                      return Transform.translate(
+                        offset: Offset(0, _bounceAnimation.value),
+                        child: child,
+                      );
+                    },
+                    child: const Text(
+                      '🐱✨📚',
+                      style: TextStyle(fontSize: 56),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
 
                 // Welcome message
                 Text(
-                  'Xin chào phụ huynh! \u{1F44B}',
+                  'Chào mừng đến Kita! 🎉',
                   style: AppTypography.headlineMedium.copyWith(
                     color: AppColors.primary,
                     fontWeight: FontWeight.w800,
@@ -174,7 +152,7 @@ class _ParentGateScreenState extends ConsumerState<ParentGateScreen>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Cho chúng tôi biết thêm về bé\nđể cá nhân hóa trải nghiệm học',
+                  'Cho bé bắt đầu hành trình\nhọc tiếng Anh vui nhộn nào!',
                   style: AppTypography.bodyMedium.copyWith(
                     color: AppColors.textSecondary,
                   ),
