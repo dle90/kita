@@ -112,17 +112,18 @@ class _ActivityShellState extends ConsumerState<ActivityShell>
     if (isCorrect) {
       ref.read(soundEffectsProvider).playCorrect();
       _attempts++;
+      final attemptCount = _attempts;
       final timeSpent = DateTime.now()
           .difference(_activityStartTime ?? DateTime.now())
           .inMilliseconds;
       final stars = ActivityResult.calculateStars(
         isCorrect: true,
-        attempts: _attempts,
+        attempts: attemptCount,
       );
 
       _showEncouragementAnimated(_getEncouragement(true), AppColors.success);
 
-      // Submit result and transition after a brief pause
+      // After brief pause, submit result then transition
       Future.delayed(const Duration(milliseconds: 1200), () {
         if (!mounted) return;
 
@@ -130,12 +131,13 @@ class _ActivityShellState extends ConsumerState<ActivityShell>
           activityId: activity.id,
           activityType: activity.type.apiValue,
           isCorrect: true,
-          attempts: _attempts,
+          attempts: attemptCount,
           timeSpentMs: timeSpent,
           starsEarned: stars,
           metadata: metadata,
         );
 
+        // Submit updates state synchronously, then transition reads fresh state
         ref.read(sessionProvider.notifier).submitActivityResult(result);
         _transitionToNext();
       });
@@ -147,6 +149,7 @@ class _ActivityShellState extends ConsumerState<ActivityShell>
       ref.read(soundEffectsProvider).playWrong();
       // If too many attempts, move on
       if (_attempts >= 3) {
+        final attemptCount = _attempts;
         Future.delayed(const Duration(milliseconds: 1200), () {
           if (!mounted) return;
 
@@ -157,7 +160,7 @@ class _ActivityShellState extends ConsumerState<ActivityShell>
             activityId: activity.id,
             activityType: activity.type.apiValue,
             isCorrect: false,
-            attempts: _attempts,
+            attempts: attemptCount,
             timeSpentMs: timeSpent,
             starsEarned: 0,
             metadata: metadata,
@@ -178,11 +181,12 @@ class _ActivityShellState extends ConsumerState<ActivityShell>
         _activityStartTime = DateTime.now();
       });
 
-      final sessionState = ref.read(sessionProvider);
-      if (sessionState.isSessionComplete ||
-          sessionState.currentActivityIndex >=
-              (sessionState.session?.activityCount ?? 0)) {
-        final day = sessionState.session?.dayNumber ?? 1;
+      // Read state FRESH after animation completes
+      final freshState = ref.read(sessionProvider);
+      final activityCount = freshState.session?.activityCount ?? 0;
+      if (freshState.isSessionComplete ||
+          freshState.currentActivityIndex >= activityCount) {
+        final day = freshState.session?.dayNumber ?? 1;
         context.go('/session/$day/complete');
       } else {
         _transitionController.forward();

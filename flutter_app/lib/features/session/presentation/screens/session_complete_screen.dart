@@ -206,7 +206,7 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
                             ],
                           ),
                           child: Text(
-                            'Ngày ${widget.dayNumber} hoàn thành! \u{1F3C6}',
+                            'Bài ${widget.dayNumber} hoàn thành! \u{1F3C6}',
                             style: AppTypography.titleMedium.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.w800,
@@ -274,12 +274,12 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
                                 height: 40,
                                 color: AppColors.surfaceVariant,
                               ),
-                              // Day
+                              // Lesson
                               _buildStatItem(
                                 icon: Icons.calendar_today_rounded,
                                 color: AppColors.primary,
                                 value: '${widget.dayNumber}/7',
-                                label: 'Ngày',
+                                label: 'Bài',
                               ),
                             ],
                           ),
@@ -358,8 +358,8 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
                       ),
                       child: Text(
                         widget.dayNumber < 6
-                            ? 'Ngày mai sẽ có bài học mới đang chờ bé! \u{1F4DA}'
-                            : 'Còn một ngày nữa! Sắp hoàn thành thử thách rồi! \u{1F525}',
+                            ? 'Bài tiếp theo đang chờ bé! \u{1F4DA}'
+                            : 'Còn một bài nữa! Sắp hoàn thành thử thách rồi! \u{1F525}',
                         style: AppTypography.bodyMedium.copyWith(
                           color: AppColors.textSecondary,
                           fontWeight: FontWeight.w500,

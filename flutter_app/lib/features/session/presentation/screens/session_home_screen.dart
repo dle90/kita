@@ -59,13 +59,13 @@ class _SessionHomeScreenState extends ConsumerState<SessionHomeScreen>
   }
 
   final _buddyMessages = const [
-    'Ngày 1! Bắt đầu hành trình nào! \u{1F680}',
-    'Ngày 2! Hôm nay học về gia đình nhé! \u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}',
-    'Ngày 3! Cùng khám phá đồ ăn! \u{1F34E}',
-    'Ngày 4! Học về hành động thôi! \u{1F3C3}',
-    'Ngày 5! Hôm nay học về thời tiết! \u{2600}\u{FE0F}',
-    'Ngày 6! Sắp hoàn thành rồi! \u{1F4AA}',
-    'Ngày 7! Ngày cuối cùng - thật tuyệt! \u{1F389}',
+    'Bài 1! Bắt đầu hành trình nào! \u{1F680}',
+    'Bài 2! Hôm nay học về gia đình nhé! \u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}',
+    'Bài 3! Cùng khám phá đồ ăn! \u{1F34E}',
+    'Bài 4! Học về hành động thôi! \u{1F3C3}',
+    'Bài 5! Hôm nay học về thời tiết! \u{2600}\u{FE0F}',
+    'Bài 6! Sắp hoàn thành rồi! \u{1F4AA}',
+    'Bài 7! Bài cuối cùng - thật tuyệt! \u{1F389}',
   ];
 
   @override
@@ -256,7 +256,7 @@ class _SessionHomeScreenState extends ConsumerState<SessionHomeScreen>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 child: KitaButton(
-                  label: 'Bắt đầu Ngày $_currentDay! \u{25B6}\u{FE0F}',
+                  label: 'Bắt đầu Bài $_currentDay! \u{25B6}\u{FE0F}',
                   onPressed: () async {
                     ref.read(soundEffectsProvider).playTap();
                     await ref
@@ -290,7 +290,7 @@ class _SessionHomeScreenState extends ConsumerState<SessionHomeScreen>
                 : null;
             final isCompleted = session?.isCompleted ?? false;
             final isCurrent = dayNumber == _currentDay;
-            final isLocked = dayNumber > _currentDay && !isCompleted;
+            // All days are unlocked — no locking logic
             final stars = session?.totalStars ?? 0;
             final theme = _dayThemes[index];
 
@@ -302,11 +302,9 @@ class _SessionHomeScreenState extends ConsumerState<SessionHomeScreen>
                   SizedBox(width: (index % 2 == 0) ? 0 : 50),
                   Expanded(
                     child: GestureDetector(
-                      onTap: isLocked
-                          ? null
-                          : () {
-                              setState(() => _currentDay = dayNumber);
-                            },
+                      onTap: () {
+                        setState(() => _currentDay = dayNumber);
+                      },
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 400),
                         curve: Curves.easeOutBack,
@@ -332,10 +330,7 @@ class _SessionHomeScreenState extends ConsumerState<SessionHomeScreen>
                                   : null,
                           color: isCurrent || isCompleted
                               ? null
-                              : isLocked
-                                  ? AppColors.surfaceVariant
-                                      .withValues(alpha: 0.6)
-                                  : AppColors.surface,
+                              : AppColors.surface,
                           borderRadius: BorderRadius.circular(22),
                           border: Border.all(
                             color: isCurrent
@@ -417,17 +412,11 @@ class _SessionHomeScreenState extends ConsumerState<SessionHomeScreen>
                                           ),
                                         ],
                                       )
-                                    : isLocked
-                                        ? const Icon(
-                                            Icons.lock_rounded,
-                                            color: AppColors.textHint,
-                                            size: 22,
-                                          )
-                                        : Text(
-                                            theme['icon']!,
-                                            style: const TextStyle(
-                                                fontSize: 26),
-                                          ),
+                                    : Text(
+                                        theme['icon']!,
+                                        style: const TextStyle(
+                                            fontSize: 26),
+                                      ),
                               ),
                             ),
                             const SizedBox(width: 14),
@@ -437,14 +426,12 @@ class _SessionHomeScreenState extends ConsumerState<SessionHomeScreen>
                                     CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Ngày $dayNumber',
+                                    'Bài $dayNumber',
                                     style:
                                         AppTypography.titleSmall.copyWith(
                                       color: isCurrent
                                           ? Colors.white
-                                          : isLocked
-                                              ? AppColors.textHint
-                                              : AppColors.textPrimary,
+                                          : AppColors.textPrimary,
                                       fontWeight: FontWeight.w800,
                                     ),
                                   ),
