@@ -9,6 +9,7 @@ class Session {
   final DateTime? completedAt;
   final int totalStars;
   final double accuracyPct;
+  final List<String> decisionLog;
 
   const Session({
     required this.id,
@@ -18,6 +19,7 @@ class Session {
     this.completedAt,
     this.totalStars = 0,
     this.accuracyPct = 0.0,
+    this.decisionLog = const [],
   });
 
   Session copyWith({
@@ -28,6 +30,7 @@ class Session {
     DateTime? completedAt,
     int? totalStars,
     double? accuracyPct,
+    List<String>? decisionLog,
   }) {
     return Session(
       id: id ?? this.id,
@@ -37,6 +40,7 @@ class Session {
       completedAt: completedAt ?? this.completedAt,
       totalStars: totalStars ?? this.totalStars,
       accuracyPct: accuracyPct ?? this.accuracyPct,
+      decisionLog: decisionLog ?? this.decisionLog,
     );
   }
 

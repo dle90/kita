@@ -2,6 +2,8 @@ package session
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -99,39 +101,75 @@ func (s *SessionService) GetSession(ctx context.Context, kidID uuid.UUID, dayNum
 		return nil, common.ErrNotFound("session not found")
 	}
 
-	templates, err := s.contentRepo.GetSessionTemplates(ctx, dayNumber, kid.EnglishLevel)
+	// --- Dynamic Session Generation (primary path) ---
+	plans := LoadSessionPlans()
+	plan := plans.DefaultPlan
+
+	// Get all vocabulary, indexed by word
+	allVocab, err := s.contentRepo.GetVocabulary(ctx, 0, "") // 0 = all days
 	if err != nil {
-		return nil, common.ErrInternal("failed to get session templates")
+		allVocab = nil
+	}
+	vocabByWord := indexVocabByWord(allVocab)
+
+	// Get patterns for this day (and all patterns as fallback)
+	patterns, err := s.contentRepo.GetPatterns(ctx, dayNumber)
+	if err != nil {
+		patterns = nil
+	}
+	if len(patterns) == 0 {
+		// Fall back to all patterns
+		patterns, _ = s.contentRepo.GetPatterns(ctx, 0)
 	}
 
-	// If no templates for this level, fall back to beginner
-	if len(templates) == 0 && kid.EnglishLevel != "beginner" {
-		templates, err = s.contentRepo.GetSessionTemplates(ctx, dayNumber, "beginner")
+	activities, decisionLog, dynErr := GenerateDynamicSession(
+		ctx, kidID, dayNumber, plan,
+		s.contentRepo, s.skillMasteryRepo, s.srsRepo,
+		vocabByWord, allVocab, patterns,
+	)
+
+	if dynErr != nil || len(activities) == 0 {
+		// --- Fallback to template-based generation ---
+		decisionLog = append(decisionLog, "[engine] Dynamic generation failed, falling back to templates")
+
+		templates, err := s.contentRepo.GetSessionTemplates(ctx, dayNumber, kid.EnglishLevel)
 		if err != nil {
-			return nil, common.ErrInternal("failed to get fallback session templates")
+			return nil, common.ErrInternal("failed to get session templates")
 		}
+		if len(templates) == 0 && kid.EnglishLevel != "beginner" {
+			templates, _ = s.contentRepo.GetSessionTemplates(ctx, dayNumber, "beginner")
+		}
+
+		dueCards, err := s.srsRepo.GetDueCards(ctx, kidID, time.Now())
+		if err != nil {
+			dueCards = nil
+		}
+
+		recentAccuracy := s.getRecentAccuracy(ctx, kidID)
+		vocabIDs := s.collectVocabularyIDs(templates, dueCards)
+		vocabByID, _ := GetVocabularyForActivity(ctx, s.contentRepo, vocabIDs)
+		if vocabByID == nil {
+			vocabByID = make(map[uuid.UUID]*content.Vocabulary)
+		}
+
+		activities = GenerateSessionActivities(dayNumber, templates, dueCards, recentAccuracy, vocabByID)
+		decisionLog = append(decisionLog, fmt.Sprintf("[fallback] Generated %d activities from templates", len(activities)))
 	}
-
-	dueCards, err := s.srsRepo.GetDueCards(ctx, kidID, time.Now())
-	if err != nil {
-		dueCards = nil // non-fatal, just skip SRS cards
-	}
-
-	recentAccuracy := s.getRecentAccuracy(ctx, kidID)
-
-	// Collect all vocabulary IDs we need to look up
-	vocabIDs := s.collectVocabularyIDs(templates, dueCards)
-	vocabByID, _ := GetVocabularyForActivity(ctx, s.contentRepo, vocabIDs)
-	if vocabByID == nil {
-		vocabByID = make(map[uuid.UUID]*content.Vocabulary)
-	}
-
-	activities := GenerateSessionActivities(dayNumber, templates, dueCards, recentAccuracy, vocabByID)
 
 	return &SessionWithActivities{
-		KidSession: *session,
-		Activities: activities,
+		KidSession:  *session,
+		Activities:  activities,
+		DecisionLog: decisionLog,
 	}, nil
+}
+
+// indexVocabByWord builds a map from lowercase word to vocabulary for fast lookup.
+func indexVocabByWord(allVocab []*content.Vocabulary) map[string]*content.Vocabulary {
+	m := make(map[string]*content.Vocabulary, len(allVocab))
+	for _, v := range allVocab {
+		m[strings.ToLower(v.Word)] = v
+	}
+	return m
 }
 
 func (s *SessionService) StartSession(ctx context.Context, kidID uuid.UUID, dayNumber int) (*KidSession, error) {

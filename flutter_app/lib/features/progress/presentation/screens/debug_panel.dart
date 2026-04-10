@@ -1100,6 +1100,24 @@ class _DebugContentState extends ConsumerState<_DebugContent> {
             '$done ${(i + 1).toString().padLeft(2)}. [$phase] '
             '${a.type.apiValue} -> $detail$current',
           );
+
+          // Show decision log entry for this activity
+          if (i < session.decisionLog.length) {
+            lines.writeln(
+              '      \u{1F9E0} ${session.decisionLog[i]}',
+            );
+          }
+        }
+
+        // Show remaining engine-level decision log entries
+        if (session.decisionLog.length > session.activities.length) {
+          lines.writeln('');
+          lines.writeln('Engine notes:');
+          for (var i = session.activities.length;
+              i < session.decisionLog.length;
+              i++) {
+            lines.writeln('  ${session.decisionLog[i]}');
+          }
         }
 
         return _buildMonoText(lines.toString().trimRight());

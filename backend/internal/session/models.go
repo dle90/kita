@@ -54,5 +54,6 @@ type Activity struct {
 
 type SessionWithActivities struct {
 	KidSession
-	Activities []Activity `json:"activities"`
+	Activities  []Activity `json:"activities"`
+	DecisionLog []string   `json:"decision_log,omitempty"`
 }

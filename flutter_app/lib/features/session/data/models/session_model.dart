@@ -10,6 +10,7 @@ class SessionModel {
   final String? completedAt;
   final int totalStars;
   final double accuracyPct;
+  final List<String> decisionLog;
 
   const SessionModel({
     required this.id,
@@ -19,6 +20,7 @@ class SessionModel {
     this.completedAt,
     this.totalStars = 0,
     this.accuracyPct = 0.0,
+    this.decisionLog = const [],
   });
 
   factory SessionModel.fromJson(Map<String, dynamic> json) {
@@ -33,6 +35,14 @@ class SessionModel {
     }
 
     final completedAt = json['completed_at'] as String?;
+
+    // Parse decision log from dynamic engine
+    List<String> decisionLog = [];
+    final rawLog = json['decision_log'];
+    if (rawLog is List) {
+      decisionLog = rawLog.map((e) => e.toString()).toList();
+    }
+
     return SessionModel(
       id: json['id'] as String? ?? '',
       dayNumber: (json['day_number'] as num?)?.toInt() ?? 1,
@@ -41,6 +51,7 @@ class SessionModel {
       completedAt: completedAt,
       totalStars: (json['total_stars'] as num?)?.toInt() ?? 0,
       accuracyPct: (json['accuracy_pct'] as num?)?.toDouble() ?? 0.0,
+      decisionLog: decisionLog,
     );
   }
 
@@ -66,6 +77,7 @@ class SessionModel {
           completedAt != null ? DateTime.tryParse(completedAt!) : null,
       totalStars: totalStars,
       accuracyPct: accuracyPct,
+      decisionLog: decisionLog,
     );
   }
 }

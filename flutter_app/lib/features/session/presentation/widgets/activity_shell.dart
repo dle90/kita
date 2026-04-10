@@ -41,6 +41,7 @@ class _ActivityShellState extends ConsumerState<ActivityShell>
   Color _encourageColor = AppColors.success;
   DateTime? _activityStartTime;
   int _attempts = 0;
+  bool _textMode = false;
 
   @override
   void initState() {
@@ -365,7 +366,32 @@ class _ActivityShellState extends ConsumerState<ActivityShell>
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 6),
+                    // Text mode toggle
+                    GestureDetector(
+                      onTap: () => setState(() => _textMode = !_textMode),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _textMode
+                              ? AppColors.primary
+                              : AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'TXT',
+                          style: AppTypography.labelSmall.copyWith(
+                            color: _textMode
+                                ? Colors.white
+                                : AppColors.textSecondary,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
                     // Activity counter badge
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -470,6 +496,10 @@ class _ActivityShellState extends ConsumerState<ActivityShell>
   }
 
   Widget _buildActivityWidget(Activity activity) {
+    if (_textMode) {
+      return _buildTextModeWidget(activity);
+    }
+
     switch (activity.type) {
       case ActivityType.listenTap:
       case ActivityType.flashcardIntro:
@@ -512,6 +542,261 @@ class _ActivityShellState extends ConsumerState<ActivityShell>
           onComplete: _onActivityComplete,
         );
     }
+  }
+
+  Widget _buildTextModeWidget(Activity activity) {
+    final sessionState = ref.read(sessionProvider);
+    final index = sessionState.currentActivityIndex;
+    final total = sessionState.session?.activityCount ?? 0;
+    final phase = activity.config['phase'] as String? ?? '?';
+    final decisionLog = sessionState.session?.decisionLog ?? [];
+    final reason = index < decisionLog.length ? decisionLog[index] : '';
+
+    return SingleChildScrollView(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey[50],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey[300]!),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '\u{1F4CB} Activity ${index + 1}/$total [$phase]\n'
+                'Type: ${activity.type.apiValue}',
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Content based on activity type
+            _buildTextModeContent(activity),
+
+            // Decision log reason
+            if (reason.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '\u{1F9E0} Why: $reason',
+                  style: const TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 11,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 20),
+
+            // Action buttons
+            if (activity.type == ActivityType.flashcardIntro)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () =>
+                      _onActivityComplete(isCorrect: true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text('Next',
+                      style: TextStyle(fontSize: 16)),
+                ),
+              )
+            else
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () =>
+                          _onActivityComplete(isCorrect: true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.success,
+                        foregroundColor: Colors.white,
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text('\u2705 Correct',
+                          style: TextStyle(fontSize: 16)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () =>
+                          _onActivityComplete(isCorrect: false),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.error,
+                        foregroundColor: Colors.white,
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text('\u274C Wrong',
+                          style: TextStyle(fontSize: 16)),
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextModeContent(Activity activity) {
+    final config = activity.config;
+    final lines = StringBuffer();
+
+    switch (activity.type) {
+      case ActivityType.flashcardIntro:
+        final words = config['words'] as List<dynamic>? ?? [];
+        lines.writeln('Words to learn:');
+        for (final w in words) {
+          if (w is Map<String, dynamic>) {
+            final word = w['word'] ?? '?';
+            final emoji = w['emoji'] ?? '';
+            final vi = w['translation_vi'] ?? '';
+            lines.writeln('  $emoji $word ($vi)');
+          }
+        }
+
+      case ActivityType.listenTap:
+      case ActivityType.listenAndChoose:
+        final target = config['target_word'] ?? config['word'] ?? '?';
+        final targetVi = config['target_vi'] ?? config['translation_vi'] ?? '';
+        final targetEmoji = config['target_emoji'] ?? config['emoji'] ?? '';
+        lines.writeln('Target: "$target" $targetEmoji ($targetVi)');
+        lines.writeln('');
+        final options = config['options'];
+        if (options is List) {
+          lines.writeln('Options:');
+          final letters = ['A', 'B', 'C', 'D', 'E', 'F'];
+          for (var i = 0; i < options.length && i < letters.length; i++) {
+            final opt = options[i];
+            if (opt is Map<String, dynamic>) {
+              final text = opt['text'] ?? '?';
+              final correct = opt['is_correct'] == true;
+              final marker = correct ? ' <-- correct' : '';
+              lines.writeln('  ${letters[i]}. $text$marker');
+            }
+          }
+        }
+
+      case ActivityType.repeatAfterMe:
+      case ActivityType.listenAndRepeat:
+      case ActivityType.speakWord:
+        final target = config['target_word'] ?? config['word'] ?? activity.targetWord ?? '?';
+        final targetVi = config['target_vi'] ?? config['translation_vi'] ?? '';
+        final targetEmoji = config['target_emoji'] ?? config['emoji'] ?? '';
+        final ipa = config['phonetic_ipa'] ?? '';
+        lines.writeln('Say: "$target" $targetEmoji');
+        lines.writeln('Vietnamese: $targetVi');
+        if (ipa.toString().isNotEmpty) {
+          lines.writeln('IPA: /$ipa/');
+        }
+
+      case ActivityType.wordMatch:
+        final pairs = config['pairs'] as List<dynamic>? ?? [];
+        lines.writeln('Match the pairs:');
+        for (final p in pairs) {
+          if (p is Map<String, dynamic>) {
+            final en = p['english'] ?? '?';
+            final vi = p['vietnamese'] ?? '?';
+            final emoji = p['emoji'] ?? '';
+            lines.writeln('  $en $emoji = $vi');
+          }
+        }
+
+      case ActivityType.buildSentence:
+      case ActivityType.sentenceBuilder:
+        final sentence = config['sentence'] ?? '?';
+        final sentenceVi = config['sentence_vi'] ?? '';
+        final scrambled = config['scrambled_words'] as List<dynamic>? ?? [];
+        final correct = config['correct_order'] as List<dynamic>? ?? [];
+        lines.writeln('Correct: "$sentence"');
+        lines.writeln('Vietnamese: $sentenceVi');
+        lines.writeln('Scrambled: ${scrambled.join(" | ")}');
+        lines.writeln('Answer: ${correct.join(" ")}');
+
+      case ActivityType.fillBlank:
+        final display = config['display_sentence'] ?? config['sentence'] ?? '?';
+        final sentenceVi = config['sentence_vi'] ?? '';
+        final correctWord = config['correct_word'] ?? '?';
+        final options = config['options'] as List<dynamic>? ?? [];
+        lines.writeln('Sentence: $display');
+        lines.writeln('Vietnamese: $sentenceVi');
+        lines.writeln('');
+        lines.writeln('Options:');
+        final letters = ['A', 'B', 'C', 'D', 'E', 'F'];
+        for (var i = 0; i < options.length && i < letters.length; i++) {
+          final opt = options[i].toString();
+          final correct = opt == correctWord.toString();
+          final marker = correct ? ' <-- correct' : '';
+          lines.writeln('  ${letters[i]}. $opt$marker');
+        }
+
+      case ActivityType.phonicsListen:
+        final symbol = config['symbol'] ?? '?';
+        final word1 = config['word1'] ?? '?';
+        final word2 = config['word2'] ?? '?';
+        lines.writeln('Phoneme: /$symbol/');
+        lines.writeln('Word 1: $word1');
+        lines.writeln('Word 2: $word2');
+        lines.writeln('Answer: Different');
+
+      case ActivityType.phonicsMatch:
+        final symbol = config['symbol'] ?? '?';
+        final targetWord = config['target_word'] ?? '?';
+        final options = config['options'] as List<dynamic>? ?? [];
+        lines.writeln('Phoneme: /$symbol/');
+        lines.writeln('Word: $targetWord');
+        lines.writeln('Options:');
+        for (final opt in options) {
+          if (opt is Map<String, dynamic>) {
+            final g = opt['grapheme'] ?? '?';
+            final correct = opt['correct'] == true;
+            final marker = correct ? ' <-- correct' : '';
+            lines.writeln('  "$g"$marker');
+          }
+        }
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Text(
+        lines.toString().trimRight(),
+        style: const TextStyle(
+          fontFamily: 'monospace',
+          fontSize: 13,
+          height: 1.6,
+        ),
+      ),
+    );
   }
 
   void _showExitConfirmation() {
