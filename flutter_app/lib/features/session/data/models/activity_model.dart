@@ -78,6 +78,18 @@ class ActivityModel {
     final optionsJson = rawOptions is List ? rawOptions : const [];
     final difficulty = config['difficulty'] as int? ?? 1;
 
+    // Parse options — handle both Map (quiz options) and String (fill_blank words)
+    final parsedOptions = <ActivityOption>[];
+    for (final o in optionsJson) {
+      if (o is Map<String, dynamic>) {
+        parsedOptions.add(ActivityOption.fromJson(o));
+      } else if (o is Map) {
+        parsedOptions.add(ActivityOption.fromJson(Map<String, dynamic>.from(o)));
+      } else if (o is String) {
+        parsedOptions.add(ActivityOption(id: o, text: o));
+      }
+    }
+
     return Activity(
       id: id,
       type: ActivityType.fromString(activityType),
@@ -85,9 +97,7 @@ class ActivityModel {
       targetSentence: targetSentence,
       audioUrl: audioUrl,
       imageUrls: imageUrls,
-      options: optionsJson
-          .map((o) => ActivityOption.fromJson(o as Map<String, dynamic>))
-          .toList(),
+      options: parsedOptions,
       difficulty: difficulty,
       config: config,
     );
