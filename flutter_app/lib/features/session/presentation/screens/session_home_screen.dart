@@ -6,6 +6,7 @@ import 'package:kita_english/core/constants/app_colors.dart';
 import 'package:kita_english/core/constants/app_typography.dart';
 import 'package:kita_english/core/router/app_router.dart';
 import 'package:kita_english/core/storage/secure_storage.dart';
+import 'package:kita_english/features/progress/presentation/screens/debug_panel.dart';
 import 'package:kita_english/features/session/domain/entities/session.dart';
 import 'package:kita_english/features/session/presentation/providers/session_provider.dart';
 import 'package:kita_english/shared/widgets/character_avatar.dart';
@@ -116,6 +117,19 @@ class _SessionHomeScreenState extends ConsumerState<SessionHomeScreen>
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        // DEV: Debug panel
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.grey.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            onPressed: () => showDebugPanel(context),
+                            icon: Icon(Icons.bug_report, color: Colors.grey[600], size: 22),
+                            tooltip: 'Debug panel',
+                          ),
+                        ),
+                        const SizedBox(width: 4),
                         // DEV: Reset to onboarding
                         Container(
                           decoration: BoxDecoration(
