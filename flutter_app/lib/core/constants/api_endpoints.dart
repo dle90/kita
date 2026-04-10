@@ -38,6 +38,10 @@ class ApiEndpoints {
   static String srsDueCards(String kidId) => '/kids/$kidId/srs/due';
   static String srsReview(String kidId) => '/kids/$kidId/srs/review';
 
+  // Debug / Testing Harness
+  static const String debugLoadProfile = '/debug/load-profile';
+  static const String debugContentAll = '/debug/content/all';
+
   // Progress & Stats
   static String progressOverview(String kidId) => '/kids/$kidId/progress';
   static String progressVocabulary(String kidId) =>

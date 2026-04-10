@@ -1,8 +1,14 @@
+import 'dart:math';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kita_english/core/constants/api_endpoints.dart';
+import 'package:kita_english/core/network/api_client.dart';
 import 'package:kita_english/core/storage/secure_storage.dart';
 import 'package:kita_english/features/progress/presentation/providers/progress_provider.dart';
+import 'package:kita_english/features/session/domain/entities/activity_result.dart';
 import 'package:kita_english/features/session/presentation/providers/session_provider.dart';
 import 'package:kita_english/features/srs/presentation/providers/srs_provider.dart';
 
@@ -75,7 +81,10 @@ class _DebugPanelState extends ConsumerState<DebugPanel> {
           const Divider(),
           // Content
           Expanded(
-            child: _DebugContent(onCopy: _copyAll),
+            child: _DebugContent(
+              onCopy: _copyAll,
+              onRefresh: _refresh,
+            ),
           ),
         ],
       ),
@@ -97,10 +106,11 @@ class _DebugPanelState extends ConsumerState<DebugPanel> {
   }
 }
 
-class _DebugContent extends ConsumerWidget {
+class _DebugContent extends ConsumerStatefulWidget {
   final VoidCallback onCopy;
+  final VoidCallback onRefresh;
 
-  const _DebugContent({required this.onCopy});
+  const _DebugContent({required this.onCopy, required this.onRefresh});
 
   static Future<String> buildTextReport(WidgetRef ref) async {
     final buffer = StringBuffer();
@@ -155,11 +165,307 @@ class _DebugContent extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_DebugContent> createState() => _DebugContentState();
+}
+
+class _DebugContentState extends ConsumerState<_DebugContent> {
+  // Test profile state
+  String? _activeProfile;
+  bool _isLoadingProfile = false;
+
+  // Auto-play state
+  bool _isAutoPlaying = false;
+  int _autoPlayDay = 1;
+  final List<String> _autoPlayLog = [];
+
+  // Content browser state
+  Map<String, dynamic>? _allContent;
+  bool _isLoadingContent = false;
+  final Set<String> _expandedContentSections = {};
+
+  Future<String> _getKidId() async {
+    final storage = ref.read(secureStorageProvider);
+    return await storage.readKidProfileId() ?? '';
+  }
+
+  // --- Test Profile Loading ---
+  Future<void> _loadProfile(String profileName) async {
+    setState(() {
+      _isLoadingProfile = true;
+      _activeProfile = profileName;
+    });
+
+    try {
+      final dio = ref.read(dioProvider);
+      final kidId = await _getKidId();
+      await dio.post(
+        ApiEndpoints.debugLoadProfile,
+        data: {
+          'profile': profileName,
+          'kid_id': kidId,
+        },
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Profile "$profileName" loaded!'),
+            duration: const Duration(seconds: 2),
+            backgroundColor: Colors.green[700],
+          ),
+        );
+        widget.onRefresh();
+      }
+    } on DioException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed: ${e.message}'),
+            backgroundColor: Colors.red[700],
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingProfile = false);
+      }
+    }
+  }
+
+  // --- Auto-play ---
+  Future<void> _autoPlayLesson(int dayNumber) async {
+    setState(() {
+      _isAutoPlaying = true;
+      _autoPlayDay = dayNumber;
+      _autoPlayLog.clear();
+    });
+
+    final rng = Random();
+    final dio = ref.read(dioProvider);
+    final kidId = await _getKidId();
+
+    // Determine accuracy ranges based on active profile
+    final double minAcc;
+    final double maxAcc;
+    final int maxAttempts;
+    switch (_activeProfile) {
+      case 'beginner':
+        minAcc = 40;
+        maxAcc = 60;
+        maxAttempts = 3;
+      case 'day3':
+        minAcc = 60;
+        maxAcc = 80;
+        maxAttempts = 2;
+      case 'day5':
+        minAcc = 70;
+        maxAcc = 85;
+        maxAttempts = 2;
+      case 'advanced':
+        minAcc = 80;
+        maxAcc = 95;
+        maxAttempts = 1;
+      case 'almost_done':
+        minAcc = 85;
+        maxAcc = 100;
+        maxAttempts = 1;
+      default:
+        minAcc = 60;
+        maxAcc = 80;
+        maxAttempts = 2;
+    }
+
+    try {
+      // 1. Start session
+      _addLog('\u25B6\uFE0F Auto-play B\u00E0i $dayNumber starting...');
+      await dio.post(ApiEndpoints.sessionStart(kidId, dayNumber));
+
+      // 2. Fetch session to get activities
+      final sessionResp =
+          await dio.get(ApiEndpoints.session(kidId, dayNumber));
+      final sessionData = sessionResp.data as Map<String, dynamic>;
+      final activities =
+          (sessionData['activities'] as List<dynamic>?) ?? [];
+
+      if (activities.isEmpty) {
+        _addLog('  No activities found for B\u00E0i $dayNumber');
+        setState(() => _isAutoPlaying = false);
+        return;
+      }
+
+      _addLog(
+          '  Found ${activities.length} activities. Simulating results...');
+
+      int totalStars = 0;
+      int correctCount = 0;
+      int totalCount = activities.length;
+
+      // 3. Iterate activities and submit simulated results
+      for (var i = 0; i < activities.length; i++) {
+        final activity = activities[i] as Map<String, dynamic>;
+        final activityId = activity['id'] as String? ?? '';
+        final activityType = activity['activity_type'] as String? ?? 'unknown';
+        final phase = activity['phase'] as String? ?? '?';
+        final config = activity['config'] as Map<String, dynamic>? ?? {};
+
+        // Determine target word/sentence for display
+        String target = '';
+        if (config['target_word'] != null) {
+          target = config['target_word'] as String;
+        } else if (config['target_sentence'] != null) {
+          target = config['target_sentence'] as String;
+        } else if (config['words'] is List) {
+          final words = config['words'] as List;
+          target = '${words.length} words';
+        }
+
+        // Simulate result
+        final score =
+            minAcc + rng.nextDouble() * (maxAcc - minAcc);
+        final isCorrect = score >= 50;
+        final attempts =
+            isCorrect ? (1 + rng.nextInt(maxAttempts)) : maxAttempts;
+        final starsEarned =
+            ActivityResult.calculateStars(isCorrect: isCorrect, attempts: attempts);
+        totalStars += starsEarned;
+        if (isCorrect) correctCount++;
+
+        // Build result text
+        String resultText;
+        if (activityType == 'flashcard_intro') {
+          resultText = 'PASS (auto)';
+        } else if (!isCorrect) {
+          resultText = 'WRONG (${attempts}x, score: ${score.toInt()})';
+        } else if (attempts > 1) {
+          resultText =
+              'WRONG \u2192 CORRECT (${attempts}nd attempt, score: ${score.toInt()})';
+        } else {
+          resultText = 'CORRECT (1st attempt, score: ${score.toInt()})';
+        }
+
+        _addLog(
+            '  ${i + 1}. [$phase] $activityType \u2192 $target \u2192 $resultText');
+
+        // Submit to backend
+        final timeSpentMs =
+            2000 + rng.nextInt(8000); // 2-10 seconds simulated
+        try {
+          await dio.post(
+            ApiEndpoints.activityResult(kidId, activityId),
+            data: {
+              'activity_type': activityType,
+              'is_correct': isCorrect,
+              'attempts': attempts,
+              'time_spent_ms': timeSpentMs,
+              'stars_earned': starsEarned,
+              'metadata': {
+                'simulated': true,
+                'profile': _activeProfile,
+                'score': score.toInt(),
+              },
+            },
+          );
+        } catch (e) {
+          _addLog('    (submit error: $e)');
+        }
+      }
+
+      // 4. Complete session
+      final accuracyPct =
+          totalCount > 0 ? (correctCount / totalCount) * 100 : 0.0;
+      try {
+        await dio.post(
+          ApiEndpoints.sessionComplete(kidId, dayNumber),
+          data: {
+            'total_stars': totalStars,
+            'accuracy_pct': accuracyPct,
+          },
+        );
+      } catch (e) {
+        _addLog('  (complete error: $e)');
+      }
+
+      _addLog('');
+      _addLog(
+          '  \u2B50 Stars: $totalStars/${totalCount * 3} | '
+          'Accuracy: ${accuracyPct.toStringAsFixed(0)}% | '
+          'Time: ~${totalCount * 5}s (simulated)');
+
+      // 5. Fetch engine recommendation
+      try {
+        final skillsResp =
+            await dio.get(ApiEndpoints.progressSkills(kidId));
+        final skillsData = skillsResp.data as Map<String, dynamic>;
+        final weakest =
+            skillsData['weakest_skill'] as String? ?? 'unknown';
+        final nextDay = dayNumber < 7 ? dayNumber + 1 : 7;
+        _addLog('');
+        _addLog(
+            '  \u{1F9E0} Engine suggests next: B\u00E0i $nextDay');
+        _addLog(
+            '  Reason: B\u00E0i $dayNumber completed with '
+            '${accuracyPct.toStringAsFixed(0)}% accuracy.');
+        _addLog(
+            '  ${weakest[0].toUpperCase()}${weakest.substring(1)} skill weakest '
+            '\u2192 next session will add more targeted activities.');
+      } catch (_) {
+        // Skill data unavailable
+      }
+
+      widget.onRefresh();
+    } catch (e) {
+      _addLog('  ERROR: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isAutoPlaying = false);
+      }
+    }
+  }
+
+  void _addLog(String line) {
+    if (mounted) {
+      setState(() => _autoPlayLog.add(line));
+    }
+  }
+
+  // --- Content Browser ---
+  Future<void> _fetchAllContent() async {
+    setState(() => _isLoadingContent = true);
+
+    try {
+      final dio = ref.read(dioProvider);
+      final response = await dio.get(ApiEndpoints.debugContentAll);
+      if (mounted) {
+        setState(() {
+          _allContent = response.data as Map<String, dynamic>?;
+          _isLoadingContent = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingContent = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to fetch content: $e'),
+            backgroundColor: Colors.red[700],
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _buildTestProfilesSection(),
+          const SizedBox(height: 16),
+          _buildAutoPlaySection(),
+          const SizedBox(height: 16),
+          _buildContentBrowserSection(),
+          const SizedBox(height: 16),
           _buildKidProfileSection(ref),
           const SizedBox(height: 16),
           _buildSkillScoresSection(ref),
@@ -174,7 +480,7 @@ class _DebugContent extends ConsumerWidget {
           const SizedBox(height: 16),
           // Copy button
           ElevatedButton.icon(
-            onPressed: onCopy,
+            onPressed: widget.onCopy,
             icon: const Icon(Icons.copy, size: 18),
             label: const Text('Copy to clipboard'),
             style: ElevatedButton.styleFrom(
@@ -187,6 +493,384 @@ class _DebugContent extends ConsumerWidget {
       ),
     );
   }
+
+  // ============================================================
+  // TEST PROFILES SECTION
+  // ============================================================
+
+  Widget _buildTestProfilesSection() {
+    return _buildSectionCard(
+      title: '\u{1F9EA} Test Profiles (tap to load)',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_isLoadingProfile)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: LinearProgressIndicator(),
+            ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _profileButton(
+                '\u{1F476} Beginner',
+                'beginner',
+                'Fresh start, no mastery data',
+              ),
+              _profileButton(
+                '\u{1F4D7} Day 3',
+                'day3',
+                '30% through, L:70% W:20%',
+              ),
+              _profileButton(
+                '\u{1F4D8} Day 5',
+                'day5',
+                '60% through, balanced 50-60%',
+              ),
+              _profileButton(
+                '\u{1F4D9} Advanced',
+                'advanced',
+                '90% through, speaking weak',
+              ),
+              _profileButton(
+                '\u{1F393} Almost Done',
+                'almost_done',
+                'All seen, writing at 60%',
+              ),
+            ],
+          ),
+          if (_activeProfile != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: _buildMonoText(
+                  'Active profile: $_activeProfile'),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _profileButton(
+      String label, String profileName, String tooltip) {
+    final isActive = _activeProfile == profileName;
+    return Tooltip(
+      message: tooltip,
+      child: ElevatedButton(
+        onPressed:
+            _isLoadingProfile ? null : () => _loadProfile(profileName),
+        style: ElevatedButton.styleFrom(
+          backgroundColor:
+              isActive ? Colors.deepPurple : Colors.grey[200],
+          foregroundColor:
+              isActive ? Colors.white : Colors.black87,
+          padding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          textStyle: const TextStyle(fontSize: 12),
+        ),
+        child: Text(label),
+      ),
+    );
+  }
+
+  // ============================================================
+  // AUTO-PLAY SECTION
+  // ============================================================
+
+  Widget _buildAutoPlaySection() {
+    return _buildSectionCard(
+      title: '\u25B6\uFE0F Auto-play Lesson',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text('B\u00E0i: ',
+                  style: TextStyle(
+                      fontFamily: 'monospace', fontSize: 12)),
+              DropdownButton<int>(
+                value: _autoPlayDay,
+                items: List.generate(
+                  7,
+                  (i) => DropdownMenuItem(
+                    value: i + 1,
+                    child: Text('${i + 1}'),
+                  ),
+                ),
+                onChanged: _isAutoPlaying
+                    ? null
+                    : (v) => setState(() => _autoPlayDay = v ?? 1),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton.icon(
+                onPressed: _isAutoPlaying
+                    ? null
+                    : () => _autoPlayLesson(_autoPlayDay),
+                icon: _isAutoPlaying
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2),
+                      )
+                    : const Icon(Icons.play_arrow, size: 18),
+                label: Text(
+                    _isAutoPlaying ? 'Running...' : 'Auto-play'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green[700],
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          if (_autoPlayLog.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              constraints: const BoxConstraints(maxHeight: 300),
+              decoration: BoxDecoration(
+                color: Colors.grey[900],
+                borderRadius: BorderRadius.circular(6),
+              ),
+              padding: const EdgeInsets.all(8),
+              child: SingleChildScrollView(
+                child: Text(
+                  _autoPlayLog.join('\n'),
+                  style: const TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 11,
+                    color: Colors.greenAccent,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // CONTENT BROWSER SECTION
+  // ============================================================
+
+  Widget _buildContentBrowserSection() {
+    return _buildSectionCard(
+      title: '\u{1F4DA} Content Repository',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_allContent == null)
+            ElevatedButton.icon(
+              onPressed:
+                  _isLoadingContent ? null : _fetchAllContent,
+              icon: _isLoadingContent
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child:
+                          CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.download, size: 18),
+              label: Text(_isLoadingContent
+                  ? 'Loading...'
+                  : 'Fetch All Content'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[700],
+                foregroundColor: Colors.white,
+              ),
+            )
+          else
+            _buildContentBrowser(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContentBrowser() {
+    final content = _allContent;
+    if (content == null) return const SizedBox.shrink();
+
+    final vocab = content['vocabulary'] as List<dynamic>? ?? [];
+    final grammar =
+        content['grammar_structures'] as List<dynamic>? ?? [];
+    final patterns = content['patterns'] as List<dynamic>? ?? [];
+    final phonemes = content['phonemes'] as List<dynamic>? ?? [];
+    final commFns =
+        content['communication_functions'] as List<dynamic>? ?? [];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildCollapsibleContent(
+          'vocabulary',
+          'Vocabulary (${vocab.length} words)',
+          _buildVocabContent(vocab),
+        ),
+        _buildCollapsibleContent(
+          'grammar',
+          'Grammar Structures (${grammar.length})',
+          _buildGrammarContent(grammar),
+        ),
+        _buildCollapsibleContent(
+          'patterns',
+          'Patterns (${patterns.length})',
+          _buildPatternsContent(patterns),
+        ),
+        _buildCollapsibleContent(
+          'phonemes',
+          'Phonemes (${phonemes.length})',
+          _buildPhonemesContent(phonemes),
+        ),
+        _buildCollapsibleContent(
+          'comm_functions',
+          'Communication Functions (${commFns.length})',
+          _buildCommFunctionsContent(commFns),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCollapsibleContent(
+      String key, String title, Widget content) {
+    final isExpanded = _expandedContentSections.contains(key);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () {
+            setState(() {
+              if (isExpanded) {
+                _expandedContentSections.remove(key);
+              } else {
+                _expandedContentSections.add(key);
+              }
+            });
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              children: [
+                Icon(
+                  isExpanded
+                      ? Icons.expand_more
+                      : Icons.chevron_right,
+                  size: 18,
+                  color: Colors.deepPurple,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.deepPurple,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (isExpanded)
+          Padding(
+            padding: const EdgeInsets.only(left: 22, bottom: 8),
+            child: content,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildVocabContent(List<dynamic> vocab) {
+    // Group by day
+    final byDay = <int, List<Map<String, dynamic>>>{};
+    for (final v in vocab) {
+      final item = v as Map<String, dynamic>;
+      final day = (item['day_number'] as num?)?.toInt() ?? 0;
+      byDay.putIfAbsent(day, () => []).add(item);
+    }
+    final days = byDay.keys.toList()..sort();
+
+    final lines = StringBuffer();
+    for (final day in days) {
+      final words = byDay[day]!;
+      final wordStrs = words
+          .map((w) =>
+              '${w['word'] ?? '?'} ${w['emoji'] ?? ''}')
+          .join(', ');
+      lines.writeln(
+          'B\u00E0i $day: $wordStrs');
+    }
+    return _buildMonoText(lines.toString().trimRight());
+  }
+
+  Widget _buildGrammarContent(List<dynamic> grammar) {
+    final lines = StringBuffer();
+    for (var i = 0; i < grammar.length; i++) {
+      final gs = grammar[i] as Map<String, dynamic>;
+      final name = gs['name'] ?? '?';
+      final template = gs['template'] ?? '';
+      final cefr = gs['cefr_level'] ?? '';
+      final diff = gs['difficulty'] ?? 0;
+      final prereqs = gs['prerequisite_ids'] as List<dynamic>? ?? [];
+      final prereqStr =
+          prereqs.isNotEmpty ? ' \u2190 requires: ${prereqs.join(", ")}' : '';
+      lines.writeln(
+          '${i + 1}. $name ($template) [$cefr, diff:$diff]$prereqStr');
+    }
+    return _buildMonoText(lines.toString().trimRight());
+  }
+
+  Widget _buildPatternsContent(List<dynamic> patterns) {
+    final lines = StringBuffer();
+    for (final p in patterns) {
+      final item = p as Map<String, dynamic>;
+      final template = item['template'] ?? '?';
+      final fn = item['communication_function'] ?? '';
+      final day = item['day_introduced'] ?? 0;
+      lines.writeln(
+          '"$template" \u2192 fn: $fn, b\u00E0i: $day');
+    }
+    return _buildMonoText(lines.toString().trimRight());
+  }
+
+  Widget _buildPhonemesContent(List<dynamic> phonemes) {
+    final lines = StringBuffer();
+    for (final p in phonemes) {
+      final item = p as Map<String, dynamic>;
+      final symbol = item['symbol'] ?? '?';
+      final graphemes = (item['graphemes'] as List<dynamic>?)
+              ?.join(', ') ??
+          '';
+      final example = item['example_word'] ?? '';
+      final isNew = item['is_new_for_vietnamese'] == true;
+      final diff = item['difficulty'] ?? 0;
+      final sub = item['common_substitution'] ?? '';
+      final newTag = isNew ? ' [NEW for VN, diff:$diff]' : ' [diff:$diff]';
+      final subTag = sub.toString().isNotEmpty ? ' confuse with $sub' : '';
+      lines.writeln(
+          '/$symbol/ $graphemes \u2014 $example$newTag$subTag');
+    }
+    return _buildMonoText(lines.toString().trimRight());
+  }
+
+  Widget _buildCommFunctionsContent(List<dynamic> commFns) {
+    final lines = StringBuffer();
+    for (final cf in commFns) {
+      final item = cf as Map<String, dynamic>;
+      final name = item['name'] ?? '?';
+      final nameVi = item['name_vi'] ?? '';
+      final patternIds =
+          (item['pattern_ids'] as List<dynamic>?)?.join(', ') ?? '';
+      lines.writeln(
+          '$name ($nameVi) \u2192 patterns: $patternIds');
+    }
+    return _buildMonoText(lines.toString().trimRight());
+  }
+
+  // ============================================================
+  // EXISTING SECTIONS (preserved from original)
+  // ============================================================
 
   Widget _buildSectionHeader(String title) {
     return Padding(
@@ -236,7 +920,7 @@ class _DebugContent extends ConsumerWidget {
     );
   }
 
-  // --- Section 1: Kid Profile ---
+  // --- Section: Kid Profile ---
   Widget _buildKidProfileSection(WidgetRef ref) {
     return FutureBuilder<Map<String, String>>(
       future: _loadKidProfile(ref),
@@ -274,7 +958,7 @@ class _DebugContent extends ConsumerWidget {
     return {'kidId': kidId, 'characterId': charId};
   }
 
-  // --- Section 2: Skill Scores ---
+  // --- Section: Skill Scores ---
   Widget _buildSkillScoresSection(WidgetRef ref) {
     final skillsAsync = ref.watch(skillSummaryProvider);
 
@@ -331,7 +1015,7 @@ class _DebugContent extends ConsumerWidget {
     );
   }
 
-  // --- Section 3: SRS Due Items ---
+  // --- Section: SRS Due Items ---
   Widget _buildSrsDueSection(WidgetRef ref) {
     final cardsAsync = ref.watch(dueCardsProvider);
 
@@ -364,7 +1048,7 @@ class _DebugContent extends ConsumerWidget {
     );
   }
 
-  // --- Section 4: Current Session Activities ---
+  // --- Section: Current Session Activities ---
   Widget _buildSessionActivitiesSection(WidgetRef ref) {
     final sessionState = ref.watch(sessionProvider);
     final session = sessionState.session;
@@ -401,7 +1085,6 @@ class _DebugContent extends ConsumerWidget {
               i < sessionState.currentActivityIndex ? '\u{2705}' : '  ';
 
           String detail = target;
-          // Add extra detail for activities with options/config
           if (a.type.apiValue == 'word_match') {
             final pairCount = a.options.length ~/ 2;
             detail = '$pairCount pairs';
@@ -424,7 +1107,7 @@ class _DebugContent extends ConsumerWidget {
     );
   }
 
-  // --- Section 5: Word Mastery ---
+  // --- Section: Word Mastery ---
   Widget _buildWordMasterySection(WidgetRef ref) {
     final vocabAsync = ref.watch(vocabularyStatsProvider);
 
@@ -480,7 +1163,7 @@ class _DebugContent extends ConsumerWidget {
     return '${pct.toString().padLeft(3)}%';
   }
 
-  // --- Section 6: Engine Decisions ---
+  // --- Section: Engine Decisions ---
   Widget _buildEngineDecisionsSection(WidgetRef ref) {
     return FutureBuilder<String>(
       future: _buildEngineDecisions(ref),

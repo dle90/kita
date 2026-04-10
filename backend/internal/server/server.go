@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/kitaenglish/backend/internal/auth"
 	"github.com/kitaenglish/backend/internal/common"
+	"github.com/kitaenglish/backend/internal/debug"
 	"github.com/kitaenglish/backend/internal/onboarding"
 	"github.com/kitaenglish/backend/internal/progress"
 	"github.com/kitaenglish/backend/internal/pronunciation"
@@ -24,6 +25,7 @@ type Dependencies struct {
 	PronunciationHandler *pronunciation.PronunciationHandler
 	ProgressHandler      *progress.ProgressHandler
 	SrsHandler           *srs.SrsHandler
+	DebugHandler         *debug.DebugHandler
 }
 
 func NewServer(deps Dependencies) *chi.Mux {
@@ -55,6 +57,11 @@ func NewServer(deps Dependencies) *chi.Mux {
 	// Public routes
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Mount("/auth", deps.AuthHandler.Routes())
+
+		// Debug routes (gated by DEBUG_ENABLED env var internally)
+		if deps.DebugHandler != nil {
+			r.Mount("/debug", deps.DebugHandler.Routes())
+		}
 
 		// Protected routes
 		r.Group(func(r chi.Router) {

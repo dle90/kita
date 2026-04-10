@@ -14,6 +14,7 @@ import (
 	"github.com/kitaenglish/backend/internal/common"
 	"github.com/kitaenglish/backend/internal/config"
 	"github.com/kitaenglish/backend/internal/content"
+	"github.com/kitaenglish/backend/internal/debug"
 	"github.com/kitaenglish/backend/internal/notification"
 	"github.com/kitaenglish/backend/internal/onboarding"
 	"github.com/kitaenglish/backend/internal/progress"
@@ -104,6 +105,9 @@ func main() {
 	pronHandler := pronunciation.NewPronunciationHandler(pronService, kidRepo)
 	progressHandler := progress.NewProgressHandler(progressService)
 
+	// Initialize debug handler (gated by DEBUG_ENABLED env var)
+	debugHandler := debug.NewDebugHandler(dbPool, contentRepo)
+
 	// Create server
 	router := server.NewServer(server.Dependencies{
 		AuthHandler:          authHandler,
@@ -113,6 +117,7 @@ func main() {
 		PronunciationHandler: pronHandler,
 		ProgressHandler:      progressHandler,
 		SrsHandler:           srsHandler,
+		DebugHandler:         debugHandler,
 	})
 
 	httpServer := &http.Server{
