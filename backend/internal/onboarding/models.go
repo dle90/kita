@@ -38,8 +38,24 @@ type UpdateKidRequest struct {
 	NotificationTime *string `json:"notification_time,omitempty"`
 }
 
+type PlacementAnswer struct {
+	Round   int    `json:"round"`
+	Type    string `json:"type"`
+	Correct bool   `json:"correct"`
+}
+
 type PlacementResultRequest struct {
-	Scores map[string]int `json:"scores" validate:"required"`
+	Scores       map[string]int    `json:"scores"`
+	Answers      []PlacementAnswer `json:"answers"`
+	Age          int               `json:"age"`
+	EnglishLevel string            `json:"english_level"`
+}
+
+type PlacementResponse struct {
+	Score             int                `json:"score"`
+	SkillBaseline     map[string]float64 `json:"skill_baseline"`
+	WordsInitialized  int                `json:"words_initialized"`
+	SRSCardsCreated   int                `json:"srs_cards_created"`
 }
 
 type KidResponse struct {

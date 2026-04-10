@@ -132,7 +132,7 @@ func (h *OnboardingHandler) SubmitPlacement(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	kid, svcErr := h.service.SubmitPlacement(r.Context(), kidID, req)
+	placementResp, svcErr := h.service.SubmitPlacement(r.Context(), kidID, req)
 	if svcErr != nil {
 		if appErr, ok := svcErr.(*common.AppError); ok {
 			common.RespondAppError(w, appErr)
@@ -142,5 +142,5 @@ func (h *OnboardingHandler) SubmitPlacement(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	common.RespondJSON(w, http.StatusOK, KidResponse{Kid: *kid})
+	common.RespondJSON(w, http.StatusOK, placementResp)
 }

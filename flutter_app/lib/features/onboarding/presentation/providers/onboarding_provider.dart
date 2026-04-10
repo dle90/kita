@@ -141,6 +141,9 @@ class OnboardingNotifier extends StateNotifier<OnboardingFlowState> {
   }
 
   /// Submits placement test results to the backend.
+  /// Each answer must include 'type' (listen_tap|say_hello|read_match|phonics)
+  /// and 'correct' (bool). The backend uses these to initialize skill mastery
+  /// and SRS cards for Day 1 vocabulary.
   Future<void> submitPlacementResults({
     required List<Map<String, dynamic>> answers,
   }) async {
@@ -149,7 +152,13 @@ class OnboardingNotifier extends StateNotifier<OnboardingFlowState> {
       final response = await _dio.post(
         ApiEndpoints.kidPlacement(kidId),
         data: {
-          'answers': answers,
+          'answers': answers.map((a) {
+            return <String, dynamic>{
+              'round': a['round'] ?? 0,
+              'type': a['type'] ?? '',
+              'correct': a['correct'] ?? false,
+            };
+          }).toList(),
           'age': state.age,
           'english_level': state.englishLevel.name,
         },

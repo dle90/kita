@@ -79,7 +79,7 @@ func main() {
 
 	// Initialize services
 	authService := auth.NewAuthService(authRepo, cfg.JWT)
-	onboardingService := onboarding.NewOnboardingService(kidRepo)
+	onboardingService := onboarding.NewOnboardingService(kidRepo, contentRepo, skillMasteryRepo, srsRepo)
 	srsService := srs.NewSrsService(srsRepo)
 	sessionService := session.NewSessionService(sessionRepo, activityRepo, contentRepo, kidRepo, srsRepo, skillMasteryRepo)
 	azureClient := pronunciation.NewAzureSpeechClient(cfg.Azure)
