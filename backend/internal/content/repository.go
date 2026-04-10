@@ -37,6 +37,8 @@ type ContentRepository interface {
 	GetPatternsByFunction(ctx context.Context, function string) ([]*Pattern, error)
 	GetCommunicationFunctions(ctx context.Context) ([]*CommunicationFunction, error)
 	CountGrammarStructures(ctx context.Context) (int, error)
+	CountPatterns(ctx context.Context) (int, error)
+	CountCommunicationFunctions(ctx context.Context) (int, error)
 }
 
 type pgContentRepository struct {
@@ -395,6 +397,18 @@ func (r *pgContentRepository) GetPhonemeByID(ctx context.Context, id string) (*P
 func (r *pgContentRepository) CountPhonemes(ctx context.Context) (int, error) {
 	var count int
 	err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM phonemes`).Scan(&count)
+	return count, err
+}
+
+func (r *pgContentRepository) CountPatterns(ctx context.Context) (int, error) {
+	var count int
+	err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM patterns`).Scan(&count)
+	return count, err
+}
+
+func (r *pgContentRepository) CountCommunicationFunctions(ctx context.Context) (int, error) {
+	var count int
+	err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM communication_functions`).Scan(&count)
 	return count, err
 }
 

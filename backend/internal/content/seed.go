@@ -11,61 +11,78 @@ import (
 )
 
 func SeedContent(ctx context.Context, repo ContentRepository, seedDir string) error {
-	vocabCount, err := repo.CountVocabulary(ctx)
-	if err != nil {
-		log.Printf("Warning: could not count vocabulary (table may not exist): %v", err)
-		return nil
-	}
+	// Seed each content type independently — check count before seeding
 
-	if vocabCount > 0 {
-		log.Println("Content already seeded, skipping")
-		return nil
-	}
-
-	// Seed vocabulary
-	wordIDMap, err := seedVocabulary(ctx, repo, seedDir+"/vocabulary.json")
-	if err != nil {
-		return fmt.Errorf("seeding vocabulary: %w", err)
-	}
-	log.Printf("Seeded %d vocabulary words", len(wordIDMap))
-
-	// Seed session templates
-	count, err := seedSessionTemplates(ctx, repo, seedDir+"/session_templates.json", wordIDMap)
-	if err != nil {
-		return fmt.Errorf("seeding session templates: %w", err)
-	}
-	log.Printf("Seeded %d session templates", count)
-
-	// Seed phonemes
-	phCount, err := seedPhonemes(ctx, repo, seedDir+"/phonemes.json")
-	if err != nil {
-		log.Printf("Warning: could not seed phonemes: %v", err)
+	// Vocabulary
+	vocabCount, _ := repo.CountVocabulary(ctx)
+	if vocabCount == 0 {
+		wordIDMap, err := seedVocabulary(ctx, repo, seedDir+"/vocabulary.json")
+		if err != nil {
+			log.Printf("Warning: could not seed vocabulary: %v", err)
+		} else {
+			log.Printf("Seeded %d vocabulary words", len(wordIDMap))
+			// Seed session templates (depends on vocabulary)
+			count, err := seedSessionTemplates(ctx, repo, seedDir+"/session_templates.json", wordIDMap)
+			if err != nil {
+				log.Printf("Warning: could not seed session templates: %v", err)
+			} else {
+				log.Printf("Seeded %d session templates", count)
+			}
+		}
 	} else {
-		log.Printf("Seeded %d phonemes", phCount)
+		log.Printf("Vocabulary already seeded (%d words)", vocabCount)
 	}
 
-	// Seed grammar structures
-	gsCount, err := seedGrammarStructures(ctx, repo, seedDir+"/grammar_structures.json")
-	if err != nil {
-		log.Printf("Warning: could not seed grammar structures: %v", err)
+	// Phonemes
+	phCount, _ := repo.CountPhonemes(ctx)
+	if phCount == 0 {
+		n, err := seedPhonemes(ctx, repo, seedDir+"/phonemes.json")
+		if err != nil {
+			log.Printf("Warning: could not seed phonemes: %v", err)
+		} else {
+			log.Printf("Seeded %d phonemes", n)
+		}
 	} else {
-		log.Printf("Seeded %d grammar structures", gsCount)
+		log.Printf("Phonemes already seeded (%d)", phCount)
 	}
 
-	// Seed patterns
-	pCount, err := seedPatterns(ctx, repo, seedDir+"/patterns.json")
-	if err != nil {
-		log.Printf("Warning: could not seed patterns: %v", err)
+	// Grammar structures
+	gsCount, _ := repo.CountGrammarStructures(ctx)
+	if gsCount == 0 {
+		n, err := seedGrammarStructures(ctx, repo, seedDir+"/grammar_structures.json")
+		if err != nil {
+			log.Printf("Warning: could not seed grammar structures: %v", err)
+		} else {
+			log.Printf("Seeded %d grammar structures", n)
+		}
 	} else {
-		log.Printf("Seeded %d patterns", pCount)
+		log.Printf("Grammar structures already seeded (%d)", gsCount)
 	}
 
-	// Seed communication functions
-	cfCount, err := seedCommunicationFunctions(ctx, repo, seedDir+"/communication_functions.json")
-	if err != nil {
-		log.Printf("Warning: could not seed communication functions: %v", err)
+	// Patterns
+	pCount, _ := repo.CountPatterns(ctx)
+	if pCount == 0 {
+		n, err := seedPatterns(ctx, repo, seedDir+"/patterns.json")
+		if err != nil {
+			log.Printf("Warning: could not seed patterns: %v", err)
+		} else {
+			log.Printf("Seeded %d patterns", n)
+		}
 	} else {
-		log.Printf("Seeded %d communication functions", cfCount)
+		log.Printf("Patterns already seeded (%d)", pCount)
+	}
+
+	// Communication functions
+	cfCount, _ := repo.CountCommunicationFunctions(ctx)
+	if cfCount == 0 {
+		n, err := seedCommunicationFunctions(ctx, repo, seedDir+"/communication_functions.json")
+		if err != nil {
+			log.Printf("Warning: could not seed communication functions: %v", err)
+		} else {
+			log.Printf("Seeded %d communication functions", n)
+		}
+	} else {
+		log.Printf("Communication functions already seeded (%d)", cfCount)
 	}
 
 	return nil
