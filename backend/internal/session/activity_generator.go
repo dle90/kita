@@ -17,13 +17,26 @@ func ActivityTypeToSkill(activityType string) srs.SkillType {
 		return srs.SkillListening
 	case "speak_word", "speak_sentence":
 		return srs.SkillSpeaking
-	case "read_word", "read_sentence", "word_match":
+	case "read_word", "read_sentence", "word_match", "pattern_intro":
 		return srs.SkillReading
-	case "spell_word", "build_sentence", "fill_blank":
+	case "spell_word", "build_sentence", "fill_blank", "grammar_drill":
 		return srs.SkillWriting
+	// Phonics activities don't map to word-level skill mastery — they update phoneme mastery separately.
+	case "phonics_listen", "phonics_match":
+		return srs.SkillListening
 	default:
 		return srs.SkillListening
 	}
+}
+
+// IsPhonicsActivity returns true for activity types that target phoneme mastery.
+func IsPhonicsActivity(activityType string) bool {
+	return activityType == "phonics_listen" || activityType == "phonics_match"
+}
+
+// IsPerceptionPhonics returns true for phonics_listen (perception/discrimination).
+func IsPerceptionPhonics(activityType string) bool {
+	return activityType == "phonics_listen"
 }
 
 // VocabData holds the minimal vocabulary info embedded into activity configs.

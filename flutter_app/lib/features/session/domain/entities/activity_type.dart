@@ -11,7 +11,8 @@ enum ActivityType {
   buildSentence('build_sentence', 'Build Sentence', 'Xếp câu'),
   fillBlank('fill_blank', 'Fill in the Blank', 'Điền từ'),
   phonicsListen('phonics_listen', 'Phonics', 'Luyện âm'),
-  phonicsMatch('phonics_match', 'Sound Match', 'Nối âm');
+  phonicsMatch('phonics_match', 'Sound Match', 'Nối âm'),
+  patternIntro('pattern_intro', 'Grammar', 'Ngữ pháp');
 
   final String apiValue;
   final String englishName;

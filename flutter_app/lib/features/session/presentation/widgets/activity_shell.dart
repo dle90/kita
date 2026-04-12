@@ -14,6 +14,7 @@ import 'package:kita_english/features/session/presentation/widgets/fill_blank_ac
 import 'package:kita_english/features/session/presentation/widgets/listen_tap_activity.dart';
 import 'package:kita_english/features/session/presentation/widgets/repeat_after_me_activity.dart';
 import 'package:kita_english/features/session/presentation/widgets/sentence_builder_activity.dart';
+import 'package:kita_english/features/session/presentation/widgets/grammar_intro_activity.dart';
 import 'package:kita_english/features/session/presentation/widgets/phonics_activity.dart';
 import 'package:kita_english/features/session/presentation/widgets/word_match_activity.dart';
 import 'package:kita_english/shared/widgets/character_avatar.dart';
@@ -541,6 +542,11 @@ class _ActivityShellState extends ConsumerState<ActivityShell>
           activity: activity,
           onComplete: _onActivityComplete,
         );
+      case ActivityType.patternIntro:
+        return GrammarIntroActivity(
+          activity: activity,
+          onComplete: _onActivityComplete,
+        );
     }
   }
 
@@ -608,12 +614,21 @@ class _ActivityShellState extends ConsumerState<ActivityShell>
             const SizedBox(height: 20),
 
             // Action buttons
-            if (activity.type == ActivityType.flashcardIntro)
+            if (activity.type == ActivityType.flashcardIntro ||
+                activity.type == ActivityType.patternIntro)
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () =>
-                      _onActivityComplete(isCorrect: true),
+                  onPressed: () => _onActivityComplete(
+                    isCorrect: true,
+                    metadata: activity.type == ActivityType.patternIntro
+                        ? {
+                            'grammar_structure_id':
+                                activity.config['grammar_structure_id'] ?? '',
+                            'type': 'pattern_intro',
+                          }
+                        : const {},
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -778,6 +793,33 @@ class _ActivityShellState extends ConsumerState<ActivityShell>
             final marker = correct ? ' <-- correct' : '';
             lines.writeln('  "$g"$marker');
           }
+        }
+
+      case ActivityType.patternIntro:
+        final grammarName = config['grammar_name'] ?? '?';
+        final template = config['template'] ?? '?';
+        final descVI = config['description_vi'] ?? '';
+        final cefrLevel = config['cefr_level'] ?? '';
+        final examples = config['examples'] as List<dynamic>? ?? [];
+        final l1Tip = config['l1_tip'] as Map<String, dynamic>?;
+        lines.writeln('Grammar: $grammarName ($cefrLevel)');
+        lines.writeln('Template: $template');
+        if (descVI.toString().isNotEmpty) lines.writeln('VI: $descVI');
+        if (examples.isNotEmpty) {
+          lines.writeln('');
+          lines.writeln('Examples:');
+          for (final ex in examples) {
+            if (ex is Map<String, dynamic>) {
+              lines.writeln('  EN: ${ex['en'] ?? ''}');
+              if ((ex['vi'] ?? '').toString().isNotEmpty) {
+                lines.writeln('  VI: ${ex['vi']}');
+              }
+            }
+          }
+        }
+        if (l1Tip != null) {
+          lines.writeln('');
+          lines.writeln('L1 Error: ${l1Tip['example_wrong'] ?? ''} → ${l1Tip['example_correct'] ?? ''}');
         }
     }
 

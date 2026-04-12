@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/kitaenglish/backend/internal/content"
+	"github.com/kitaenglish/backend/internal/curriculum"
 	"github.com/kitaenglish/backend/internal/srs"
 )
 
@@ -23,9 +24,13 @@ func GenerateDynamicSession(
 	contentRepo content.ContentRepository,
 	masteryRepo srs.SkillMasteryRepository,
 	srsRepo srs.SrsRepository,
+	phonemeMasteryRepo srs.PhonemeMasteryRepository,
+	curriculumRepo curriculum.Repository,
 	vocabByWord map[string]*content.Vocabulary,
 	allVocab []*content.Vocabulary,
 	patterns []*content.Pattern,
+	allPhonemes []*content.Phoneme,
+	allGrammarStructures []*content.GrammarStructure,
 ) ([]Activity, []string, error) {
 	var activities []Activity
 	var decisionLog []string
@@ -106,6 +111,30 @@ func GenerateDynamicSession(
 		dueVocabIDs[c.VocabularyID] = true
 	}
 
+	// --- Phase 3: Phoneme learner state ---
+	var weakPhonemeIDs []string
+	if phonemeMasteryRepo != nil {
+		weakPhonemes, err := phonemeMasteryRepo.GetWeakestPhonemes(ctx, kidID, 5)
+		if err == nil {
+			for _, pm := range weakPhonemes {
+				weakPhonemeIDs = append(weakPhonemeIDs, pm.PhonemeID)
+			}
+		}
+	}
+	// Select up to 2 phonemes for this session
+	sessionPhonemes := curriculum.SelectPhonemesForSession(allPhonemes, weakPhonemeIDs, 2)
+	phonemeIdx := 0
+
+	// --- Phase 4: Curriculum DAG state ---
+	var grammarExposures []*curriculum.KidGrammarExposure
+	if curriculumRepo != nil {
+		exposures, err := curriculumRepo.GetExposures(ctx, kidID)
+		if err == nil {
+			grammarExposures = exposures
+		}
+	}
+	nextGrammarStructure := curriculum.GetNextGrammarStructure(allGrammarStructures, grammarExposures)
+
 	// Track skill counts for auto-balancing
 	skillCounts := map[string]int{
 		"listening": 0,
@@ -119,6 +148,63 @@ func GenerateDynamicSession(
 	sortOrder := 0
 
 	for _, slot := range plan.Activities {
+		// --- Phase 3: Phonics slots ---
+		if slot.Source == "phoneme_weak" {
+			for i := 0; i < slot.Count; i++ {
+				if phonemeIdx >= len(sessionPhonemes) {
+					decisionLog = append(decisionLog, fmt.Sprintf("[%s] no phonemes available, skipping phonics slot", slot.Phase))
+					break
+				}
+				phoneme := sessionPhonemes[phonemeIdx]
+				phonemeIdx++
+
+				var cfg map[string]interface{}
+				if slot.Format == "phonics_match" {
+					cfg = BuildPhonicsMatchConfig(phoneme, allPhonemes)
+				} else {
+					cfg = BuildPhonicsListenConfig(phoneme)
+				}
+				cfg["phase"] = slot.Phase
+				cfg["target_skill"] = slot.Skill
+				cfg["type"] = slot.Format
+
+				cfgJSON, _ := json.Marshal(cfg)
+				act := Activity{
+					ID:           uuid.New(),
+					Phase:        slot.Phase,
+					ActivityType: slot.Format,
+					Config:       cfgJSON,
+					SortOrder:    sortOrder,
+				}
+				activities = append(activities, act)
+				decisionLog = append(decisionLog, fmt.Sprintf("[%s] %s: phoneme /%s/ (%s)", slot.Phase, slot.Format, phoneme.Symbol, phoneme.ID))
+				sortOrder++
+			}
+			continue
+		}
+
+		// --- Phase 4: Grammar DAG slot ---
+		if slot.Source == "grammar_next" {
+			for i := 0; i < slot.Count; i++ {
+				if nextGrammarStructure == nil {
+					decisionLog = append(decisionLog, fmt.Sprintf("[%s] no grammar structure available, skipping grammar slot", slot.Phase))
+					break
+				}
+
+				act, reason := buildPatternIntroActivity(nextGrammarStructure, patterns, vocabByWord, allVocab, sortOrder)
+				activities = append(activities, act)
+				decisionLog = append(decisionLog, fmt.Sprintf("[%s] pattern_intro: %s", slot.Phase, reason))
+				sortOrder++
+
+				// Record this exposure asynchronously — non-fatal if it fails
+				if curriculumRepo != nil {
+					curriculum.RecordGrammarExposure(ctx, curriculumRepo, kidID, nextGrammarStructure.ID)
+				}
+			}
+			continue
+		}
+
+		// --- Standard vocabulary slots ---
 		// 1. Select source words
 		sourceWords := selectSourceWords(slot.Source, unitWords, allVocab, vocabByWord, dueCards, dueVocabIDs, weakWords, masteryByVocabID)
 
@@ -746,6 +832,95 @@ func pickBlankWord(sentence string, words []*content.Vocabulary) (blankWord, dis
 	}
 
 	return "", "", ""
+}
+
+// buildPatternIntroActivity creates a pattern_intro activity for a grammar structure.
+// It picks the easiest pattern for that structure, shows the template + examples + L1 error tips.
+func buildPatternIntroActivity(
+	gs *content.GrammarStructure,
+	allPatterns []*content.Pattern,
+	vocabByWord map[string]*content.Vocabulary,
+	allVocab []*content.Vocabulary,
+	sortOrder int,
+) (Activity, string) {
+	// Find patterns for this grammar structure (ordered by difficulty asc)
+	var structurePatterns []*content.Pattern
+	for _, p := range allPatterns {
+		if p.GrammarStructureID == gs.ID {
+			structurePatterns = append(structurePatterns, p)
+		}
+	}
+
+	// Build example sentences — use pattern examples or generate from vocab
+	var examples []map[string]interface{}
+	if len(structurePatterns) > 0 {
+		// Pick up to 3 examples from the easiest pattern
+		pattern := structurePatterns[0]
+		patternExamples := pattern.GetExamples()
+		max := 3
+		if len(patternExamples) < max {
+			max = len(patternExamples)
+		}
+		for _, ex := range patternExamples[:max] {
+			examples = append(examples, map[string]interface{}{
+				"en": ex.En,
+				"vi": ex.Vi,
+			})
+		}
+		// If no examples in pattern, try generating one
+		if len(examples) == 0 {
+			if sentence, sentVI, err := GenerateSentenceFromExample(pattern); err == nil && sentence != "" {
+				examples = append(examples, map[string]interface{}{"en": sentence, "vi": sentVI})
+			}
+		}
+	}
+
+	// Parse L1 errors for the tip
+	type l1Error struct {
+		Error          string `json:"error"`
+		ExampleWrong   string `json:"example_wrong"`
+		ExampleCorrect string `json:"example_correct"`
+		ReasonVI       string `json:"reason_vi"`
+	}
+	var l1Errors []l1Error
+	json.Unmarshal(gs.CommonL1Errors, &l1Errors)
+
+	var l1Tip map[string]interface{}
+	if len(l1Errors) > 0 {
+		e := l1Errors[0]
+		l1Tip = map[string]interface{}{
+			"error":           e.Error,
+			"example_wrong":   e.ExampleWrong,
+			"example_correct": e.ExampleCorrect,
+			"reason_vi":       e.ReasonVI,
+		}
+	}
+
+	cfg := map[string]interface{}{
+		"type":                "pattern_intro",
+		"grammar_structure_id": gs.ID,
+		"grammar_name":        gs.Name,
+		"description_vi":      gs.DescriptionVI,
+		"template":            gs.Template,
+		"cefr_level":          gs.CEFRLevel,
+		"examples":            examples,
+	}
+	if l1Tip != nil {
+		cfg["l1_tip"] = l1Tip
+	}
+
+	cfgJSON, _ := json.Marshal(cfg)
+
+	reason := fmt.Sprintf("grammar '%s' (%s) — %d examples, prerequisites: %v",
+		gs.Name, gs.CEFRLevel, len(examples), gs.PrerequisiteIDs)
+
+	return Activity{
+		ID:           uuid.New(),
+		Phase:        "grammar",
+		ActivityType: "pattern_intro",
+		Config:       cfgJSON,
+		SortOrder:    sortOrder,
+	}, reason
 }
 
 func findVocabByWord(allVocab []*content.Vocabulary, word string) (*content.Vocabulary, bool) {

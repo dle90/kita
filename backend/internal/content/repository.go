@@ -35,6 +35,7 @@ type ContentRepository interface {
 	GetGrammarStructures(ctx context.Context) ([]*GrammarStructure, error)
 	GetPatterns(ctx context.Context, day int) ([]*Pattern, error)
 	GetPatternsByFunction(ctx context.Context, function string) ([]*Pattern, error)
+	GetPatternsByGrammarStructure(ctx context.Context, grammarStructureID string) ([]*Pattern, error)
 	GetCommunicationFunctions(ctx context.Context) ([]*CommunicationFunction, error)
 	CountGrammarStructures(ctx context.Context) (int, error)
 	CountPatterns(ctx context.Context) (int, error)
@@ -398,6 +399,26 @@ func (r *pgContentRepository) CountPhonemes(ctx context.Context) (int, error) {
 	var count int
 	err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM phonemes`).Scan(&count)
 	return count, err
+}
+
+func (r *pgContentRepository) GetPatternsByGrammarStructure(ctx context.Context, grammarStructureID string) ([]*Pattern, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT id, grammar_structure_id, template, template_vi, communication_function, slots, difficulty, day_introduced, example_sentences
+		 FROM patterns WHERE grammar_structure_id = $1 ORDER BY difficulty`, grammarStructureID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []*Pattern
+	for rows.Next() {
+		p := &Pattern{}
+		if err := rows.Scan(&p.ID, &p.GrammarStructureID, &p.Template, &p.TemplateVI, &p.CommunicationFunction, &p.Slots, &p.Difficulty, &p.DayIntroduced, &p.ExampleSentences); err != nil {
+			return nil, err
+		}
+		result = append(result, p)
+	}
+	return result, nil
 }
 
 func (r *pgContentRepository) CountPatterns(ctx context.Context) (int, error) {

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:kita_english/core/audio/sound_effects.dart';
 import 'package:kita_english/core/audio/tts_service.dart';
 import 'package:kita_english/core/constants/app_colors.dart';
 import 'package:kita_english/core/constants/app_typography.dart';
@@ -104,28 +103,21 @@ class _PhonicsActivityState extends ConsumerState<PhonicsActivity>
     final isCorrect = answeredDifferent == areDifferent;
 
     if (isCorrect) {
-      ref.read(soundEffectsProvider).playCorrect();
       setState(() => _answered = true);
-      widget.onComplete(
-        isCorrect: true,
-        metadata: {
-          'phoneme_id': _config['phoneme_id'] ?? '',
-          'mode': 'listen',
-        },
-      );
     } else {
-      ref.read(soundEffectsProvider).playWrong();
       _shakeController.forward(from: 0);
       setState(() => _showTip = true);
       _tipSlideController.forward(from: 0);
-      widget.onComplete(
-        isCorrect: false,
-        metadata: {
-          'phoneme_id': _config['phoneme_id'] ?? '',
-          'mode': 'listen',
-        },
-      );
     }
+
+    // Shell owns sound and attempt tracking via onComplete
+    widget.onComplete(
+      isCorrect: isCorrect,
+      metadata: {
+        'phoneme_id': _config['phoneme_id'] ?? '',
+        'mode': 'listen',
+      },
+    );
   }
 
   void _onMatchAnswer(int index) {
@@ -140,34 +132,26 @@ class _PhonicsActivityState extends ConsumerState<PhonicsActivity>
     setState(() => _selectedOptionIndex = index);
 
     if (isCorrect) {
-      ref.read(soundEffectsProvider).playCorrect();
       setState(() => _answered = true);
-      widget.onComplete(
-        isCorrect: true,
-        metadata: {
-          'phoneme_id': _config['phoneme_id'] ?? '',
-          'mode': 'match',
-          'selected_grapheme': option['grapheme'] ?? '',
-        },
-      );
     } else {
-      ref.read(soundEffectsProvider).playWrong();
       _shakeController.forward(from: 0);
       setState(() => _showTip = true);
       _tipSlideController.forward(from: 0);
-      widget.onComplete(
-        isCorrect: false,
-        metadata: {
-          'phoneme_id': _config['phoneme_id'] ?? '',
-          'mode': 'match',
-          'selected_grapheme': option['grapheme'] ?? '',
-        },
-      );
-      // Reset selection after shake
+      // Reset selection after shake so kid can try again
       Future.delayed(const Duration(milliseconds: 600), () {
         if (mounted) setState(() => _selectedOptionIndex = null);
       });
     }
+
+    // Shell owns sound and attempt tracking via onComplete
+    widget.onComplete(
+      isCorrect: isCorrect,
+      metadata: {
+        'phoneme_id': _config['phoneme_id'] ?? '',
+        'mode': 'match',
+        'selected_grapheme': option['grapheme'] ?? '',
+      },
+    );
   }
 
   @override

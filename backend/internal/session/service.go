@@ -2,6 +2,7 @@ package session
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -9,17 +10,20 @@ import (
 	"github.com/google/uuid"
 	"github.com/kitaenglish/backend/internal/common"
 	"github.com/kitaenglish/backend/internal/content"
+	"github.com/kitaenglish/backend/internal/curriculum"
 	"github.com/kitaenglish/backend/internal/onboarding"
 	"github.com/kitaenglish/backend/internal/srs"
 )
 
 type SessionService struct {
-	sessionRepo      SessionRepository
-	activityRepo     ActivityResultRepository
-	contentRepo      content.ContentRepository
-	kidRepo          onboarding.KidRepository
-	srsRepo          srs.SrsRepository
-	skillMasteryRepo srs.SkillMasteryRepository
+	sessionRepo        SessionRepository
+	activityRepo       ActivityResultRepository
+	contentRepo        content.ContentRepository
+	kidRepo            onboarding.KidRepository
+	srsRepo            srs.SrsRepository
+	skillMasteryRepo   srs.SkillMasteryRepository
+	phonemeMasteryRepo srs.PhonemeMasteryRepository
+	curriculumRepo     curriculum.Repository
 }
 
 func NewSessionService(
@@ -28,19 +32,20 @@ func NewSessionService(
 	contentRepo content.ContentRepository,
 	kidRepo onboarding.KidRepository,
 	srsRepo srs.SrsRepository,
-	skillMasteryRepo ...srs.SkillMasteryRepository,
+	skillMasteryRepo srs.SkillMasteryRepository,
+	phonemeMasteryRepo srs.PhonemeMasteryRepository,
+	curriculumRepo curriculum.Repository,
 ) *SessionService {
-	s := &SessionService{
-		sessionRepo:  sessionRepo,
-		activityRepo: activityRepo,
-		contentRepo:  contentRepo,
-		kidRepo:      kidRepo,
-		srsRepo:      srsRepo,
+	return &SessionService{
+		sessionRepo:        sessionRepo,
+		activityRepo:       activityRepo,
+		contentRepo:        contentRepo,
+		kidRepo:            kidRepo,
+		srsRepo:            srsRepo,
+		skillMasteryRepo:   skillMasteryRepo,
+		phonemeMasteryRepo: phonemeMasteryRepo,
+		curriculumRepo:     curriculumRepo,
 	}
-	if len(skillMasteryRepo) > 0 && skillMasteryRepo[0] != nil {
-		s.skillMasteryRepo = skillMasteryRepo[0]
-	}
-	return s
 }
 
 func (s *SessionService) GetOrCreateSessions(ctx context.Context, kidID uuid.UUID) ([]*KidSession, error) {
@@ -118,14 +123,21 @@ func (s *SessionService) GetSession(ctx context.Context, kidID uuid.UUID, dayNum
 		patterns = nil
 	}
 	if len(patterns) == 0 {
-		// Fall back to all patterns
 		patterns, _ = s.contentRepo.GetPatterns(ctx, 0)
 	}
+
+	// Phase 3: Load all phonemes
+	allPhonemes, _ := s.contentRepo.GetPhonemes(ctx)
+
+	// Phase 4: Load grammar structures (ordered by difficulty ASC from DB)
+	allGrammarStructures, _ := s.contentRepo.GetGrammarStructures(ctx)
 
 	activities, decisionLog, dynErr := GenerateDynamicSession(
 		ctx, kidID, dayNumber, plan,
 		s.contentRepo, s.skillMasteryRepo, s.srsRepo,
+		s.phonemeMasteryRepo, s.curriculumRepo,
 		vocabByWord, allVocab, patterns,
+		allPhonemes, allGrammarStructures,
 	)
 
 	if dynErr != nil || len(activities) == 0 {
@@ -295,14 +307,36 @@ func (s *SessionService) SubmitActivityResult(ctx context.Context, kidID uuid.UU
 		return nil, common.ErrInternal("failed to save activity result")
 	}
 
-	// Update per-skill mastery tracking
-	if s.skillMasteryRepo != nil && result.VocabularyID != nil {
+	// Update per-skill mastery tracking (vocabulary activities)
+	if s.skillMasteryRepo != nil && result.VocabularyID != nil && !IsPhonicsActivity(result.ActivityType) {
 		skill := ActivityTypeToSkill(result.ActivityType)
 		score := scoreFromActivityResult(result)
 		_ = s.skillMasteryRepo.UpdateSkillScore(ctx, kidID, *result.VocabularyID, skill, score)
 	}
 
+	// Phase 3: Update phoneme mastery for phonics activities
+	if s.phonemeMasteryRepo != nil && IsPhonicsActivity(result.ActivityType) {
+		if phonemeID, ok := extractPhonemeID(result.Metadata); ok {
+			score := scoreFromActivityResult(result)
+			isPerception := IsPerceptionPhonics(result.ActivityType)
+			_ = s.phonemeMasteryRepo.UpdatePhonemeMastery(ctx, kidID, phonemeID, isPerception, score)
+		}
+	}
+
 	return result, nil
+}
+
+// extractPhonemeID pulls the phoneme_id field out of activity result metadata JSON.
+func extractPhonemeID(metadata json.RawMessage) (string, bool) {
+	if len(metadata) == 0 {
+		return "", false
+	}
+	var m map[string]interface{}
+	if err := json.Unmarshal(metadata, &m); err != nil {
+		return "", false
+	}
+	id, ok := m["phoneme_id"].(string)
+	return id, ok && id != ""
 }
 
 // scoreFromActivityResult converts an activity result into a 0-100 score for skill mastery.

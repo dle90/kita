@@ -14,6 +14,7 @@ import (
 	"github.com/kitaenglish/backend/internal/common"
 	"github.com/kitaenglish/backend/internal/config"
 	"github.com/kitaenglish/backend/internal/content"
+	"github.com/kitaenglish/backend/internal/curriculum"
 	"github.com/kitaenglish/backend/internal/debug"
 	"github.com/kitaenglish/backend/internal/notification"
 	"github.com/kitaenglish/backend/internal/onboarding"
@@ -74,6 +75,8 @@ func main() {
 	activityRepo := session.NewActivityResultRepository(dbPool)
 	srsRepo := srs.NewSrsRepository(dbPool)
 	skillMasteryRepo := srs.NewSkillMasteryRepository(dbPool)
+	phonemeMasteryRepo := srs.NewPhonemeMasteryRepository(dbPool)
+	curriculumRepo := curriculum.NewRepository(dbPool)
 	progressRepo := progress.NewProgressRepository(dbPool)
 	pronRepo := pronunciation.NewPronunciationRepository(dbPool)
 
@@ -81,7 +84,7 @@ func main() {
 	authService := auth.NewAuthService(authRepo, cfg.JWT)
 	onboardingService := onboarding.NewOnboardingService(kidRepo, contentRepo, skillMasteryRepo, srsRepo)
 	srsService := srs.NewSrsService(srsRepo)
-	sessionService := session.NewSessionService(sessionRepo, activityRepo, contentRepo, kidRepo, srsRepo, skillMasteryRepo)
+	sessionService := session.NewSessionService(sessionRepo, activityRepo, contentRepo, kidRepo, srsRepo, skillMasteryRepo, phonemeMasteryRepo, curriculumRepo)
 	azureClient := pronunciation.NewAzureSpeechClient(cfg.Azure)
 	pronService := pronunciation.NewPronunciationService(pronRepo, azureClient, storage)
 	progressService := progress.NewProgressService(progressRepo, sessionRepo, activityRepo, srsRepo, pronRepo, skillMasteryRepo)

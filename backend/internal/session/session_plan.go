@@ -83,14 +83,23 @@ func defaultSessionPlans() *SessionPlansFile {
 	return &SessionPlansFile{
 		DefaultPlan: SessionPlan{
 			Activities: []PlanSlot{
+				// Warmup: SRS review
 				{Phase: "warmup", Source: "srs_due", Skill: "weakest", Format: "auto", Count: 2},
 				{Phase: "warmup", Source: "srs_due", Skill: "listening", Format: "listen_and_choose", Count: 1},
+				// Phase 3 — Phonics: one perception drill, one production drill
+				{Phase: "phonics", Source: "phoneme_weak", Skill: "perception", Format: "phonics_listen", Count: 1},
+				{Phase: "phonics", Source: "phoneme_weak", Skill: "production", Format: "phonics_match", Count: 1},
+				// Phase 4 — Curriculum DAG: introduce next unlocked grammar structure
+				{Phase: "grammar", Source: "grammar_next", Skill: "reading", Format: "pattern_intro", Count: 1},
+				// New content
 				{Phase: "new_content", Source: "unit_vocab", Skill: "listening", Format: "flashcard_intro", Count: 1},
 				{Phase: "new_content", Source: "unit_vocab", Skill: "speaking", Format: "listen_and_repeat", Count: 1},
+				// Practice
 				{Phase: "practice", Source: "mix", Skill: "reading", Format: "fill_blank", Count: 1},
 				{Phase: "practice", Source: "mix", Skill: "writing", Format: "build_sentence", Count: 1},
 				{Phase: "practice", Source: "error_focus", Skill: "speaking", Format: "speak_word", Count: 1},
 				{Phase: "practice", Source: "mix", Skill: "listening", Format: "word_match", Count: 1},
+				// Fun finish
 				{Phase: "fun_finish", Source: "all_learned", Skill: "auto", Format: "word_match", Count: 1},
 			},
 		},

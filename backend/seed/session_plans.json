@@ -1,15 +1,18 @@
 {
   "default_plan": {
     "activities": [
-      {"phase": "warmup", "source": "srs_due", "skill": "weakest", "format": "auto", "count": 2},
-      {"phase": "warmup", "source": "srs_due", "skill": "listening", "format": "listen_and_choose", "count": 1},
-      {"phase": "new_content", "source": "unit_vocab", "skill": "listening", "format": "flashcard_intro", "count": 1},
-      {"phase": "new_content", "source": "unit_vocab", "skill": "speaking", "format": "listen_and_repeat", "count": 1},
-      {"phase": "practice", "source": "mix", "skill": "reading", "format": "fill_blank", "count": 1},
-      {"phase": "practice", "source": "mix", "skill": "writing", "format": "build_sentence", "count": 1},
-      {"phase": "practice", "source": "error_focus", "skill": "speaking", "format": "speak_word", "count": 1},
-      {"phase": "practice", "source": "mix", "skill": "listening", "format": "word_match", "count": 1},
-      {"phase": "fun_finish", "source": "all_learned", "skill": "auto", "format": "word_match", "count": 1}
+      {"phase": "warmup",      "source": "srs_due",      "skill": "weakest",    "format": "auto",             "count": 2},
+      {"phase": "warmup",      "source": "srs_due",      "skill": "listening",  "format": "listen_and_choose", "count": 1},
+      {"phase": "phonics",     "source": "phoneme_weak", "skill": "perception", "format": "phonics_listen",    "count": 1},
+      {"phase": "phonics",     "source": "phoneme_weak", "skill": "production", "format": "phonics_match",     "count": 1},
+      {"phase": "grammar",     "source": "grammar_next", "skill": "reading",    "format": "pattern_intro",     "count": 1},
+      {"phase": "new_content", "source": "unit_vocab",   "skill": "listening",  "format": "flashcard_intro",   "count": 1},
+      {"phase": "new_content", "source": "unit_vocab",   "skill": "speaking",   "format": "listen_and_repeat", "count": 1},
+      {"phase": "practice",    "source": "mix",          "skill": "reading",    "format": "fill_blank",        "count": 1},
+      {"phase": "practice",    "source": "mix",          "skill": "writing",    "format": "build_sentence",    "count": 1},
+      {"phase": "practice",    "source": "error_focus",  "skill": "speaking",   "format": "speak_word",        "count": 1},
+      {"phase": "practice",    "source": "mix",          "skill": "listening",  "format": "word_match",        "count": 1},
+      {"phase": "fun_finish",  "source": "all_learned",  "skill": "auto",       "format": "word_match",        "count": 1}
     ]
   },
   "unit_vocabulary": {
