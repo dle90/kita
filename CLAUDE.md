@@ -142,10 +142,46 @@ generate_session(kid):
 ```
 
 ### Build Phases
-- **Phase 1**: Patterns + sentence generation (grammar templates with slots, sentence builder, fill-blank)
-- **Phase 2**: Per-skill mastery (4-skill tracking, skill-balanced activity selection, reading/writing activities)
-- **Phase 3**: Phonics track (phoneme table, phonics drills, minimal pairs)
-- **Phase 4**: Curriculum DAG (unit system, prerequisites, tier transitions, adaptive paths)
+- **Phase 1**: ✅ Patterns + sentence generation (grammar templates with slots, sentence builder, fill-blank)
+- **Phase 2**: ✅ Per-skill mastery (4-skill tracking, skill-balanced activity selection, reading/writing activities)
+- **Phase 3**: ✅ Phonics track — implemented
+  - `kid_phoneme_mastery` table (migration 014) tracks `perception_score` + `production_score` per phoneme
+  - `phonics_listen` (minimal pair discrimination): play two words → Same or Different?
+  - `phonics_match` (sound-letter matching): play a word → pick the correct grapheme
+  - `srs.PhonemeMasteryRepository` — `GetWeakestPhonemes`, `UpdatePhonemeMastery`
+  - `curriculum.SelectPhonemesForSession` — weak first → unseen → any remaining (2 per session)
+  - Flutter widgets: `PhonicsActivity` (dual-mode), `PhonemeTip` (mouth position + substitution tip)
+- **Phase 4**: ✅ Curriculum DAG — implemented
+  - `grammar_structures` table (migration 012) with `prerequisite_ids TEXT[]`
+  - `kid_grammar_exposure` table (migration 015) tracks exposure count per kid per structure
+  - `curriculum.GetNextGrammarStructure` — 3-pass DAG: (1) first unseen with prereqs met, (2) least-exposed below max, (3) fallback
+  - `pattern_intro` activity type: shows grammar name, template, examples (EN+VI), L1 error tip
+  - Flutter widget: `GrammarIntroActivity` — always marks correct (intro only, no test)
+
+## Text-Only Test Mode
+The session shell has a `TXT` badge button in the header that toggles `_textMode`. In text mode:
+- All activity widgets are bypassed; `_buildTextModeContent()` renders structured text cards
+- Each activity type has a specific text view (phonics shows word/symbol/options, grammar shows template/examples)
+- `patternIntro` gets a single "Next" button (always correct — it's intro content)
+- `phonicsListen`/`phonicsMatch` get Correct/Wrong buttons for manual testing
+- Toggle by tapping `TXT` in the top-right of the session screen
+
+## Session Plan Configuration
+`backend/seed/session_plans.json` is loaded ONCE via `sync.Once` at first session request and takes priority over the Go fallback in `session_plan.go`. The disk file must be updated whenever the plan changes — updating only the Go code has no effect on a running server.
+
+Current 12-slot plan (generates 13 activities for a fresh kid):
+1. warmup/srs_due × 2 (adapts to weakest skill)
+2. warmup/srs_due/listen × 1
+3. phonics/phonics_listen × 1 (weakest phoneme)
+4. phonics/phonics_match × 1 (second weakest phoneme)
+5. grammar/pattern_intro × 1 (next unlocked grammar structure)
+6. new_content/flashcard_intro × 1
+7. new_content/listen_and_repeat × 1
+8. practice/fill_blank × 1
+9. practice/build_sentence × 1
+10. practice/speak_word × 1 (error_focus source)
+11. practice/word_match × 1
+12. fun_finish/word_match × 1
 
 ## Key Architecture Decisions
 - **Server-side pronunciation scoring**: Flutter records WAV/webm → uploads to Go backend → Go calls Azure Speech API → runs Vietnamese L1 classifier → returns phoneme-level scores
@@ -156,6 +192,10 @@ generate_session(kid):
 - **Guest-first onboarding**: No login required. Guest account auto-created. Link email/phone later
 - **Sound effects**: Web Audio API synthesized tones (no audio files needed)
 - **Docker cache busting**: Single COPY layer + --pwa-strategy=none for reliable deploys
+- **session_plans.json sync.Once**: File is loaded once per process. Changing the file without redeploying has no effect. Always update the file, not just the Go fallback.
+
+## Known Issues / To Debug
+- **Backend deployments FAIL since Phase 3+4 commit `8815c36`** — builds succeed (26.79s) but all deployments since 2026-04-12 show FAILED status in `railway deployment list`. Old container `bd4d509122c2/Bd0N1e8Wwa` (deployment `ae68aca1`, 2026-04-10) continues to serve. No logs from new containers — they crash before emitting any output. Likely a startup panic or fatal error. To debug: check `railway logs --latest` after deploy, look for startup errors, check if migration 015 conflicts.
 
 ## API Contracts
 - All JSON uses **snake_case** (Go backend is source of truth)
