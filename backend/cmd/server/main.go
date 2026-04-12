@@ -146,7 +146,7 @@ func main() {
 		cancel()
 	}()
 
-	log.Printf("Server listening on :%s", cfg.Server.Port)
+	log.Printf("Server v2 (Phase3+Phase4) listening on :%s", cfg.Server.Port)
 	if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("HTTP server error: %v", err)
 	}
