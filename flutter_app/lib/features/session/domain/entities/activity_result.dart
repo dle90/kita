@@ -1,5 +1,6 @@
 /// Result of a single activity attempt within a session.
 class ActivityResult {
+  final String sessionId;
   final String activityId;
   final String activityType;
   final String? vocabularyId;
@@ -10,6 +11,7 @@ class ActivityResult {
   final Map<String, dynamic> metadata;
 
   const ActivityResult({
+    required this.sessionId,
     required this.activityId,
     required this.activityType,
     this.vocabularyId,
@@ -21,6 +23,7 @@ class ActivityResult {
   });
 
   ActivityResult copyWith({
+    String? sessionId,
     String? activityId,
     String? activityType,
     String? vocabularyId,
@@ -31,6 +34,7 @@ class ActivityResult {
     Map<String, dynamic>? metadata,
   }) {
     return ActivityResult(
+      sessionId: sessionId ?? this.sessionId,
       activityId: activityId ?? this.activityId,
       activityType: activityType ?? this.activityType,
       vocabularyId: vocabularyId ?? this.vocabularyId,
@@ -43,9 +47,9 @@ class ActivityResult {
   }
 
   /// Serializes to JSON matching Go backend's ActivityResultRequest.
-  /// Note: activityId is not included because it's in the URL path.
   Map<String, dynamic> toJson() {
     return {
+      'session_id': sessionId,
       'activity_type': activityType,
       if (vocabularyId != null) 'vocabulary_id': vocabularyId,
       'is_correct': isCorrect,
@@ -58,6 +62,7 @@ class ActivityResult {
 
   factory ActivityResult.fromJson(Map<String, dynamic> json) {
     return ActivityResult(
+      sessionId: json['session_id'] as String? ?? '',
       activityId: json['activity_id'] as String? ?? '',
       activityType: json['activity_type'] as String? ?? '',
       vocabularyId: json['vocabulary_id'] as String?,

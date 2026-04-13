@@ -118,13 +118,17 @@ class _PlacementTestScreenState extends ConsumerState<PlacementTestScreen>
     final score = (correctCount * 25).clamp(0, 100);
 
     ref.read(onboardingProvider.notifier).setPlacementScore(score);
-    await ref.read(onboardingProvider.notifier).submitPlacementResults(
-      answers: _answers,
-    );
 
-    // Submit the full onboarding
+    // Create kid profile first so we have a kidId before submitting placement
     final success =
         await ref.read(onboardingProvider.notifier).submitOnboarding();
+
+    if (success) {
+      // Kid now exists — submit placement results against the real kidId
+      await ref.read(onboardingProvider.notifier).submitPlacementResults(
+        answers: _answers,
+      );
+    }
 
     if (mounted) {
       if (success) {

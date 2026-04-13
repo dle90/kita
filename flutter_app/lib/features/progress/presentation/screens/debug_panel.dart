@@ -284,6 +284,7 @@ class _DebugContentState extends ConsumerState<_DebugContent> {
       final sessionResp =
           await dio.get(ApiEndpoints.session(kidId, dayNumber));
       final sessionData = sessionResp.data as Map<String, dynamic>;
+      final sessionId = sessionData['id'] as String? ?? '';
       final activities =
           (sessionData['activities'] as List<dynamic>?) ?? [];
 
@@ -353,6 +354,7 @@ class _DebugContentState extends ConsumerState<_DebugContent> {
           await dio.post(
             ApiEndpoints.activityResult(kidId, activityId),
             data: {
+              'session_id': sessionId,
               'activity_type': activityType,
               'is_correct': isCorrect,
               'attempts': attempts,

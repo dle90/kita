@@ -140,21 +140,13 @@ func (h *SessionHandler) SubmitActivityResult(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	activityIDStr := chi.URLParam(r, "activityId")
-	// activityId is used as the session ID lookup context
-	sessionID, err := uuid.Parse(activityIDStr)
-	if err != nil {
-		common.RespondError(w, http.StatusBadRequest, "invalid activity ID")
-		return
-	}
-
 	var req ActivityResultRequest
 	if errs := common.DecodeAndValidate(r, &req); errs != nil {
 		common.RespondValidationError(w, errs)
 		return
 	}
 
-	result, svcErr := h.service.SubmitActivityResult(r.Context(), kidID, sessionID, req)
+	result, svcErr := h.service.SubmitActivityResult(r.Context(), kidID, req.SessionID, req)
 	if svcErr != nil {
 		if appErr, ok := svcErr.(*common.AppError); ok {
 			common.RespondAppError(w, appErr)

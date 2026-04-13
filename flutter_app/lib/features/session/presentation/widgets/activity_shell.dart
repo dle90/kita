@@ -129,7 +129,10 @@ class _ActivityShellState extends ConsumerState<ActivityShell>
       Future.delayed(const Duration(milliseconds: 1200), () {
         if (!mounted) return;
 
+        final sessionId =
+            ref.read(sessionProvider).session?.id ?? '';
         final result = ActivityResult(
+          sessionId: sessionId,
           activityId: activity.id,
           activityType: activity.type.apiValue,
           isCorrect: true,
@@ -158,7 +161,10 @@ class _ActivityShellState extends ConsumerState<ActivityShell>
           final timeSpent = DateTime.now()
               .difference(_activityStartTime ?? DateTime.now())
               .inMilliseconds;
+          final sessionId =
+              ref.read(sessionProvider).session?.id ?? '';
           final result = ActivityResult(
+            sessionId: sessionId,
             activityId: activity.id,
             activityType: activity.type.apiValue,
             isCorrect: false,
