@@ -27,21 +27,23 @@ English learning app for Vietnamese kids age 5-12. MVP is the "7-Day English Spe
 
 ## Deploying
 
+**CRITICAL**: Always deploy from the **REPO ROOT** (not subdirectories). Railway needs to find `backend/Dockerfile` or `flutter_app/` from the full repo. Deploying from inside `backend/` causes Railway to fall back to RAILPACK and fail with "Could not find root directory: backend".
+
 ### Backend (from repo root)
 ```bash
-cd backend
-railway service link e9973b90-6931-456a-823b-0279b3367ac3
+# From c:\Users\ducml\Desktop\kita  (the repo root)
+railway link --project c5b7b5bd-883e-47c1-9bff-76c95daa9fa4 --environment 526a6c2e-6f4e-4abd-9a24-f42e0a41e263 --service e9973b90-6931-456a-823b-0279b3367ac3
 railway up
 ```
 
 ### Frontend (from repo root)
 ```bash
-cd flutter_app
-railway service link 0b09ec57-d4a1-400b-b2a4-9e25339f713d
+# From c:\Users\ducml\Desktop\kita  (the repo root)
+railway link --project c5b7b5bd-883e-47c1-9bff-76c95daa9fa4 --environment 526a6c2e-6f4e-4abd-9a24-f42e0a41e263 --service 0b09ec57-d4a1-400b-b2a4-9e25339f713d
 railway up
 ```
 
-**IMPORTANT**: Always `cd` into the correct subdirectory AND `railway service link` the correct service ID before running `railway up`. Otherwise you deploy the wrong code to the wrong service.
+**Note**: `railway service link <ID>` also works if you're already in the repo root with a `.railway` project config present.
 
 ### Checking logs
 ```bash
