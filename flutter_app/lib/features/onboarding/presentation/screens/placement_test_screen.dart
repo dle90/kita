@@ -9,6 +9,7 @@ import 'package:kita_english/core/constants/app_typography.dart';
 import 'package:kita_english/core/router/app_router.dart';
 import 'package:kita_english/core/audio/sound_effects.dart';
 import 'package:kita_english/core/audio/tts_service.dart';
+import 'package:kita_english/core/audio/web_recorder.dart';
 import 'package:kita_english/features/onboarding/presentation/providers/onboarding_provider.dart';
 
 
@@ -642,69 +643,71 @@ class _ListenAndTapRoundState extends State<_ListenAndTapRound> {
 }
 
 // --- Round 2: Say "Hello!" (mic test) ---
-class _SayHelloRound extends StatefulWidget {
+class _SayHelloRound extends ConsumerStatefulWidget {
   final void Function(Map<String, dynamic> answer) onAnswer;
 
   const _SayHelloRound({required this.onAnswer});
 
   @override
-  State<_SayHelloRound> createState() => _SayHelloRoundState();
+  ConsumerState<_SayHelloRound> createState() => _SayHelloRoundState();
 }
 
-class _SayHelloRoundState extends State<_SayHelloRound> {
+class _SayHelloRoundState extends ConsumerState<_SayHelloRound> {
   bool _isRecording = false;
   bool _hasRecorded = false;
   bool _submitted = false;
   final _tts = TtsService();
 
-  void _toggleRecording() {
-    if (_isRecording) {
-      // Stop recording
-      setState(() {
-        _isRecording = false;
-        _hasRecorded = true;
-      });
-      // Auto-submit after recording
-      Future.delayed(const Duration(milliseconds: 500), () {
-        widget.onAnswer({
-          'round': 2,
-          'type': 'say_hello',
-          'recorded': true,
-          'correct': true, // Mic test always passes
-        });
-      });
-    } else {
-      // Start recording
-      setState(() => _isRecording = true);
-      // Auto-stop after 3 seconds
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted && _isRecording) {
-          _toggleRecording();
-        }
-      });
-    }
-  }
-
-  void _onWebDone() {
+  void _onDone() {
     widget.onAnswer({
       'round': 2,
       'type': 'say_hello',
       'recorded': true,
-      'correct': true,
+      'correct': true, // Mic test always passes
     });
   }
 
   Future<void> _onMicTap() async {
     if (_submitted) return;
-    setState(() => _isRecording = true);
-    try { _tts.speak('Hello'); } catch (_) {}
+
+    if (_isRecording) {
+      // Stop recording
+      if (kIsWeb) {
+        final recorder = ref.read(webRecorderProvider);
+        await recorder.stop();
+      }
+      setState(() { _isRecording = false; _hasRecorded = true; _submitted = true; });
+      try { SoundEffects().playCorrect(); } catch (_) {}
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
+      _onDone();
+      return;
+    }
+
+    // Start recording
+    if (kIsWeb) {
+      final recorder = ref.read(webRecorderProvider);
+      final started = await recorder.start();
+      if (started && mounted) {
+        setState(() => _isRecording = true);
+        // Auto-stop after 3 seconds
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted && _isRecording) _onMicTap();
+        });
+        return;
+      }
+      // Mic permission denied — skip mic test gracefully
+    }
+
+    // Fallback for non-web or mic permission denied
+    setState(() { _isRecording = true; });
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
     setState(() { _isRecording = false; _hasRecorded = true; _submitted = true; });
     try { SoundEffects().playCorrect(); } catch (_) {}
     await Future.delayed(const Duration(milliseconds: 500));
     if (!mounted) return;
-    _onWebDone();
+    _onDone();
   }
 
   @override
@@ -859,7 +862,7 @@ class _SayHelloRoundState extends State<_SayHelloRound> {
         ),
         const SizedBox(height: 12),
         Text(
-          'Noi "Hello!" that to nhe!',
+          'Nói "Hello!" thật to nhé!',
           style: AppTypography.bodyLarge.copyWith(
             color: AppColors.textSecondary,
           ),
@@ -868,7 +871,7 @@ class _SayHelloRoundState extends State<_SayHelloRound> {
 
         // Big mic button
         GestureDetector(
-          onTap: _hasRecorded ? null : _toggleRecording,
+          onTap: _submitted ? null : _onMicTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeOutBack,
