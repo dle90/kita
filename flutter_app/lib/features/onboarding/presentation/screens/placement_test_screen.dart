@@ -11,6 +11,7 @@ import 'package:kita_english/core/audio/sound_effects.dart';
 import 'package:kita_english/core/audio/tts_service.dart';
 import 'package:kita_english/core/audio/web_recorder.dart';
 import 'package:kita_english/features/onboarding/presentation/providers/onboarding_provider.dart';
+import 'package:kita_english/features/pronunciation/data/repositories/pronunciation_repository_impl.dart';
 
 
 /// A quick stealth-assessment placement test with 4 mini games.
@@ -642,7 +643,7 @@ class _ListenAndTapRoundState extends State<_ListenAndTapRound> {
   }
 }
 
-// --- Round 2: Say "Hello!" (mic test) ---
+// --- Round 2: Say "Hello!" (scored speaking) ---
 class _SayHelloRound extends ConsumerStatefulWidget {
   final void Function(Map<String, dynamic> answer) onAnswer;
 
@@ -654,33 +655,28 @@ class _SayHelloRound extends ConsumerStatefulWidget {
 
 class _SayHelloRoundState extends ConsumerState<_SayHelloRound> {
   bool _isRecording = false;
-  bool _hasRecorded = false;
-  bool _submitted = false;
+  bool _isScoring = false;
+  double? _score;        // null = not scored yet
+  bool _passed = false;
   final _tts = TtsService();
 
-  void _onDone() {
+  static const _passThreshold = 50.0;
+
+  void _advance(bool correct) {
     widget.onAnswer({
       'round': 2,
       'type': 'say_hello',
       'recorded': true,
-      'correct': true, // Mic test always passes
+      'correct': correct,
+      if (_score != null) 'score': _score,
     });
   }
 
   Future<void> _onMicTap() async {
-    if (_submitted) return;
+    if (_isScoring || _passed) return;
 
     if (_isRecording) {
-      // Stop recording
-      if (kIsWeb) {
-        final recorder = ref.read(webRecorderProvider);
-        await recorder.stop();
-      }
-      setState(() { _isRecording = false; _hasRecorded = true; _submitted = true; });
-      try { SoundEffects().playCorrect(); } catch (_) {}
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (!mounted) return;
-      _onDone();
+      await _stopAndScore();
       return;
     }
 
@@ -692,152 +688,80 @@ class _SayHelloRoundState extends ConsumerState<_SayHelloRound> {
         setState(() => _isRecording = true);
         // Auto-stop after 3 seconds
         Future.delayed(const Duration(seconds: 3), () {
-          if (mounted && _isRecording) _onMicTap();
+          if (mounted && _isRecording) _stopAndScore();
         });
         return;
       }
-      // Mic permission denied — skip mic test gracefully
+      // Mic denied — fallback pass so onboarding isn't blocked
     }
+    // Non-web fallback
+    _advance(true);
+  }
 
-    // Fallback for non-web or mic permission denied
-    setState(() { _isRecording = true; });
-    await Future.delayed(const Duration(seconds: 2));
+  Future<void> _stopAndScore() async {
+    setState(() { _isRecording = false; _isScoring = true; });
+
+    try {
+      final recorder = ref.read(webRecorderProvider);
+      final audioBytes = await recorder.stop();
+
+      if (audioBytes != null && audioBytes.isNotEmpty) {
+        final repo = ref.read(pronunciationRepositoryProvider);
+        final result = await repo.scorePronunciationBytes(
+          audioBytes: audioBytes,
+          referenceText: 'Hello',
+        );
+        if (!mounted) return;
+
+        result.when(
+          success: (score) {
+            final passed = score.pronunciationScore >= _passThreshold;
+            setState(() {
+              _score = score.pronunciationScore;
+              _isScoring = false;
+              _passed = passed;
+            });
+            if (passed) {
+              SoundEffects().playCorrect();
+              Future.delayed(const Duration(milliseconds: 800), () {
+                if (mounted) _advance(true);
+              });
+            } else {
+              SoundEffects().playWrong();
+            }
+          },
+          failure: (_, __) {
+            // API failed — don't block the kid, pass gracefully
+            setState(() { _isScoring = false; _passed = true; });
+            SoundEffects().playCorrect();
+            Future.delayed(const Duration(milliseconds: 800), () {
+              if (mounted) _advance(true);
+            });
+          },
+        );
+        return;
+      }
+    } catch (_) {}
+
+    // No audio bytes or exception — fallback pass
     if (!mounted) return;
-    setState(() { _isRecording = false; _hasRecorded = true; _submitted = true; });
-    try { SoundEffects().playCorrect(); } catch (_) {}
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (!mounted) return;
-    _onDone();
+    setState(() { _isScoring = false; _passed = true; });
+    SoundEffects().playCorrect();
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (mounted) _advance(true);
+    });
+  }
+
+  void _retry() {
+    setState(() { _score = null; _passed = false; });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (kIsWeb) {
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Big Hello text
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-            decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.3),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Text(
-              'Hello! \u{1F44B}',
-              style: AppTypography.englishWord.copyWith(
-                color: Colors.white,
-                fontSize: 36,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Nói "Hello!" thật to nhé!',
-            style: AppTypography.bodyLarge.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 20),
-          // TTS play button - big friendly speaker
-          GestureDetector(
-            onTap: () => _tts.speak('Hello'),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-              decoration: BoxDecoration(
-                gradient: AppColors.secondaryGradient,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.secondary.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.volume_up_rounded, size: 32, color: Colors.white),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Nghe \u{1F50A}',
-                    style: AppTypography.titleMedium.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 36),
-          // Big mic button
-          GestureDetector(
-            onTap: _submitted ? null : _onMicTap,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOutBack,
-              width: _isRecording ? 130 : 110,
-              height: _isRecording ? 130 : 110,
-              decoration: BoxDecoration(
-                gradient: _submitted
-                    ? const LinearGradient(
-                        colors: [AppColors.success, AppColors.successLight],
-                      )
-                    : _isRecording
-                        ? const LinearGradient(
-                            colors: [AppColors.error, AppColors.errorLight],
-                          )
-                        : AppColors.primaryGradient,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: (_isRecording ? AppColors.error : AppColors.primary)
-                        .withValues(alpha: 0.4),
-                    blurRadius: _isRecording ? 30 : 16,
-                    spreadRadius: _isRecording ? 6 : 0,
-                  ),
-                ],
-              ),
-              child: Icon(
-                _submitted
-                    ? Icons.check_rounded
-                    : _isRecording
-                        ? Icons.hearing_rounded
-                        : Icons.mic_rounded,
-                color: Colors.white,
-                size: 52,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            _isRecording
-                ? 'Đang nghe... \u{1F442}'
-                : _submitted
-                    ? 'Tuyệt vời! \u{1F389}'
-                    : 'Nhấn để nói \u{1F3A4}',
-            style: AppTypography.bodyLarge.copyWith(
-              color: _submitted ? AppColors.success : AppColors.textSecondary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      );
-    }
-
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
+        // Word card
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
           decoration: BoxDecoration(
@@ -867,59 +791,144 @@ class _SayHelloRoundState extends ConsumerState<_SayHelloRound> {
             color: AppColors.textSecondary,
           ),
         ),
-        const SizedBox(height: 40),
+        const SizedBox(height: 20),
 
-        // Big mic button
+        // TTS listen button
         GestureDetector(
-          onTap: _submitted ? null : _onMicTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOutBack,
-            width: _isRecording ? 130 : 110,
-            height: _isRecording ? 130 : 110,
+          onTap: () => _tts.speak('Hello'),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
             decoration: BoxDecoration(
-              gradient: _isRecording
-                  ? const LinearGradient(
-                      colors: [AppColors.error, AppColors.errorLight],
-                    )
-                  : _hasRecorded
-                      ? const LinearGradient(
-                          colors: [AppColors.success, AppColors.successLight],
-                        )
-                      : AppColors.primaryGradient,
-              shape: BoxShape.circle,
+              gradient: AppColors.secondaryGradient,
+              borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: (_isRecording ? AppColors.error : AppColors.primary)
-                      .withValues(alpha: 0.4),
-                  blurRadius: _isRecording ? 30 : 16,
-                  spreadRadius: _isRecording ? 6 : 0,
+                  color: AppColors.secondary.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
-            child: Icon(
-              _hasRecorded
-                  ? Icons.check_rounded
-                  : _isRecording
-                      ? Icons.stop_rounded
-                      : Icons.mic_rounded,
-              color: Colors.white,
-              size: 52,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.volume_up_rounded, size: 28, color: Colors.white),
+                const SizedBox(width: 8),
+                Text(
+                  'Nghe \u{1F50A}',
+                  style: AppTypography.titleMedium.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-        const SizedBox(height: 16),
-        Text(
-          _isRecording
-              ? 'Đang nghe... \u{1F442}'
-              : _hasRecorded
-                  ? 'Tuyệt vời! \u{1F389}'
-                  : 'Nhấn để nói \u{1F3A4}',
-          style: AppTypography.bodyLarge.copyWith(
-            color: _hasRecorded ? AppColors.success : AppColors.textSecondary,
-            fontWeight: FontWeight.w600,
+        const SizedBox(height: 32),
+
+        // Mic button / scoring spinner / result
+        if (_isScoring)
+          const SizedBox(
+            width: 110,
+            height: 110,
+            child: Center(
+              child: CircularProgressIndicator(
+                color: AppColors.primary,
+                strokeWidth: 4,
+              ),
+            ),
+          )
+        else
+          GestureDetector(
+            onTap: (_isScoring || _passed) ? null : _onMicTap,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutBack,
+              width: _isRecording ? 130 : 110,
+              height: _isRecording ? 130 : 110,
+              decoration: BoxDecoration(
+                gradient: _passed
+                    ? const LinearGradient(colors: [AppColors.success, AppColors.successLight])
+                    : _score != null
+                        ? const LinearGradient(colors: [AppColors.error, AppColors.errorLight])
+                        : _isRecording
+                            ? const LinearGradient(colors: [AppColors.error, AppColors.errorLight])
+                            : AppColors.primaryGradient,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: (_isRecording ? AppColors.error : AppColors.primary)
+                        .withValues(alpha: 0.4),
+                    blurRadius: _isRecording ? 30 : 16,
+                    spreadRadius: _isRecording ? 6 : 0,
+                  ),
+                ],
+              ),
+              child: Icon(
+                _passed
+                    ? Icons.check_rounded
+                    : _score != null
+                        ? Icons.refresh_rounded
+                        : _isRecording
+                            ? Icons.stop_rounded
+                            : Icons.mic_rounded,
+                color: Colors.white,
+                size: 52,
+              ),
+            ),
           ),
-        ),
+
+        const SizedBox(height: 16),
+
+        // Status label
+        if (_isScoring)
+          Text(
+            'Đang chấm điểm... \u{1F914}',
+            style: AppTypography.bodyLarge.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          )
+        else if (_passed)
+          Text(
+            'Tuyệt vời! \u{1F389}',
+            style: AppTypography.bodyLarge.copyWith(
+              color: AppColors.success,
+              fontWeight: FontWeight.w600,
+            ),
+          )
+        else if (_score != null)
+          Column(
+            children: [
+              Text(
+                'Chưa rõ lắm, thử lại nhé! \u{1F4AA}',
+                style: AppTypography.bodyLarge.copyWith(
+                  color: AppColors.error,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: _retry,
+                child: Text(
+                  'Thử lại',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          )
+        else
+          Text(
+            _isRecording ? 'Đang nghe... \u{1F442}' : 'Nhấn để nói \u{1F3A4}',
+            style: AppTypography.bodyLarge.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
       ],
     );
   }
