@@ -48,13 +48,11 @@ func main() {
 	// while the real initialization runs in the background.
 	bootstrapRouter := http.NewServeMux()
 	bootstrapRouter.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK) // always 200 — Railway must not see 503 or it kills the container
 		if ready.Load() == 1 {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
 			fmt.Fprintf(w, `{"status":"ok","time":%q}`, time.Now().Format(time.RFC3339))
 		} else {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusServiceUnavailable)
 			fmt.Fprintf(w, `{"status":"starting"}`)
 		}
 	})
