@@ -512,36 +512,57 @@ func buildListenAndChooseConfig(words []*content.Vocabulary, allVocab []*content
 
 	target := words[0]
 
-	// Build distractors: same category first, then phonetically similar, then generic
-	var distractorWords []string
-	distractors := getDistractors(target.Word, 3)
-	if len(distractors) < 3 {
-		// Pad with same-category words
+	// Build distractors from allVocab first (they have emoji), then fall back to word list
+	var distractorVocab []*content.Vocabulary
+	// 1. Same-category vocab words (have emoji)
+	for _, v := range allVocab {
+		if v.Word != target.Word && strings.EqualFold(v.Category, target.Category) && len(distractorVocab) < 3 {
+			distractorVocab = append(distractorVocab, v)
+		}
+	}
+	// 2. Any other vocab words if we still need more
+	if len(distractorVocab) < 3 {
 		for _, v := range allVocab {
-			if v.Word != target.Word && strings.EqualFold(v.Category, target.Category) && len(distractorWords) < 3 {
-				distractorWords = append(distractorWords, v.Word)
+			if v.Word != target.Word && len(distractorVocab) < 3 {
+				alreadyAdded := false
+				for _, dv := range distractorVocab {
+					if dv.ID == v.ID {
+						alreadyAdded = true
+						break
+					}
+				}
+				if !alreadyAdded {
+					distractorVocab = append(distractorVocab, v)
+				}
 			}
 		}
-		distractors = append(distractors, distractorWords...)
-		if len(distractors) > 3 {
-			distractors = distractors[:3]
+	}
+	// 3. Hard-coded fallback if vocab is tiny
+	if len(distractorVocab) < 3 {
+		for _, d := range getDistractors(target.Word, 3-len(distractorVocab)) {
+			if dv, ok := findVocabByWord(allVocab, d); ok {
+				distractorVocab = append(distractorVocab, dv)
+			}
 		}
 	}
 
-	// Build options (target + distractors, shuffled)
+	// Build options (target + distractors, shuffled) — use "word"/"correct" keys Flutter expects
 	options := []map[string]interface{}{
-		{"text": target.Word, "translation_vi": target.TranslationVI, "emoji": target.Emoji, "is_correct": true},
+		{"word": target.Word, "vi": target.TranslationVI, "emoji": target.Emoji, "correct": true},
 	}
-	for _, d := range distractors {
-		dv, ok := findVocabByWord(allVocab, d)
-		opt := map[string]interface{}{"text": d, "is_correct": false}
-		if ok {
-			opt["translation_vi"] = dv.TranslationVI
-			opt["emoji"] = dv.Emoji
-		}
-		options = append(options, opt)
+	for _, dv := range distractorVocab {
+		options = append(options, map[string]interface{}{
+			"word":    dv.Word,
+			"vi":      dv.TranslationVI,
+			"emoji":   dv.Emoji,
+			"correct": false,
+		})
 	}
 	rand.Shuffle(len(options), func(i, j int) { options[i], options[j] = options[j], options[i] })
+	var distractorWords []string
+	for _, dv := range distractorVocab {
+		distractorWords = append(distractorWords, dv.Word)
+	}
 
 	config := map[string]interface{}{
 		"type":           "listen_and_choose",
@@ -554,7 +575,7 @@ func buildListenAndChooseConfig(words []*content.Vocabulary, allVocab []*content
 		"image_url":      target.ImageURL,
 		"audio_url":      target.AudioURL,
 		"options":        options,
-		"distractors":    distractors,
+		"distractors":    distractorWords,
 	}
 
 	// Build reason
