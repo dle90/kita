@@ -512,36 +512,33 @@ func buildListenAndChooseConfig(words []*content.Vocabulary, allVocab []*content
 
 	target := words[0]
 
-	// Build distractors from allVocab first (they have emoji), then fall back to word list
+	// Build distractors — prefer same-unit (same words slice) to keep theme consistent,
+	// then same-category from allVocab, then any vocab as last resort.
+	seen := map[uuid.UUID]bool{target.ID: true}
 	var distractorVocab []*content.Vocabulary
-	// 1. Same-category vocab words (have emoji)
-	for _, v := range allVocab {
-		if v.Word != target.Word && strings.EqualFold(v.Category, target.Category) && len(distractorVocab) < 3 {
+
+	// 1. Other words in the same unit (already themed)
+	for _, v := range words[1:] {
+		if !seen[v.ID] && len(distractorVocab) < 3 {
 			distractorVocab = append(distractorVocab, v)
+			seen[v.ID] = true
 		}
 	}
-	// 2. Any other vocab words if we still need more
+	// 2. Same-category words from allVocab
 	if len(distractorVocab) < 3 {
 		for _, v := range allVocab {
-			if v.Word != target.Word && len(distractorVocab) < 3 {
-				alreadyAdded := false
-				for _, dv := range distractorVocab {
-					if dv.ID == v.ID {
-						alreadyAdded = true
-						break
-					}
-				}
-				if !alreadyAdded {
-					distractorVocab = append(distractorVocab, v)
-				}
+			if !seen[v.ID] && strings.EqualFold(v.Category, target.Category) && len(distractorVocab) < 3 {
+				distractorVocab = append(distractorVocab, v)
+				seen[v.ID] = true
 			}
 		}
 	}
-	// 3. Hard-coded fallback if vocab is tiny
+	// 3. Any other vocab words if we still need more
 	if len(distractorVocab) < 3 {
-		for _, d := range getDistractors(target.Word, 3-len(distractorVocab)) {
-			if dv, ok := findVocabByWord(allVocab, d); ok {
-				distractorVocab = append(distractorVocab, dv)
+		for _, v := range allVocab {
+			if !seen[v.ID] && len(distractorVocab) < 3 {
+				distractorVocab = append(distractorVocab, v)
+				seen[v.ID] = true
 			}
 		}
 	}

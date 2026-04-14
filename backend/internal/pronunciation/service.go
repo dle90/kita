@@ -48,11 +48,23 @@ func (s *PronunciationService) ScorePronunciation(ctx context.Context, kidID uui
 		return nil, common.ErrInternal(fmt.Sprintf("pronunciation scoring failed: %v", err))
 	}
 
+	// Azure returns non-Success status for silence, noise, or unsupported audio format
+	if azureResp.RecognitionStatus != "Success" {
+		return nil, common.ErrInternal(fmt.Sprintf("speech not recognized: %s", azureResp.RecognitionStatus))
+	}
+
 	if len(azureResp.NBest) == 0 {
 		return nil, common.ErrInternal("no pronunciation results returned")
 	}
 
 	best := azureResp.NBest[0]
+
+	// Guard: if all scores are 0 with high confidence it's a recognition failure
+	if best.PronunciationAssessment.PronScore == 0 &&
+		best.PronunciationAssessment.AccuracyScore == 0 &&
+		best.PronunciationAssessment.FluencyScore == 0 {
+		return nil, common.ErrInternal("pronunciation score is zero — audio format may not be supported")
+	}
 	assessment := best.PronunciationAssessment
 
 	// Extract phoneme results

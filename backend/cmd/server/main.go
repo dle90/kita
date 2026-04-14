@@ -24,6 +24,7 @@ import (
 	"github.com/kitaenglish/backend/internal/server"
 	"github.com/kitaenglish/backend/internal/session"
 	"github.com/kitaenglish/backend/internal/srs"
+	"github.com/kitaenglish/backend/internal/tts"
 )
 
 func main() {
@@ -183,6 +184,8 @@ func main() {
 	pronHandler := pronunciation.NewPronunciationHandler(pronService, kidRepo)
 	progressHandler := progress.NewProgressHandler(progressService)
 	debugHandler := debug.NewDebugHandler(dbPool, contentRepo)
+	ttsHandler := tts.NewHandler(storage)
+	log.Printf("TTS enabled (voice=%s model=%s)", os.Getenv("ELEVENLABS_VOICE_ID"), os.Getenv("ELEVENLABS_MODEL_ID"))
 
 	// Swap the handler to the fully-initialized router
 	fullRouter := server.NewServer(server.Dependencies{
@@ -194,6 +197,7 @@ func main() {
 		ProgressHandler:      progressHandler,
 		SrsHandler:           srsHandler,
 		DebugHandler:         debugHandler,
+		TtsHandler:           ttsHandler,
 	})
 	httpServer.Handler = fullRouter
 

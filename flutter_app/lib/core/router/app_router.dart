@@ -5,6 +5,7 @@ import 'package:kita_english/core/storage/secure_storage.dart';
 import 'package:kita_english/features/auth/presentation/screens/link_account_screen.dart';
 import 'package:kita_english/features/day7/presentation/screens/certificate_screen.dart';
 import 'package:kita_english/features/day7/presentation/screens/showcase_recording_screen.dart';
+import 'package:kita_english/features/onboarding/presentation/screens/auto_provision_screen.dart';
 import 'package:kita_english/features/onboarding/presentation/screens/character_select_screen.dart';
 import 'package:kita_english/features/onboarding/presentation/screens/parent_gate_screen.dart';
 import 'package:kita_english/features/onboarding/presentation/screens/placement_test_screen.dart';
@@ -37,37 +38,43 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final secureStorage = ref.read(secureStorageProvider);
 
   return GoRouter(
-    initialLocation: RoutePaths.onboardingParent,
+    initialLocation: RoutePaths.splash,
     debugLogDiagnostics: true,
     redirect: (context, state) async {
       final currentPath = state.matchedLocation;
 
-      try {
-        final hasKidProfile =
-            (await secureStorage.readKidProfileId()) != null;
+      // Paths that don't need a provisioned profile
+      const publicPaths = {
+        RoutePaths.splash,
+        RoutePaths.onboardingParent,
+        RoutePaths.onboardingCharacter,
+        RoutePaths.onboardingPlacement,
+        RoutePaths.login,
+        RoutePaths.signup,
+      };
 
-        // Has kid profile — go to home (skip onboarding)
+      try {
+        final kidId = await secureStorage.readKidProfileId();
+        final hasKidProfile = kidId != null && kidId.isNotEmpty;
+
         if (hasKidProfile) {
-          if (currentPath == RoutePaths.splash ||
-              currentPath == RoutePaths.onboardingParent ||
-              currentPath == RoutePaths.onboardingCharacter ||
-              currentPath == RoutePaths.onboardingPlacement ||
-              currentPath == RoutePaths.login ||
-              currentPath == RoutePaths.signup) {
-            return RoutePaths.home;
-          }
+          // Already provisioned — skip splash/onboarding
+          if (publicPaths.contains(currentPath)) return RoutePaths.home;
+        } else {
+          // Not provisioned — send any non-public route to splash to auto-provision
+          if (!publicPaths.contains(currentPath)) return RoutePaths.splash;
         }
       } catch (_) {
-        // Storage error — stay on current page
+        // Storage error — let the page handle it
       }
 
       return null;
     },
     routes: [
-      // Splash — redirect to onboarding
+      // Splash — auto-provisions a guest account and kid profile, then goes to home
       GoRoute(
         path: RoutePaths.splash,
-        builder: (context, state) => const ParentGateScreen(),
+        builder: (context, state) => const AutoProvisionScreen(),
       ),
 
       // Auth

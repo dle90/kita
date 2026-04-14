@@ -380,6 +380,20 @@ class _SessionCompleteScreenState extends ConsumerState<SessionCompleteScreen>
                     const SizedBox(height: 12),
                   ],
 
+                  if (!isDay7) ...[
+                    KitaButton(
+                      label: 'Bài tiếp theo \u{1F449}',
+                      onPressed: () {
+                        ref.read(sessionProvider.notifier).reset();
+                        ref.invalidate(allSessionsProvider);
+                        context.go('/session/${widget.dayNumber + 1}');
+                      },
+                      icon: Icons.arrow_forward_rounded,
+                      color: AppColors.secondary,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
                   KitaButton(
                     label: 'Về trang chính \u{1F3E0}',
                     onPressed: () {

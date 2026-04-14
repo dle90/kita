@@ -471,7 +471,7 @@ class _ListenTapActivityState extends ConsumerState<ListenTapActivity>
       children: [
         // Instruction
         Text(
-          'Nghe v\u00E0 ch\u1ECDn h\u00ECnh \u0111\u00FAng! \u{1F3A7}',
+          'Nghe v\u00E0 ch\u1ECDn t\u1EEB \u0111\u00FAng! \u{1F3A7}',
           style: AppTypography.titleLarge.copyWith(fontSize: 22),
           textAlign: TextAlign.center,
         ),
@@ -621,31 +621,20 @@ class _ListenTapActivityState extends ConsumerState<ListenTapActivity>
       children: [
         if (isCorrectAnswer)
           const Text('\u{2B50}', style: TextStyle(fontSize: 20)),
-        if (emoji.isNotEmpty)
-          Text(emoji, style: const TextStyle(fontSize: 52))
-        else
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: AppColors.primaryLight.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                word.isNotEmpty ? word[0].toUpperCase() : '?',
-                style: const TextStyle(
-                    fontSize: 28, fontWeight: FontWeight.bold,
-                    color: AppColors.primary),
-              ),
-            ),
+        if (emoji.isNotEmpty) ...[
+          Text(emoji, style: const TextStyle(fontSize: 52)),
+          const SizedBox(height: 10),
+          Text(
+            word,
+            style: AppTypography.titleMedium.copyWith(fontSize: 18),
+            textAlign: TextAlign.center,
           ),
-        const SizedBox(height: 10),
-        Text(
-          word,
-          style: AppTypography.titleMedium.copyWith(fontSize: 18),
-          textAlign: TextAlign.center,
-        ),
+        ] else
+          Text(
+            word,
+            style: AppTypography.englishWord.copyWith(fontSize: 26),
+            textAlign: TextAlign.center,
+          ),
         if (vi.isNotEmpty) ...[
           const SizedBox(height: 4),
           Text(

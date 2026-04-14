@@ -1,43 +1,28 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_tts/flutter_tts.dart';
+import 'package:kita_english/core/audio/tts_js.dart'
+    if (dart.library.io) 'package:kita_english/core/audio/tts_stub.dart';
+import 'package:kita_english/core/constants/api_endpoints.dart';
 
-/// Simple text-to-speech service for reading English words aloud.
+/// TTS service: on web uses backend ElevenLabs /api/v1/tts endpoint (Matilda voice).
+/// Falls back to no-op if backend unavailable.
 class TtsService {
-  final FlutterTts _tts = FlutterTts();
-  bool _initialized = false;
-
-  Future<void> _init() async {
-    if (_initialized) return;
-    try {
-      if (kIsWeb) {
-        await _tts.awaitSpeakCompletion(true);
-      }
-      await _tts.setLanguage('en-US');
-      await _tts.setSpeechRate(0.4);
-      await _tts.setPitch(1.1);
-      await _tts.setVolume(1.0);
-      _initialized = true;
-    } catch (e) {
-      debugPrint('TTS init failed: $e');
-    }
-  }
+  /// Backend root derived once from the known API base URL.
+  static final String? _backendRoot = kIsWeb
+      ? ApiEndpoints.baseUrl.replaceAll(RegExp(r'/api/v1/?$'), '')
+      : null;
 
   Future<void> speak(String text) async {
+    if (!kIsWeb || _backendRoot == null) return;
     try {
-      await _init();
-      await _tts.stop();
-      await _tts.speak(text);
+      final url = '$_backendRoot/api/v1/tts?text=${Uri.encodeComponent(text)}';
+      await playAudioUrl(url);
     } catch (e) {
       debugPrint('TTS speak failed: $e');
     }
   }
 
-  Future<void> stop() async {
-    try {
-      await _tts.stop();
-    } catch (_) {}
-  }
+  Future<void> stop() async {}
 }
 
 final ttsProvider = Provider<TtsService>((ref) => TtsService());
