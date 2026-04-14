@@ -27,6 +27,14 @@ import (
 )
 
 func main() {
+	// Catch panics before they silently kill the container
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("FATAL PANIC: %v", r)
+			os.Exit(1)
+		}
+	}()
+
 	// Log immediately so Railway captures output even if init hangs
 	log.Printf("Kita backend starting (pid %d)...", os.Getpid())
 
