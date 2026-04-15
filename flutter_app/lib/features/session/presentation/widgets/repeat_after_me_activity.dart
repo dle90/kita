@@ -208,6 +208,7 @@ class _RepeatAfterMeActivityState extends ConsumerState<RepeatAfterMeActivity>
       final result = await repo.scorePronunciationBytes(
         audioBytes: audioBytes,
         referenceText: _word,
+        contentType: 'audio/wav',  // JS converts to 16kHz mono WAV for Azure
       );
 
       if (!mounted) return;

@@ -129,7 +129,10 @@ class _ActivityShellState extends ConsumerState<ActivityShell>
       Future.delayed(const Duration(milliseconds: 1200), () {
         if (!mounted) return;
 
+        final sessionId =
+            ref.read(sessionProvider).session?.id ?? '';
         final result = ActivityResult(
+          sessionId: sessionId,
           activityId: activity.id,
           activityType: activity.type.apiValue,
           isCorrect: true,
@@ -158,7 +161,10 @@ class _ActivityShellState extends ConsumerState<ActivityShell>
           final timeSpent = DateTime.now()
               .difference(_activityStartTime ?? DateTime.now())
               .inMilliseconds;
+          final sessionId =
+              ref.read(sessionProvider).session?.id ?? '';
           final result = ActivityResult(
+            sessionId: sessionId,
             activityId: activity.id,
             activityType: activity.type.apiValue,
             isCorrect: false,
@@ -506,6 +512,7 @@ class _ActivityShellState extends ConsumerState<ActivityShell>
       case ActivityType.flashcardIntro:
       case ActivityType.listenAndChoose:
         return ListenTapActivity(
+          key: ValueKey(activity.id),
           activity: activity,
           onComplete: _onActivityComplete,
         );
@@ -513,37 +520,44 @@ class _ActivityShellState extends ConsumerState<ActivityShell>
       case ActivityType.listenAndRepeat:
       case ActivityType.speakWord:
         return RepeatAfterMeActivity(
+          key: ValueKey(activity.id),
           activity: activity,
           onComplete: _onActivityComplete,
         );
       case ActivityType.wordMatch:
         return WordMatchActivity(
+          key: ValueKey(activity.id),
           activity: activity,
           onComplete: _onActivityComplete,
         );
       case ActivityType.sentenceBuilder:
         return SentenceBuilderActivity(
+          key: ValueKey(activity.id),
           activity: activity,
           onComplete: _onActivityComplete,
         );
       case ActivityType.buildSentence:
         return BuildSentenceActivity(
+          key: ValueKey(activity.id),
           activity: activity,
           onComplete: _onActivityComplete,
         );
       case ActivityType.fillBlank:
         return FillBlankActivity(
+          key: ValueKey(activity.id),
           activity: activity,
           onComplete: _onActivityComplete,
         );
       case ActivityType.phonicsListen:
       case ActivityType.phonicsMatch:
         return PhonicsActivity(
+          key: ValueKey(activity.id),
           activity: activity,
           onComplete: _onActivityComplete,
         );
       case ActivityType.patternIntro:
         return GrammarIntroActivity(
+          key: ValueKey(activity.id),
           activity: activity,
           onComplete: _onActivityComplete,
         );

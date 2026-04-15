@@ -537,38 +537,72 @@ func buildListenAndChooseConfig(words []*content.Vocabulary, allVocab []*content
 
 	target := words[0]
 
-	// Distractors come from the word's own DB-backed `distractors` column
-	// first. Any shortfall is padded from same-category vocabulary. This
-	// replaces the old hardcoded similarSoundingDistractors map.
-	distractors := make([]string, 0, 3)
+	// Build distractors — prefer the word's DB-backed `distractors` column
+	// (hand-picked per word), then fall back through: same unit → same
+	// category → any vocab, to keep theme consistent.
+	seen := map[uuid.UUID]bool{target.ID: true}
+	var distractorVocab []*content.Vocabulary
+
+	// 1. DB-backed hand-picked distractors (resolve each to a Vocabulary entry so
+	// downstream options can include emoji + translation)
 	for _, d := range target.Distractors {
 		if d == "" || strings.EqualFold(d, target.Word) {
 			continue
 		}
-		distractors = append(distractors, d)
-		if len(distractors) >= 3 {
-			break
+		dv, ok := findVocabByWord(allVocab, d)
+		if !ok {
+			continue
+		}
+		if !seen[dv.ID] && len(distractorVocab) < 3 {
+			distractorVocab = append(distractorVocab, dv)
+			seen[dv.ID] = true
 		}
 	}
-	if len(distractors) < 3 {
-		padding := GenerateDistractorsFromCategory(target, allVocab, 3-len(distractors))
-		distractors = append(distractors, padding...)
+	// 2. Other words in the same unit (already themed)
+	if len(distractorVocab) < 3 {
+		for _, v := range words[1:] {
+			if !seen[v.ID] && len(distractorVocab) < 3 {
+				distractorVocab = append(distractorVocab, v)
+				seen[v.ID] = true
+			}
+		}
+	}
+	// 3. Same-category words from allVocab
+	if len(distractorVocab) < 3 {
+		for _, v := range allVocab {
+			if !seen[v.ID] && strings.EqualFold(v.Category, target.Category) && len(distractorVocab) < 3 {
+				distractorVocab = append(distractorVocab, v)
+				seen[v.ID] = true
+			}
+		}
+	}
+	// 4. Any other vocab words if we still need more
+	if len(distractorVocab) < 3 {
+		for _, v := range allVocab {
+			if !seen[v.ID] && len(distractorVocab) < 3 {
+				distractorVocab = append(distractorVocab, v)
+				seen[v.ID] = true
+			}
+		}
 	}
 
-	// Build options (target + distractors, shuffled)
+	// Build options (target + distractors, shuffled) — use "word"/"correct" keys Flutter expects
 	options := []map[string]interface{}{
-		{"text": target.Word, "translation_vi": target.TranslationVI, "emoji": target.Emoji, "is_correct": true},
+		{"word": target.Word, "vi": target.TranslationVI, "emoji": target.Emoji, "correct": true},
 	}
-	for _, d := range distractors {
-		dv, ok := findVocabByWord(allVocab, d)
-		opt := map[string]interface{}{"text": d, "is_correct": false}
-		if ok {
-			opt["translation_vi"] = dv.TranslationVI
-			opt["emoji"] = dv.Emoji
-		}
-		options = append(options, opt)
+	for _, dv := range distractorVocab {
+		options = append(options, map[string]interface{}{
+			"word":    dv.Word,
+			"vi":      dv.TranslationVI,
+			"emoji":   dv.Emoji,
+			"correct": false,
+		})
 	}
 	rand.Shuffle(len(options), func(i, j int) { options[i], options[j] = options[j], options[i] })
+	var distractorWords []string
+	for _, dv := range distractorVocab {
+		distractorWords = append(distractorWords, dv.Word)
+	}
 
 	config := map[string]interface{}{
 		"type":           "listen_and_choose",
@@ -581,7 +615,7 @@ func buildListenAndChooseConfig(words []*content.Vocabulary, allVocab []*content
 		"image_url":      target.ImageURL,
 		"audio_url":      target.AudioURL,
 		"options":        options,
-		"distractors":    distractors,
+		"distractors":    distractorWords,
 	}
 
 	// Build reason

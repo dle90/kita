@@ -27,21 +27,23 @@ English learning app for Vietnamese kids age 5-12. MVP is the "7-Day English Spe
 
 ## Deploying
 
+**CRITICAL**: Always deploy from the **REPO ROOT** (not subdirectories). Railway needs to find `backend/Dockerfile` or `flutter_app/` from the full repo. Deploying from inside `backend/` causes Railway to fall back to RAILPACK and fail with "Could not find root directory: backend".
+
 ### Backend (from repo root)
 ```bash
-cd backend
-railway service link e9973b90-6931-456a-823b-0279b3367ac3
+# From c:\Users\ducml\Desktop\kita  (the repo root)
+railway link --project c5b7b5bd-883e-47c1-9bff-76c95daa9fa4 --environment 526a6c2e-6f4e-4abd-9a24-f42e0a41e263 --service e9973b90-6931-456a-823b-0279b3367ac3
 railway up
 ```
 
 ### Frontend (from repo root)
 ```bash
-cd flutter_app
-railway service link 0b09ec57-d4a1-400b-b2a4-9e25339f713d
+# From c:\Users\ducml\Desktop\kita  (the repo root)
+railway link --project c5b7b5bd-883e-47c1-9bff-76c95daa9fa4 --environment 526a6c2e-6f4e-4abd-9a24-f42e0a41e263 --service 0b09ec57-d4a1-400b-b2a4-9e25339f713d
 railway up
 ```
 
-**IMPORTANT**: Always `cd` into the correct subdirectory AND `railway service link` the correct service ID before running `railway up`. Otherwise you deploy the wrong code to the wrong service.
+**Note**: `railway service link <ID>` also works if you're already in the repo root with a `.railway` project config present.
 
 ### Checking logs
 ```bash
@@ -67,8 +69,12 @@ backend/               Go API server
 
 flutter_app/           Flutter web/mobile app
   lib/core/            Theme, network, router, storage, audio (TTS, recorder, sound FX)
+    audio/tts_service.dart   TtsService — calls backend /api/v1/tts, static backendRoot
+    audio/tts_js.dart        Web impl: JS interop → _kitaPlayAudio(url) in index.html
+    audio/tts_stub.dart      Native stub (no-op)
   lib/features/auth/   Login, signup, guest, link account
   lib/features/onboarding/ Parent gate, character select, placement test
+    auto_provision_screen.dart  Splash: auto-creates guest account + default kid profile, skips onboarding
   lib/features/session/ Activity shell + widgets for all activity types
   lib/features/pronunciation/ Record, score display, phoneme feedback, score history
   lib/features/srs/    Spaced repetition providers
@@ -184,18 +190,28 @@ Current 12-slot plan (generates 13 activities for a fresh kid):
 12. fun_finish/word_match × 1
 
 ## Key Architecture Decisions
-- **Server-side pronunciation scoring**: Flutter records WAV/webm → uploads to Go backend → Go calls Azure Speech API → runs Vietnamese L1 classifier → returns phoneme-level scores
+- **Server-side pronunciation scoring**: Flutter records WAV → uploads to Go backend → Go calls Azure Speech API → runs Vietnamese L1 classifier → returns phoneme-level scores
+- **WebM → WAV conversion (CRITICAL)**: Chrome's MediaRecorder outputs `audio/webm;codecs=opus`. Azure REST API only accepts **16kHz mono PCM WAV** and silently returns a non-Success `RecognitionStatus` for any other format (causing backend 500 → Flutter fallback score of 70). Fix: `_kitaToWavBase64(blob)` in `web/index.html` decodes via `AudioContext.decodeAudioData()` then re-encodes as PCM WAV before base64-encoding. Flutter passes `contentType: 'audio/wav'` to the upload call.
+- **TTS via backend**: `TtsService` calls `GET /api/v1/tts?text=...` (ElevenLabs Matilda voice). `_backendRoot` is a static field derived from `ApiEndpoints.baseUrl` constant — no constructor args needed, so all 6+ activity widgets that do `TtsService()` work automatically. Web path: Dart → `tts_js.dart` → JS interop → `_kitaPlayAudio(url)` in `index.html` → browser `new Audio(url).play()`.
 - **Response envelope unwrapping**: Go backend wraps all responses in `{"success":true,"data":{...}}`. Dio interceptor unwraps globally
 - **Web audio recording**: JS MediaRecorder API bridged to Dart via conditional imports (dart:js_interop)
 - **Web storage fallback**: In-memory storage on web (flutter_secure_storage doesn't work). State lost on refresh
 - **Auto-migrations**: Server reads `migrations/*.up.sql` on boot. All use `IF NOT EXISTS`
-- **Guest-first onboarding**: No login required. Guest account auto-created. Link email/phone later
+- **Auto-provision onboarding (skips manual onboarding)**: App starts at `/` (splash) → `AutoProvisionScreen` calls `POST /auth/guest` then `POST /kids` with defaults (`display_name: 'Dev Kid'`, age 7, dialect: northern, character: mochi) → saves IDs → navigates to `/home`. Reset button on home screen clears storage and returns to splash for a fresh profile.
+- **Router guard (bidirectional)**: If user has a kid profile and lands on a public/onboarding path → redirect to `/home`. If user has NO kid profile and lands on any protected path (e.g. page reload on `/session/1`) → redirect to `/` to auto-provision. Prevents "Kid profile ID not found" crashes on reload.
+- **Vocabulary distractors (theme consistency)**: `listen_and_choose` distractors prefer same-unit words first, then same-category, then any vocab. Prevents cross-theme confusion (e.g. weather words mixed into greetings lesson).
+- **Session complete → next lesson**: `SessionCompleteScreen` shows a "Bài tiếp theo" button for days 1-6 that resets session state and navigates to `/session/{day+1}`.
 - **Sound effects**: Web Audio API synthesized tones (no audio files needed)
 - **Docker cache busting**: Single COPY layer + --pwa-strategy=none for reliable deploys
 - **session_plans.json sync.Once**: File is loaded once per process. Changing the file without redeploying has no effect. Always update the file, not just the Go fallback.
 
 ## Known Issues / To Debug
-- (nothing open)
+- (nothing currently open)
+- **RESOLVED 2026-04-14**: Backend deployments were failing because `railway up` was run from inside `backend/` instead of the repo root. Railway's service is configured with `rootDirectory=backend` and `dockerfilePath=backend/Dockerfile`. Running from inside `backend/` caused Railway to use RAILPACK (no `backend/` subdirectory found) instead of Dockerfile. Fix: always deploy from repo root. See Deploying section above.
+- **RESOLVED 2026-04-14**: Pronunciation score always returned 70 — Chrome MediaRecorder outputs WebM/Opus which Azure rejects with non-Success `RecognitionStatus` → backend 500 → Flutter fallback 70. Fixed by WAV conversion in browser JS. See WebM→WAV note in Key Architecture Decisions.
+- **RESOLVED 2026-04-14**: "Kid profile ID not found" crash on page reload — web in-memory storage is cleared on reload. GoRouter was not guarding the "no profile on protected route" case. Fixed with bidirectional redirect guard in `app_router.dart`.
+- **RESOLVED 2026-04-14**: TTS silent on all activity widgets — `TtsService()` was constructed without `backendBase` arg in 6+ widgets. Fixed by making `_backendRoot` a static field computed from `ApiEndpoints.baseUrl`.
+- **RESOLVED 2026-04-14**: Can't proceed to lesson 2 after lesson 1 — `SessionCompleteScreen` had no "next lesson" navigation. Fixed with "Bài tiếp theo" button for days 1-6.
 
 ## API Contracts
 - All JSON uses **snake_case** (Go backend is source of truth)

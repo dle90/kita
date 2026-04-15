@@ -223,16 +223,18 @@ func TestAllActivityTemplates(t *testing.T) {
 			"type", "target_word", "target_vi", "target_emoji",
 			"word", "translation_vi", "options", "distractors")
 		requireListOfMaps(t, "listen_and_choose", cfg, "options")
-		// Verify exactly one option has is_correct=true
+		// Verify exactly one option has correct=true. Option keys match
+		// what the Flutter listen_and_choose widget expects: word/vi/
+		// emoji/correct (see commit 822fdc8).
 		opts := cfg["options"].([]interface{})
 		correctCount := 0
 		for _, o := range opts {
 			om := o.(map[string]interface{})
-			if c, ok := om["is_correct"].(bool); ok && c {
+			if c, ok := om["correct"].(bool); ok && c {
 				correctCount++
 			}
-			if _, ok := om["text"]; !ok {
-				t.Error("listen_and_choose option missing 'text'")
+			if _, ok := om["word"]; !ok {
+				t.Error("listen_and_choose option missing 'word'")
 			}
 		}
 		if correctCount != 1 {

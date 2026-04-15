@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -27,6 +28,17 @@ import (
 )
 
 func main() {
+	// Catch panics before they silently kill the container
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("FATAL PANIC: %v", r)
+			os.Exit(1)
+		}
+	}()
+
+	// Log immediately so Railway captures output even if init hangs
+	log.Printf("Kita backend starting (pid %d)...", os.Getpid())
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -35,22 +47,80 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
-	log.Printf("Starting Kita English backend on port %s", cfg.Server.Port)
+	log.Printf("Config loaded, port=%s", cfg.Server.Port)
 
-	// Connect to PostgreSQL
+	// ready is set to 1 once full initialization completes.
+	// The /health endpoint returns 503 until then.
+	var ready atomic.Int32
+
+	// Build a minimal router immediately so Railway health checks pass
+	// while the real initialization runs in the background.
+	bootstrapRouter := http.NewServeMux()
+	bootstrapRouter.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK) // always 200 — Railway must not see 503 or it kills the container
+		if ready.Load() == 1 {
+			fmt.Fprintf(w, `{"status":"ok","time":%q}`, time.Now().Format(time.RFC3339))
+		} else {
+			fmt.Fprintf(w, `{"status":"starting"}`)
+		}
+	})
+
+	httpServer := &http.Server{
+		Addr:         fmt.Sprintf(":%s", cfg.Server.Port),
+		Handler:      bootstrapRouter,
+		ReadTimeout:  cfg.Server.ReadTimeout,
+		WriteTimeout: cfg.Server.WriteTimeout,
+	}
+
+	// Start HTTP server immediately — Railway health check can now succeed
+	serverErrCh := make(chan error, 1)
+	go func() {
+		log.Printf("HTTP server listening on :%s (initializing...)", cfg.Server.Port)
+		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			serverErrCh <- err
+		}
+	}()
+
+	// Graceful shutdown listener
+	go func() {
+		sigCh := make(chan os.Signal, 1)
+		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+		select {
+		case <-sigCh:
+			log.Println("Shutting down server...")
+		case err := <-serverErrCh:
+			log.Printf("HTTP server error: %v", err)
+		}
+
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer shutdownCancel()
+		if err := httpServer.Shutdown(shutdownCtx); err != nil {
+			log.Printf("HTTP server shutdown error: %v", err)
+		}
+		cancel()
+	}()
+
+	// --- Full initialization (runs while server already accepts health checks) ---
+
+	log.Println("Connecting to PostgreSQL...")
 	dbPool, err := common.NewPostgresPool(ctx, cfg.DB)
 	if err != nil {
 		log.Fatalf("Failed to connect to PostgreSQL: %v", err)
 	}
 	defer dbPool.Close()
+	log.Println("PostgreSQL connected")
 
 	// Auto-run migrations
 	migrationsDir := "migrations"
 	if envMigDir := os.Getenv("MIGRATIONS_DIR"); envMigDir != "" {
 		migrationsDir = envMigDir
 	}
+	log.Printf("Running migrations from %s...", migrationsDir)
 	if err := common.RunMigrations(ctx, dbPool, migrationsDir); err != nil {
 		log.Printf("Warning: Migration error: %v", err)
+	} else {
+		log.Println("Migrations complete")
 	}
 
 	// Connect to Redis
@@ -60,12 +130,16 @@ func main() {
 	}
 	if redisClient != nil {
 		defer redisClient.Close()
+		log.Println("Redis connected")
 	}
 
-	// Connect to MinIO
+	// Connect to MinIO/R2
+	log.Println("Connecting to object storage...")
 	storage, err := common.NewStorage(ctx, cfg.MinIO)
 	if err != nil {
-		log.Printf("Warning: Failed to connect to MinIO: %v (continuing without storage)", err)
+		log.Printf("Warning: Failed to connect to storage: %v (continuing without storage)", err)
+	} else {
+		log.Println("Object storage connected")
 	}
 
 	// Initialize repositories
@@ -108,6 +182,7 @@ func main() {
 	if envSeedDir := os.Getenv("SEED_DIR"); envSeedDir != "" {
 		seedDir = envSeedDir
 	}
+	log.Printf("Seeding content from %s...", seedDir)
 	if err := content.SeedContent(ctx, contentRepo, seedDir); err != nil {
 		log.Printf("Warning: Failed to seed content: %v", err)
 	}
@@ -118,8 +193,6 @@ func main() {
 	sessionHandler := session.NewSessionHandler(sessionService)
 	pronHandler := pronunciation.NewPronunciationHandler(pronService, kidRepo)
 	progressHandler := progress.NewProgressHandler(progressService)
-
-	// Initialize debug handler (gated by DEBUG_ENABLED env var)
 	debugHandler := debug.NewDebugHandler(dbPool, contentRepo)
 
 	// Initialize TTS handler (nil-safe: server.go handles nil)
@@ -128,8 +201,8 @@ func main() {
 		ttsHandler = tts.NewHandler(ttsService, contentRepo)
 	}
 
-	// Create server
-	router := server.NewServer(server.Dependencies{
+	// Swap the handler to the fully-initialized router
+	fullRouter := server.NewServer(server.Dependencies{
 		AuthHandler:          authHandler,
 		AuthService:          authService,
 		OnboardingHandler:    onboardingHandler,
@@ -140,34 +213,13 @@ func main() {
 		DebugHandler:         debugHandler,
 		TTSHandler:           ttsHandler,
 	})
+	httpServer.Handler = fullRouter
 
-	httpServer := &http.Server{
-		Addr:         fmt.Sprintf(":%s", cfg.Server.Port),
-		Handler:      router,
-		ReadTimeout:  cfg.Server.ReadTimeout,
-		WriteTimeout: cfg.Server.WriteTimeout,
-	}
+	// Signal readiness
+	ready.Store(1)
+	log.Printf("Server fully initialized and ready (Phase3+Phase4) on :%s", cfg.Server.Port)
 
-	// Graceful shutdown
-	go func() {
-		sigCh := make(chan os.Signal, 1)
-		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-		<-sigCh
-		log.Println("Shutting down server...")
-
-		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer shutdownCancel()
-
-		if err := httpServer.Shutdown(shutdownCtx); err != nil {
-			log.Printf("HTTP server shutdown error: %v", err)
-		}
-		cancel()
-	}()
-
-	log.Printf("Server v2 (Phase3+Phase4) listening on :%s", cfg.Server.Port)
-	if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatalf("HTTP server error: %v", err)
-	}
-
+	// Block until shutdown
+	<-ctx.Done()
 	log.Println("Server stopped")
 }

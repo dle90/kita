@@ -214,12 +214,15 @@ func TestSelectSourceWords_UnitVocabFiltersMastered(t *testing.T) {
 
 func TestBuildListenAndChoose_PrefersDBDistractors(t *testing.T) {
 	allVocab, _ := mockVocabulary()
-	target := allVocab[0] // cat
-	target.Distractors = []string{"cap", "cut", "car"}
+	target := allVocab[0] // cat (category=animal)
+	// Use distractor words that exist in allVocab but are NOT same-category,
+	// so they can only reach the output via the DB-first path (not the
+	// same-unit / same-category fallback).
+	target.Distractors = []string{"milk", "rice", "happy"}
 
 	cfg, _, _ := buildListenAndChooseConfig([]*content.Vocabulary{target}, allVocab, nil, nil)
 	opts := cfg["distractors"].([]string)
-	want := map[string]bool{"cap": true, "cut": true, "car": true}
+	want := map[string]bool{"milk": true, "rice": true, "happy": true}
 	for _, o := range opts {
 		if !want[o] {
 			t.Errorf("distractor %q not from DB column", o)

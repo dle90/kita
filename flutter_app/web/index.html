@@ -58,26 +58,34 @@
 
     function _kitaStartRecording() {
       return new Promise(function(resolve, reject) {
-        navigator.mediaDevices.getUserMedia({ audio: { sampleRate: 16000, channelCount: 1 } })
+        navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1 } })
           .then(function(stream) {
             _kitaAudioChunks = [];
-            _kitaMediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+            // Pick the first supported MIME type (Safari needs mp4, Chrome prefers webm)
+            var mimeType = '';
+            var candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
+            for (var i = 0; i < candidates.length; i++) {
+              if (MediaRecorder.isTypeSupported(candidates[i])) {
+                mimeType = candidates[i];
+                break;
+              }
+            }
+            var recorderOptions = mimeType ? { mimeType: mimeType } : {};
+            _kitaMediaRecorder = new MediaRecorder(stream, recorderOptions);
             _kitaMediaRecorder.ondataavailable = function(e) {
               if (e.data.size > 0) _kitaAudioChunks.push(e.data);
             };
             _kitaMediaRecorder.onstop = function() {
-              var blob = new Blob(_kitaAudioChunks, { type: 'audio/webm' });
+              var blobType = mimeType || 'audio/webm';
+              var blob = new Blob(_kitaAudioChunks, { type: blobType });
               stream.getTracks().forEach(function(t) { t.stop(); });
-              // Convert to base64 for Dart
-              var reader = new FileReader();
-              reader.onloadend = function() {
-                var base64 = reader.result.split(',')[1];
+              // Convert to 16kHz mono WAV (required by Azure Speech API)
+              _kitaToWavBase64(blob).then(function(wavBase64) {
                 if (_kitaRecordingResolve) {
-                  _kitaRecordingResolve(base64);
+                  _kitaRecordingResolve(wavBase64);
                   _kitaRecordingResolve = null;
                 }
-              };
-              reader.readAsDataURL(blob);
+              });
             };
             _kitaMediaRecorder.start();
             resolve(true);
@@ -97,6 +105,74 @@
         } else {
           resolve(null);
         }
+      });
+    }
+
+    // --- WAV helpers for Azure Speech API compatibility ---
+    // Azure REST pronunciation assessment requires PCM WAV (16kHz mono 16-bit).
+    // MediaRecorder outputs WebM/Opus which Azure rejects.
+    // We decode via AudioContext then re-encode as WAV.
+
+    function _kitaEncodeWAV(samples, sampleRate) {
+      var buf = new ArrayBuffer(44 + samples.length * 2);
+      var view = new DataView(buf);
+      function ws(offset, str) {
+        for (var i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+      }
+      ws(0, 'RIFF');
+      view.setUint32(4, 36 + samples.length * 2, true);
+      ws(8, 'WAVE');
+      ws(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);   // PCM
+      view.setUint16(22, 1, true);   // mono
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      ws(36, 'data');
+      view.setUint32(40, samples.length * 2, true);
+      var offset = 44;
+      for (var i = 0; i < samples.length; i++) {
+        var s = Math.max(-1, Math.min(1, samples[i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+        offset += 2;
+      }
+      return buf;
+    }
+
+    // Convert any audio blob to 16kHz mono PCM WAV, return as base64.
+    function _kitaToWavBase64(blob) {
+      return new Promise(function(resolve) {
+        var reader = new FileReader();
+        reader.onloadend = function() {
+          var arrayBuffer = reader.result;
+          var targetRate = 16000;
+          var ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: targetRate });
+          ctx.decodeAudioData(arrayBuffer, function(audioBuffer) {
+            // Mix to mono: average all channels
+            var numChannels = audioBuffer.numberOfChannels;
+            var len = audioBuffer.length;
+            var mono = new Float32Array(len);
+            for (var c = 0; c < numChannels; c++) {
+              var ch = audioBuffer.getChannelData(c);
+              for (var i = 0; i < len; i++) mono[i] += ch[i] / numChannels;
+            }
+            var wavBuf = _kitaEncodeWAV(mono, targetRate);
+            var bytes = new Uint8Array(wavBuf);
+            var binary = '';
+            for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+            ctx.close();
+            resolve(btoa(binary));
+          }, function(err) {
+            console.warn('decodeAudioData failed, falling back to raw base64:', err);
+            // Fall back to raw bytes if decode fails
+            var r2 = new FileReader();
+            r2.onloadend = function() { resolve(r2.result.split(',')[1]); };
+            r2.readAsDataURL(blob);
+          });
+        };
+        reader.readAsArrayBuffer(blob);
       });
     }
 
@@ -120,6 +196,15 @@
         osc.start(_kitaAudioCtx.currentTime);
         osc.stop(_kitaAudioCtx.currentTime + duration);
       } catch(e) { console.warn('Audio:', e); }
+    }
+    // ElevenLabs TTS audio playback
+    function _kitaPlayAudio(url) {
+      return new Promise(function(resolve, reject) {
+        var audio = new Audio(url);
+        audio.onended = function() { resolve(null); };
+        audio.onerror = function(e) { reject(e); };
+        audio.play().catch(reject);
+      });
     }
   </script>
   <script src="flutter_bootstrap.js" async></script>

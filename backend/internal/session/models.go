@@ -33,6 +33,7 @@ type ActivityResult struct {
 }
 
 type ActivityResultRequest struct {
+	SessionID    uuid.UUID       `json:"session_id" validate:"required"`
 	ActivityType string          `json:"activity_type" validate:"required"`
 	VocabularyID *uuid.UUID      `json:"vocabulary_id,omitempty"`
 	IsCorrect    bool            `json:"is_correct"`

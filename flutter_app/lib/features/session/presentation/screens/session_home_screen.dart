@@ -130,7 +130,7 @@ class _SessionHomeScreenState extends ConsumerState<SessionHomeScreen>
                           ),
                         ),
                         const SizedBox(width: 4),
-                        // DEV: Reset to onboarding
+                        // Reset profile — clears storage and auto-provisions a fresh profile
                         Container(
                           decoration: BoxDecoration(
                             color: AppColors.error.withValues(alpha: 0.1),
@@ -140,10 +140,10 @@ class _SessionHomeScreenState extends ConsumerState<SessionHomeScreen>
                             onPressed: () async {
                               final storage = ref.read(secureStorageProvider);
                               await storage.clearAll();
-                              if (context.mounted) context.go(RoutePaths.onboardingParent);
+                              if (context.mounted) context.go(RoutePaths.splash);
                             },
                             icon: const Icon(Icons.restart_alt, color: AppColors.error, size: 24),
-                            tooltip: 'Restart onboarding',
+                            tooltip: 'Reset profile',
                           ),
                         ),
                         const SizedBox(width: 4),
