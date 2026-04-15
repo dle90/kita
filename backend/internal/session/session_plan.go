@@ -9,7 +9,10 @@ import (
 )
 
 // SessionPlan defines the template for dynamically generating a session.
+// Kind classifies the plan (story|review|discovery|performance|play) so the
+// selector and downstream engine can reason about lesson type.
 type SessionPlan struct {
+	Kind       string     `json:"kind,omitempty"`
 	Activities []PlanSlot `json:"activities"`
 }
 
@@ -22,17 +25,40 @@ type PlanSlot struct {
 	Count  int    `json:"count"`
 }
 
-// UnitVocab holds the word list and patterns for a curriculum unit.
-type UnitVocab struct {
-	Words    []string `json:"words"`
-	Theme    string   `json:"theme"`
-	Patterns []string `json:"patterns"`
+// PlanSelector picks which named plan fires for a given session.
+// Strategy "fixed_cycle_with_triggers" rotates through Cycle by session index,
+// with Triggers evaluated first — first matching trigger wins.
+type PlanSelector struct {
+	Strategy string            `json:"strategy,omitempty"`
+	Cycle    []string          `json:"cycle,omitempty"`
+	Triggers []SelectorTrigger `json:"triggers,omitempty"`
+}
+
+// SelectorTrigger is a conditional plan override.
+// ReplaceWith is a plan name in Plans, or "default" to force DefaultPlan.
+type SelectorTrigger struct {
+	Name        string           `json:"name"`
+	When        TriggerCondition `json:"when"`
+	ReplaceWith string           `json:"replace_with"`
+}
+
+// TriggerCondition is an AND of the fields that are set. Unset fields are ignored.
+// For OR semantics, author multiple triggers — first match wins.
+type TriggerCondition struct {
+	TotalSessionsLT *int     `json:"total_sessions_lt,omitempty"`
+	SrsBacklogGT    *int     `json:"srs_backlog_gt,omitempty"`
+	AvgSkillLT      *float64 `json:"avg_skill_lt,omitempty"`
+	PlannedKindEq   string   `json:"planned_kind_eq,omitempty"`
 }
 
 // SessionPlansFile is the top-level structure of session_plans.json.
+// Plans is a map of named lesson-type plans (quiz, story, discovery, etc.)
+// and Selector picks which one fires per session. DefaultPlan is the
+// back-compat fallback used whenever a named plan lookup fails.
 type SessionPlansFile struct {
-	DefaultPlan    SessionPlan          `json:"default_plan"`
-	UnitVocabulary map[string]UnitVocab `json:"unit_vocabulary"`
+	Plans       map[string]SessionPlan `json:"plans,omitempty"`
+	Selector    PlanSelector           `json:"selector,omitempty"`
+	DefaultPlan SessionPlan            `json:"default_plan"`
 }
 
 var (
@@ -102,15 +128,6 @@ func defaultSessionPlans() *SessionPlansFile {
 				// Fun finish
 				{Phase: "fun_finish", Source: "all_learned", Skill: "auto", Format: "word_match", Count: 1},
 			},
-		},
-		UnitVocabulary: map[string]UnitVocab{
-			"1": {Words: []string{"hello", "goodbye", "name", "boy", "girl", "happy", "sad", "hungry", "tired", "excited"}, Theme: "Chào hỏi", Patterns: []string{"p_i_am_feeling", "p_my_name_is"}},
-			"2": {Words: []string{"mom", "dad", "brother", "sister", "baby", "grandma", "grandpa", "family", "love", "this"}, Theme: "Gia đình", Patterns: []string{"p_this_is_my"}},
-			"3": {Words: []string{"rice", "milk", "water", "ice cream", "chicken", "fish", "bread", "fruit", "like", "don't"}, Theme: "Đồ ăn", Patterns: []string{"p_i_like_food", "p_i_dont_like"}},
-			"4": {Words: []string{"run", "jump", "swim", "sing", "dance", "draw", "fly", "play", "can", "can't"}, Theme: "Hành động", Patterns: []string{"p_i_can_action"}},
-			"5": {Words: []string{"morning", "afternoon", "night", "wake up", "eat", "school", "sleep", "go"}, Theme: "Thời gian", Patterns: []string{"p_i_verb_in_morning"}},
-			"6": {Words: []string{"color", "big", "small", "hot", "cold", "thank you"}, Theme: "Ôn tập", Patterns: []string{"p_it_is_adj"}},
-			"7": {Words: []string{"my", "your", "friend", "English", "learn", "star"}, Theme: "Trình diễn", Patterns: []string{"p_all_combined"}},
 		},
 	}
 }

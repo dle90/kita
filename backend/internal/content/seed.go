@@ -31,6 +31,26 @@ func SeedContent(ctx context.Context, repo ContentRepository, seedDir string) er
 		}
 	} else {
 		log.Printf("Vocabulary already seeded (%d words)", vocabCount)
+		// Backfill distractors for existing rows (idempotent — only updates
+		// rows whose distractors column is still empty).
+		if n, err := backfillVocabularyDistractors(ctx, repo, seedDir+"/vocabulary.json"); err != nil {
+			log.Printf("Warning: could not backfill vocabulary distractors: %v", err)
+		} else if n > 0 {
+			log.Printf("Backfilled distractors for %d existing words", n)
+		}
+	}
+
+	// Curriculum units
+	unitCount, _ := repo.CountCurriculumUnits(ctx)
+	if unitCount == 0 {
+		n, err := seedCurriculumUnits(ctx, repo, seedDir+"/curriculum_units.json")
+		if err != nil {
+			log.Printf("Warning: could not seed curriculum units: %v", err)
+		} else {
+			log.Printf("Seeded %d curriculum units", n)
+		}
+	} else {
+		log.Printf("Curriculum units already seeded (%d)", unitCount)
 	}
 
 	// Phonemes
@@ -114,6 +134,7 @@ func seedVocabulary(ctx context.Context, repo ContentRepository, filePath string
 			ExampleSentenceVI: s.ExampleSentenceVI,
 			TargetPhonemes:    s.TargetPhonemes,
 			CommonL1Errors:    s.CommonL1Errors,
+			Distractors:       s.Distractors,
 		}
 		if err := repo.InsertVocabulary(ctx, vocab); err != nil {
 			return nil, fmt.Errorf("inserting vocabulary %q: %w", s.Word, err)
@@ -263,6 +284,48 @@ func seedPhonemes(ctx context.Context, repo ContentRepository, filePath string) 
 		count++
 	}
 	return count, nil
+}
+
+func seedCurriculumUnits(ctx context.Context, repo ContentRepository, filePath string) (int, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return 0, fmt.Errorf("reading curriculum units file: %w", err)
+	}
+
+	var units []CurriculumUnit
+	if err := json.Unmarshal(data, &units); err != nil {
+		return 0, fmt.Errorf("parsing curriculum units JSON: %w", err)
+	}
+
+	for _, u := range units {
+		unit := u
+		if err := repo.UpsertCurriculumUnit(ctx, &unit); err != nil {
+			return 0, fmt.Errorf("inserting curriculum unit %d: %w", u.UnitNumber, err)
+		}
+	}
+	return len(units), nil
+}
+
+func backfillVocabularyDistractors(ctx context.Context, repo ContentRepository, filePath string) (int, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return 0, fmt.Errorf("reading vocabulary file: %w", err)
+	}
+	var seeds []VocabularySeed
+	if err := json.Unmarshal(data, &seeds); err != nil {
+		return 0, fmt.Errorf("parsing vocabulary JSON: %w", err)
+	}
+	updated := 0
+	for _, s := range seeds {
+		if len(s.Distractors) == 0 {
+			continue
+		}
+		if err := repo.BackfillVocabularyDistractors(ctx, s.Word, s.Distractors); err != nil {
+			return updated, fmt.Errorf("backfilling %q: %w", s.Word, err)
+		}
+		updated++
+	}
+	return updated, nil
 }
 
 func seedCommunicationFunctions(ctx context.Context, repo ContentRepository, filePath string) (int, error) {

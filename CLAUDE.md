@@ -195,7 +195,7 @@ Current 12-slot plan (generates 13 activities for a fresh kid):
 - **session_plans.json sync.Once**: File is loaded once per process. Changing the file without redeploying has no effect. Always update the file, not just the Go fallback.
 
 ## Known Issues / To Debug
-- **Backend deployments FAIL since Phase 3+4 commit `8815c36`** — builds succeed (26.79s) but all deployments since 2026-04-12 show FAILED status in `railway deployment list`. Old container `bd4d509122c2/Bd0N1e8Wwa` (deployment `ae68aca1`, 2026-04-10) continues to serve. No logs from new containers — they crash before emitting any output. Likely a startup panic or fatal error. To debug: check `railway logs --latest` after deploy, look for startup errors, check if migration 015 conflicts.
+- (nothing open)
 
 ## API Contracts
 - All JSON uses **snake_case** (Go backend is source of truth)

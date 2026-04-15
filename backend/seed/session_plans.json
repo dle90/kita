@@ -1,27 +1,41 @@
 {
+  "plans": {
+    "quiz": {
+      "kind": "review",
+      "activities": [
+        {"phase": "warmup",    "source": "srs_due",      "skill": "weakest",    "format": "auto",           "count": 3},
+        {"phase": "recall",    "source": "srs_due",      "skill": "weakest",    "format": "auto",           "count": 4},
+        {"phase": "phoneme",   "source": "phoneme_weak", "skill": "perception", "format": "phonics_listen", "count": 1},
+        {"phase": "error",     "source": "error_focus",  "skill": "speaking",   "format": "speak_word",     "count": 1},
+        {"phase": "fun_finish","source": "all_learned",  "skill": "auto",       "format": "word_match",     "count": 1}
+      ]
+    }
+  },
+
+  "selector": {
+    "strategy": "fixed_cycle_with_triggers",
+    "cycle": ["discovery", "story", "quiz", "story", "quiz", "performance", "play"],
+    "triggers": [
+      {"name": "cold_start",     "when": {"total_sessions_lt": 2},   "replace_with": "default"},
+      {"name": "srs_backlog",    "when": {"srs_backlog_gt": 20},     "replace_with": "quiz"},
+      {"name": "skill_weakness", "when": {"avg_skill_lt": 0.6},      "replace_with": "quiz"}
+    ]
+  },
+
   "default_plan": {
     "activities": [
       {"phase": "warmup",      "source": "srs_due",      "skill": "weakest",    "format": "auto",             "count": 2},
-      {"phase": "warmup",      "source": "srs_due",      "skill": "listening",  "format": "listen_and_choose", "count": 1},
-      {"phase": "phonics",     "source": "phoneme_weak", "skill": "perception", "format": "phonics_listen",    "count": 1},
-      {"phase": "phonics",     "source": "phoneme_weak", "skill": "production", "format": "phonics_match",     "count": 1},
-      {"phase": "grammar",     "source": "grammar_next", "skill": "reading",    "format": "pattern_intro",     "count": 1},
-      {"phase": "new_content", "source": "unit_vocab",   "skill": "listening",  "format": "flashcard_intro",   "count": 1},
-      {"phase": "new_content", "source": "unit_vocab",   "skill": "speaking",   "format": "listen_and_repeat", "count": 1},
-      {"phase": "practice",    "source": "mix",          "skill": "reading",    "format": "fill_blank",        "count": 1},
-      {"phase": "practice",    "source": "mix",          "skill": "writing",    "format": "build_sentence",    "count": 1},
-      {"phase": "practice",    "source": "error_focus",  "skill": "speaking",   "format": "speak_word",        "count": 1},
-      {"phase": "practice",    "source": "mix",          "skill": "listening",  "format": "word_match",        "count": 1},
-      {"phase": "fun_finish",  "source": "all_learned",  "skill": "auto",       "format": "word_match",        "count": 1}
+      {"phase": "warmup",      "source": "srs_due",      "skill": "listening",  "format": "listen_and_choose","count": 1},
+      {"phase": "phonics",     "source": "phoneme_weak", "skill": "perception", "format": "phonics_listen",   "count": 1},
+      {"phase": "phonics",     "source": "phoneme_weak", "skill": "production", "format": "phonics_match",    "count": 1},
+      {"phase": "grammar",     "source": "grammar_next", "skill": "reading",    "format": "pattern_intro",    "count": 1},
+      {"phase": "new_content", "source": "unit_vocab",   "skill": "listening",  "format": "flashcard_intro",  "count": 1},
+      {"phase": "new_content", "source": "unit_vocab",   "skill": "speaking",   "format": "listen_and_repeat","count": 1},
+      {"phase": "practice",    "source": "mix",          "skill": "reading",    "format": "fill_blank",       "count": 1},
+      {"phase": "practice",    "source": "mix",          "skill": "writing",    "format": "build_sentence",   "count": 1},
+      {"phase": "practice",    "source": "error_focus",  "skill": "speaking",   "format": "speak_word",       "count": 1},
+      {"phase": "practice",    "source": "mix",          "skill": "listening",  "format": "word_match",       "count": 1},
+      {"phase": "fun_finish",  "source": "all_learned",  "skill": "auto",       "format": "word_match",       "count": 1}
     ]
-  },
-  "unit_vocabulary": {
-    "1": {"words": ["hello", "goodbye", "name", "boy", "girl", "happy", "sad", "hungry", "tired", "excited"], "theme": "Chào hỏi", "patterns": ["p_i_am_feeling", "p_my_name_is"]},
-    "2": {"words": ["mom", "dad", "brother", "sister", "baby", "grandma", "grandpa", "family", "love", "this"], "theme": "Gia đình", "patterns": ["p_this_is_my"]},
-    "3": {"words": ["rice", "milk", "water", "ice cream", "chicken", "fish", "bread", "fruit", "like", "don't"], "theme": "Đồ ăn", "patterns": ["p_i_like_food", "p_i_dont_like"]},
-    "4": {"words": ["run", "jump", "swim", "sing", "dance", "draw", "fly", "play", "can", "can't"], "theme": "Hành động", "patterns": ["p_i_can_action"]},
-    "5": {"words": ["morning", "afternoon", "night", "wake up", "eat", "school", "sleep", "go"], "theme": "Thời gian", "patterns": ["p_i_verb_in_morning"]},
-    "6": {"words": ["color", "big", "small", "hot", "cold", "thank you"], "theme": "Ôn tập", "patterns": ["p_it_is_adj"]},
-    "7": {"words": ["my", "your", "friend", "English", "learn", "star"], "theme": "Trình diễn", "patterns": ["p_all_combined"]}
   }
 }

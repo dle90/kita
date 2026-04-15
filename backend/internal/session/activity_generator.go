@@ -61,50 +61,42 @@ func vocabDataFromModel(v *content.Vocabulary) VocabData {
 	}
 }
 
-// similarSoundingDistractors provides hard-coded groups of similar-sounding English
-// words suitable for listen_and_choose activities aimed at Vietnamese kids.
-var similarSoundingDistractors = map[string][]string{
-	"cat":    {"cap", "cut", "car", "can"},
-	"dog":    {"dock", "dot", "dug", "log"},
-	"red":    {"led", "bed", "rid", "read"},
-	"blue":   {"blew", "glue", "clue", "brew"},
-	"fish":   {"dish", "wish", "fist", "fit"},
-	"bird":   {"word", "burn", "burst", "bored"},
-	"tree":   {"three", "free", "tea", "tray"},
-	"book":   {"look", "cook", "hook", "boot"},
-	"hand":   {"band", "sand", "had", "hang"},
-	"ball":   {"wall", "tall", "bell", "bull"},
-	"house":  {"mouse", "horse", "hose", "how"},
-	"water":  {"winter", "weather", "wander", "waiter"},
-	"apple":  {"able", "ankle", "ample", "maple"},
-	"happy":  {"hippy", "handy", "hobby", "hungry"},
-	"school": {"cool", "stool", "skull", "scoop"},
-}
-
-// getDistractors returns distractor words for a given target word.
-// Returns up to maxCount distractors from the similar-sounding map,
-// padding with generic common words if needed.
-func getDistractors(word string, maxCount int) []string {
-	generic := []string{"yes", "no", "big", "small", "run", "go", "stop", "up", "down", "sit"}
-	distractors, ok := similarSoundingDistractors[word]
-	if !ok {
-		distractors = generic
+// distractorsForVocab returns distractors for an SRS review activity.
+// Source priority: the vocab row's own `distractors` column → same-category
+// fallback. The old hardcoded similarSoundingDistractors map has been retired
+// — distractor data lives on the vocabulary row in the DB.
+func distractorsForVocab(target *content.Vocabulary, allVocab []*content.Vocabulary, maxCount int) []string {
+	if target == nil || maxCount <= 0 {
+		return nil
 	}
-	if len(distractors) > maxCount {
-		return distractors[:maxCount]
+	out := make([]string, 0, maxCount)
+	for _, d := range target.Distractors {
+		if d == "" || strings.EqualFold(d, target.Word) {
+			continue
+		}
+		out = append(out, d)
+		if len(out) >= maxCount {
+			return out
+		}
 	}
-	return distractors
+	if len(out) < maxCount && len(allVocab) > 0 {
+		padding := GenerateDistractorsFromCategory(target, allVocab, maxCount-len(out))
+		out = append(out, padding...)
+	}
+	return out
 }
 
 // GenerateSessionActivities builds the list of activities for a session day,
 // incorporating SRS due cards as review activities and adjusting difficulty.
 // vocabByID is an optional map of vocabulary data for enriching activity configs.
+// allVocab is the full vocabulary list, used to source distractors for review activities.
 func GenerateSessionActivities(
 	dayNumber int,
 	templates []*content.SessionTemplate,
 	dueCards []*srs.SrsCard,
 	recentAccuracy float64,
 	vocabByID map[uuid.UUID]*content.Vocabulary,
+	allVocab []*content.Vocabulary,
 ) []Activity {
 	var activities []Activity
 
@@ -125,7 +117,7 @@ func GenerateSessionActivities(
 
 		for i := 0; i < reviewCount; i++ {
 			card := dueCards[i]
-			reviewConfig := buildReviewConfig(card, difficultyOffset, vocabByID)
+			reviewConfig := buildReviewConfig(card, difficultyOffset, vocabByID, allVocab)
 			configJSON, _ := json.Marshal(reviewConfig)
 
 			activities = append(activities, Activity{
@@ -187,7 +179,7 @@ func GenerateSessionActivities(
 }
 
 // buildReviewConfig creates the config for an SRS review listen_and_choose activity.
-func buildReviewConfig(card *srs.SrsCard, difficultyOffset int, vocabByID map[uuid.UUID]*content.Vocabulary) map[string]interface{} {
+func buildReviewConfig(card *srs.SrsCard, difficultyOffset int, vocabByID map[uuid.UUID]*content.Vocabulary, allVocab []*content.Vocabulary) map[string]interface{} {
 	cfg := map[string]interface{}{
 		"type":          "srs_review",
 		"card_id":       card.ID.String(),
@@ -219,8 +211,7 @@ func buildReviewConfig(card *srs.SrsCard, difficultyOffset int, vocabByID map[uu
 		cfg["image_url"] = vocab.ImageURL
 		cfg["audio_url"] = vocab.AudioURL
 
-		distractors := getDistractors(vocab.Word, distractorCount)
-		cfg["distractors"] = distractors
+		cfg["distractors"] = distractorsForVocab(vocab, allVocab, distractorCount)
 
 		if difficultyOffset < 0 {
 			cfg["hint_vi"] = vocab.TranslationVI
@@ -413,27 +404,30 @@ func GetVocabularyForActivity(ctx context.Context, contentRepo content.ContentRe
 }
 
 // BuildPhonicsListenConfig creates the config for a phonics_listen (minimal pair discrimination) activity.
+// Returns nil when the phoneme has no usable minimal pairs — the caller must skip the slot,
+// otherwise Flutter would render an unanswerable activity with empty word labels and no audio.
 func BuildPhonicsListenConfig(phoneme *content.Phoneme) map[string]interface{} {
-	cfg := map[string]interface{}{
+	var pairs []map[string]interface{}
+	if err := json.Unmarshal(phoneme.MinimalPairs, &pairs); err != nil || len(pairs) == 0 {
+		return nil
+	}
+	pair := pairs[0]
+	w1, _ := pair["word1"].(string)
+	w2, _ := pair["word2"].(string)
+	if w1 == "" || w2 == "" {
+		return nil
+	}
+	return map[string]interface{}{
 		"phoneme_id":        phoneme.ID,
 		"symbol":            phoneme.Symbol,
 		"mouth_position_vi": phoneme.MouthPositionVI,
 		"substitution_vi":   phoneme.SubstitutionVI,
+		"word1":             w1,
+		"word2":             w2,
+		"word1_meaning":     pair["word1_meaning"],
+		"word2_meaning":     pair["word2_meaning"],
+		"are_different":     true,
 	}
-
-	// Parse minimal pairs
-	var pairs []map[string]interface{}
-	if err := json.Unmarshal(phoneme.MinimalPairs, &pairs); err == nil && len(pairs) > 0 {
-		// Pick first pair for the activity
-		pair := pairs[0]
-		cfg["word1"] = pair["word1"]
-		cfg["word2"] = pair["word2"]
-		cfg["word1_meaning"] = pair["word1_meaning"]
-		cfg["word2_meaning"] = pair["word2_meaning"]
-		cfg["are_different"] = true
-	}
-
-	return cfg
 }
 
 // BuildPhonicsMatchConfig creates the config for a phonics_match (sound-letter matching) activity.

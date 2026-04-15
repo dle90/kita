@@ -22,6 +22,17 @@ type ContentRepository interface {
 	CountVocabulary(ctx context.Context) (int, error)
 	CountSessionTemplates(ctx context.Context) (int, error)
 
+	// Backfill distractors for a word if the existing row has an empty
+	// distractors array. Used by the seeder so new distractor data in
+	// vocabulary.json is picked up on boot without re-inserting rows.
+	BackfillVocabularyDistractors(ctx context.Context, word string, distractors []string) error
+
+	// Curriculum units
+	GetCurriculumUnit(ctx context.Context, unitNumber int) (*CurriculumUnit, error)
+	GetCurriculumUnits(ctx context.Context) ([]*CurriculumUnit, error)
+	UpsertCurriculumUnit(ctx context.Context, unit *CurriculumUnit) error
+	CountCurriculumUnits(ctx context.Context) (int, error)
+
 	// Phonemes
 	InsertPhoneme(ctx context.Context, p *Phoneme) error
 	GetPhonemes(ctx context.Context) ([]*Phoneme, error)
@@ -51,7 +62,7 @@ func NewContentRepository(pool *pgxpool.Pool) ContentRepository {
 }
 
 func (r *pgContentRepository) GetVocabulary(ctx context.Context, dayNumber int, category string) ([]*Vocabulary, error) {
-	query := `SELECT id, word, translation_vi, phonetic_ipa, audio_url, image_url, category, day_number, difficulty, emoji, example_sentence, example_sentence_vi, target_phonemes, common_l1_errors
+	query := `SELECT id, word, translation_vi, phonetic_ipa, audio_url, image_url, category, day_number, difficulty, emoji, example_sentence, example_sentence_vi, target_phonemes, common_l1_errors, distractors
 		FROM vocabulary WHERE 1=1`
 	args := []interface{}{}
 	argIdx := 1
@@ -80,11 +91,11 @@ func (r *pgContentRepository) GetVocabulary(ctx context.Context, dayNumber int, 
 
 func (r *pgContentRepository) GetVocabularyByID(ctx context.Context, id uuid.UUID) (*Vocabulary, error) {
 	v := &Vocabulary{}
-	var phonemesJSON, errorsJSON []byte
+	var phonemesJSON, errorsJSON, distractorsJSON []byte
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, word, translation_vi, phonetic_ipa, audio_url, image_url, category, day_number, difficulty, emoji, example_sentence, example_sentence_vi, target_phonemes, common_l1_errors
+		`SELECT id, word, translation_vi, phonetic_ipa, audio_url, image_url, category, day_number, difficulty, emoji, example_sentence, example_sentence_vi, target_phonemes, common_l1_errors, distractors
 		 FROM vocabulary WHERE id = $1`, id,
-	).Scan(&v.ID, &v.Word, &v.TranslationVI, &v.PhoneticIPA, &v.AudioURL, &v.ImageURL, &v.Category, &v.DayNumber, &v.Difficulty, &v.Emoji, &v.ExampleSentence, &v.ExampleSentenceVI, &phonemesJSON, &errorsJSON)
+	).Scan(&v.ID, &v.Word, &v.TranslationVI, &v.PhoneticIPA, &v.AudioURL, &v.ImageURL, &v.Category, &v.DayNumber, &v.Difficulty, &v.Emoji, &v.ExampleSentence, &v.ExampleSentenceVI, &phonemesJSON, &errorsJSON, &distractorsJSON)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -93,6 +104,7 @@ func (r *pgContentRepository) GetVocabularyByID(ctx context.Context, id uuid.UUI
 	}
 	json.Unmarshal(phonemesJSON, &v.TargetPhonemes)
 	json.Unmarshal(errorsJSON, &v.CommonL1Errors)
+	json.Unmarshal(distractorsJSON, &v.Distractors)
 	return v, nil
 }
 
@@ -101,7 +113,7 @@ func (r *pgContentRepository) GetVocabularyByIDs(ctx context.Context, ids []uuid
 		return nil, nil
 	}
 	rows, err := r.pool.Query(ctx,
-		`SELECT id, word, translation_vi, phonetic_ipa, audio_url, image_url, category, day_number, difficulty, emoji, example_sentence, example_sentence_vi, target_phonemes, common_l1_errors
+		`SELECT id, word, translation_vi, phonetic_ipa, audio_url, image_url, category, day_number, difficulty, emoji, example_sentence, example_sentence_vi, target_phonemes, common_l1_errors, distractors
 		 FROM vocabulary WHERE id = ANY($1)`, ids,
 	)
 	if err != nil {
@@ -115,12 +127,13 @@ func scanVocabularyRows(rows pgx.Rows) ([]*Vocabulary, error) {
 	var result []*Vocabulary
 	for rows.Next() {
 		v := &Vocabulary{}
-		var phonemesJSON, errorsJSON []byte
-		if err := rows.Scan(&v.ID, &v.Word, &v.TranslationVI, &v.PhoneticIPA, &v.AudioURL, &v.ImageURL, &v.Category, &v.DayNumber, &v.Difficulty, &v.Emoji, &v.ExampleSentence, &v.ExampleSentenceVI, &phonemesJSON, &errorsJSON); err != nil {
+		var phonemesJSON, errorsJSON, distractorsJSON []byte
+		if err := rows.Scan(&v.ID, &v.Word, &v.TranslationVI, &v.PhoneticIPA, &v.AudioURL, &v.ImageURL, &v.Category, &v.DayNumber, &v.Difficulty, &v.Emoji, &v.ExampleSentence, &v.ExampleSentenceVI, &phonemesJSON, &errorsJSON, &distractorsJSON); err != nil {
 			return nil, err
 		}
 		json.Unmarshal(phonemesJSON, &v.TargetPhonemes)
 		json.Unmarshal(errorsJSON, &v.CommonL1Errors)
+		json.Unmarshal(distractorsJSON, &v.Distractors)
 		result = append(result, v)
 	}
 	return result, nil
@@ -176,12 +189,17 @@ func (r *pgContentRepository) GetSessionTemplates(ctx context.Context, dayNumber
 func (r *pgContentRepository) InsertVocabulary(ctx context.Context, vocab *Vocabulary) error {
 	phonemesJSON, _ := json.Marshal(vocab.TargetPhonemes)
 	errorsJSON, _ := json.Marshal(vocab.CommonL1Errors)
+	distractors := vocab.Distractors
+	if distractors == nil {
+		distractors = []string{}
+	}
+	distractorsJSON, _ := json.Marshal(distractors)
 	_, err := r.pool.Exec(ctx,
-		`INSERT INTO vocabulary (id, word, translation_vi, phonetic_ipa, audio_url, image_url, category, day_number, difficulty, emoji, example_sentence, example_sentence_vi, target_phonemes, common_l1_errors)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-		 ON CONFLICT (word) DO NOTHING`,
+		`INSERT INTO vocabulary (id, word, translation_vi, phonetic_ipa, audio_url, image_url, category, day_number, difficulty, emoji, example_sentence, example_sentence_vi, target_phonemes, common_l1_errors, distractors)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+		 ON CONFLICT (word) DO UPDATE SET distractors = EXCLUDED.distractors WHERE vocabulary.distractors = '[]'::jsonb`,
 		vocab.ID, vocab.Word, vocab.TranslationVI, vocab.PhoneticIPA, vocab.AudioURL, vocab.ImageURL,
-		vocab.Category, vocab.DayNumber, vocab.Difficulty, vocab.Emoji, vocab.ExampleSentence, vocab.ExampleSentenceVI, phonemesJSON, errorsJSON,
+		vocab.Category, vocab.DayNumber, vocab.Difficulty, vocab.Emoji, vocab.ExampleSentence, vocab.ExampleSentenceVI, phonemesJSON, errorsJSON, distractorsJSON,
 	)
 	return err
 }
@@ -435,4 +453,90 @@ func (r *pgContentRepository) CountCommunicationFunctions(ctx context.Context) (
 
 func itoa(i int) string {
 	return string(rune('0' + i))
+}
+
+func (r *pgContentRepository) BackfillVocabularyDistractors(ctx context.Context, word string, distractors []string) error {
+	if len(distractors) == 0 {
+		return nil
+	}
+	distractorsJSON, _ := json.Marshal(distractors)
+	_, err := r.pool.Exec(ctx,
+		`UPDATE vocabulary SET distractors = $2
+		 WHERE word = $1 AND (distractors IS NULL OR distractors = '[]'::jsonb)`,
+		word, distractorsJSON,
+	)
+	return err
+}
+
+// --- Curriculum units ----------------------------------------------------
+
+func (r *pgContentRepository) GetCurriculumUnit(ctx context.Context, unitNumber int) (*CurriculumUnit, error) {
+	u := &CurriculumUnit{}
+	var wordsJSON, patternsJSON []byte
+	err := r.pool.QueryRow(ctx,
+		`SELECT unit_number, theme, words, patterns
+		 FROM curriculum_units WHERE unit_number = $1`, unitNumber,
+	).Scan(&u.UnitNumber, &u.Theme, &wordsJSON, &patternsJSON)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	json.Unmarshal(wordsJSON, &u.Words)
+	json.Unmarshal(patternsJSON, &u.Patterns)
+	return u, nil
+}
+
+func (r *pgContentRepository) GetCurriculumUnits(ctx context.Context) ([]*CurriculumUnit, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT unit_number, theme, words, patterns
+		 FROM curriculum_units ORDER BY unit_number`,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []*CurriculumUnit
+	for rows.Next() {
+		u := &CurriculumUnit{}
+		var wordsJSON, patternsJSON []byte
+		if err := rows.Scan(&u.UnitNumber, &u.Theme, &wordsJSON, &patternsJSON); err != nil {
+			return nil, err
+		}
+		json.Unmarshal(wordsJSON, &u.Words)
+		json.Unmarshal(patternsJSON, &u.Patterns)
+		result = append(result, u)
+	}
+	return result, nil
+}
+
+func (r *pgContentRepository) UpsertCurriculumUnit(ctx context.Context, unit *CurriculumUnit) error {
+	words := unit.Words
+	if words == nil {
+		words = []string{}
+	}
+	patterns := unit.Patterns
+	if patterns == nil {
+		patterns = []string{}
+	}
+	wordsJSON, _ := json.Marshal(words)
+	patternsJSON, _ := json.Marshal(patterns)
+	_, err := r.pool.Exec(ctx,
+		`INSERT INTO curriculum_units (unit_number, theme, words, patterns)
+		 VALUES ($1, $2, $3, $4)
+		 ON CONFLICT (unit_number) DO UPDATE SET
+		   theme = EXCLUDED.theme,
+		   words = EXCLUDED.words,
+		   patterns = EXCLUDED.patterns`,
+		unit.UnitNumber, unit.Theme, wordsJSON, patternsJSON,
+	)
+	return err
+}
+
+func (r *pgContentRepository) CountCurriculumUnits(ctx context.Context) (int, error) {
+	var count int
+	err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM curriculum_units`).Scan(&count)
+	return count, err
 }

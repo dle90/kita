@@ -21,6 +21,17 @@ type Vocabulary struct {
 	ExampleSentenceVI string    `json:"example_sentence_vi"`
 	TargetPhonemes    []string  `json:"target_phonemes"`
 	CommonL1Errors    []string  `json:"common_l1_errors"`
+	Distractors       []string  `json:"distractors"`
+}
+
+// CurriculumUnit groups vocabulary words and patterns into a thematic unit
+// (e.g. unit 1 = "Greetings"). Used by the dynamic session generator to
+// decide which words to teach for a given session day.
+type CurriculumUnit struct {
+	UnitNumber int      `json:"unit_number"`
+	Theme      string   `json:"theme"`
+	Words      []string `json:"words"`
+	Patterns   []string `json:"patterns"`
 }
 
 type Sentence struct {
@@ -155,6 +166,7 @@ type VocabularySeed struct {
 	ExampleSentenceVI string   `json:"example_sentence_vi"`
 	TargetPhonemes    []string `json:"target_phonemes"`
 	CommonL1Errors    []string `json:"common_l1_errors"`
+	Distractors       []string `json:"distractors"`
 }
 
 type SessionTemplateSeed struct {

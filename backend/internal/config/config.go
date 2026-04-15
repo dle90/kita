@@ -8,12 +8,13 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig
-	DB       DBConfig
-	Redis    RedisConfig
-	MinIO    MinIOConfig
-	Azure    AzureConfig
-	JWT      JWTConfig
+	Server     ServerConfig
+	DB         DBConfig
+	Redis      RedisConfig
+	MinIO      MinIOConfig
+	Azure      AzureConfig
+	JWT        JWTConfig
+	ElevenLabs ElevenLabsConfig
 }
 
 type ServerConfig struct {
@@ -61,6 +62,12 @@ type AzureConfig struct {
 	SpeechRegion string
 }
 
+type ElevenLabsConfig struct {
+	APIKey  string
+	VoiceID string
+	ModelID string
+}
+
 type JWTConfig struct {
 	Secret           string
 	AccessExpiresIn  time.Duration
@@ -99,6 +106,11 @@ func Load() (*Config, error) {
 		Azure: AzureConfig{
 			SpeechKey:    getEnv("AZURE_SPEECH_KEY", ""),
 			SpeechRegion: getEnv("AZURE_SPEECH_REGION", "southeastasia"),
+		},
+		ElevenLabs: ElevenLabsConfig{
+			APIKey:  getEnv("ELEVENLABS_API_KEY", ""),
+			VoiceID: getEnv("ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM"), // Rachel: warm, clear
+			ModelID: getEnv("ELEVENLABS_MODEL_ID", "eleven_turbo_v2_5"),
 		},
 		JWT: JWTConfig{
 			Secret:           getEnv("JWT_SECRET", "dev-secret-change-in-production"),

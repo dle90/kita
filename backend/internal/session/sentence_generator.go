@@ -69,14 +69,18 @@ func GenerateSentence(pattern *content.Pattern, vocabPool []*content.Vocabulary)
 }
 
 // GenerateSentenceFromExample picks a random example sentence from the pattern.
-// This is simpler and more reliable for patterns with fixed phrases.
+// Returns an error when the pattern has no examples — falling back to the raw
+// template would leak unfilled placeholders like "{animal}" into build_sentence
+// and fill_blank activities, which the kid would see as literal tiles.
 func GenerateSentenceFromExample(pattern *content.Pattern) (string, string, error) {
 	examples := pattern.GetExamples()
 	if len(examples) == 0 {
-		// Fall back to the template itself
-		return pattern.Template, pattern.TemplateVI, nil
+		return "", "", fmt.Errorf("pattern %q has no example sentences", pattern.ID)
 	}
 	picked := examples[rand.Intn(len(examples))]
+	if strings.Contains(picked.En, "{") || strings.Contains(picked.En, "}") {
+		return "", "", fmt.Errorf("pattern %q example contains unfilled placeholder: %q", pattern.ID, picked.En)
+	}
 	return picked.En, picked.Vi, nil
 }
 

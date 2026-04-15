@@ -31,25 +31,34 @@ func GenerateDynamicSession(
 	patterns []*content.Pattern,
 	allPhonemes []*content.Phoneme,
 	allGrammarStructures []*content.GrammarStructure,
+	curriculumUnits []*content.CurriculumUnit,
 ) ([]Activity, []string, error) {
 	var activities []Activity
 	var decisionLog []string
 
-	// Load unit vocabulary from session plans
-	plans := LoadSessionPlans()
-	unitKey := fmt.Sprintf("%d", unitNumber)
-	unitVocab, hasUnit := plans.UnitVocabulary[unitKey]
+	// Resolve curriculum unit from DB-backed list. Unit 1 is the fallback when
+	// the requested unit is missing.
+	unitByNumber := make(map[int]*content.CurriculumUnit, len(curriculumUnits))
+	for _, u := range curriculumUnits {
+		unitByNumber[u.UnitNumber] = u
+	}
+	unit, hasUnit := unitByNumber[unitNumber]
 	if !hasUnit {
-		// Fall back to unit 1 if unit not found
-		unitVocab = plans.UnitVocabulary["1"]
-		decisionLog = append(decisionLog, fmt.Sprintf("[engine] Unit %d not found, falling back to Unit 1", unitNumber))
+		unit = unitByNumber[1]
+		if unit != nil {
+			decisionLog = append(decisionLog, fmt.Sprintf("[engine] Unit %d not found, falling back to Unit 1", unitNumber))
+		}
 	}
 
 	// Resolve unit words to vocabulary objects
 	var unitWords []*content.Vocabulary
-	for _, w := range unitVocab.Words {
-		if v, ok := vocabByWord[strings.ToLower(w)]; ok {
-			unitWords = append(unitWords, v)
+	var unitTheme string
+	if unit != nil {
+		unitTheme = unit.Theme
+		for _, w := range unit.Words {
+			if v, ok := vocabByWord[strings.ToLower(w)]; ok {
+				unitWords = append(unitWords, v)
+			}
 		}
 	}
 	// If no unit words resolved from DB, use all vocab for this day
@@ -164,6 +173,10 @@ func GenerateDynamicSession(
 				} else {
 					cfg = BuildPhonicsListenConfig(phoneme)
 				}
+				if cfg == nil {
+					decisionLog = append(decisionLog, fmt.Sprintf("[%s] phoneme /%s/ has no usable minimal pairs, skipping", slot.Phase, phoneme.Symbol))
+					continue
+				}
 				cfg["phase"] = slot.Phase
 				cfg["target_skill"] = slot.Skill
 				cfg["type"] = slot.Format
@@ -233,7 +246,7 @@ func GenerateDynamicSession(
 		}
 	}
 
-	decisionLog = append(decisionLog, fmt.Sprintf("[engine] Generated %d activities for unit %d (%s)", len(activities), unitNumber, unitVocab.Theme))
+	decisionLog = append(decisionLog, fmt.Sprintf("[engine] Generated %d activities for unit %d (%s)", len(activities), unitNumber, unitTheme))
 
 	return activities, decisionLog, nil
 }
@@ -331,13 +344,24 @@ func selectSourceWords(
 	}
 }
 
+// canonicalSkillOrder is the fixed iteration order used to break ties in
+// resolveSkill. Without it, Go map iteration randomization would make a fresh
+// kid see a different "weakest" skill across consecutive sessions.
+var canonicalSkillOrder = []srs.SkillType{
+	srs.SkillListening,
+	srs.SkillSpeaking,
+	srs.SkillReading,
+	srs.SkillWriting,
+}
+
 // resolveSkill determines which skill to target.
 func resolveSkill(skillSpec string, skillSummary map[srs.SkillType]float64, skillCounts map[string]int) string {
 	switch skillSpec {
 	case "weakest":
-		weakest := "listening"
+		weakest := string(srs.SkillListening)
 		weakestScore := 101.0
-		for skill, score := range skillSummary {
+		for _, skill := range canonicalSkillOrder {
+			score := skillSummary[skill]
 			if score < weakestScore {
 				weakestScore = score
 				weakest = string(skill)
@@ -346,13 +370,14 @@ func resolveSkill(skillSpec string, skillSummary map[srs.SkillType]float64, skil
 		return weakest
 
 	case "auto":
-		// Pick the skill with fewest activities so far
+		// Pick the skill with fewest activities so far, breaking ties in canonical order.
 		minCount := 999
-		minSkill := "listening"
-		for skill, count := range skillCounts {
+		minSkill := string(srs.SkillListening)
+		for _, skill := range canonicalSkillOrder {
+			count := skillCounts[string(skill)]
 			if count < minCount {
 				minCount = count
-				minSkill = skill
+				minSkill = string(skill)
 			}
 		}
 		return minSkill
@@ -512,20 +537,22 @@ func buildListenAndChooseConfig(words []*content.Vocabulary, allVocab []*content
 
 	target := words[0]
 
-	// Build distractors: same category first, then phonetically similar, then generic
-	var distractorWords []string
-	distractors := getDistractors(target.Word, 3)
+	// Distractors come from the word's own DB-backed `distractors` column
+	// first. Any shortfall is padded from same-category vocabulary. This
+	// replaces the old hardcoded similarSoundingDistractors map.
+	distractors := make([]string, 0, 3)
+	for _, d := range target.Distractors {
+		if d == "" || strings.EqualFold(d, target.Word) {
+			continue
+		}
+		distractors = append(distractors, d)
+		if len(distractors) >= 3 {
+			break
+		}
+	}
 	if len(distractors) < 3 {
-		// Pad with same-category words
-		for _, v := range allVocab {
-			if v.Word != target.Word && strings.EqualFold(v.Category, target.Category) && len(distractorWords) < 3 {
-				distractorWords = append(distractorWords, v.Word)
-			}
-		}
-		distractors = append(distractors, distractorWords...)
-		if len(distractors) > 3 {
-			distractors = distractors[:3]
-		}
+		padding := GenerateDistractorsFromCategory(target, allVocab, 3-len(distractors))
+		distractors = append(distractors, padding...)
 	}
 
 	// Build options (target + distractors, shuffled)
@@ -680,16 +707,21 @@ func buildFillBlankConfig(words []*content.Vocabulary, allVocab []*content.Vocab
 			// Find a content word to blank out
 			blankWord, displaySentence, correctWord := pickBlankWord(sentence, words)
 			if blankWord != "" {
-				// Generate distractor options
+				// Distractors: same category from DB vocabulary. If the
+				// blanked word isn't a known vocab item, pick any 3 vocab
+				// words from allVocab as filler — better than a hardcoded
+				// list that doesn't reflect the kid's word pool.
 				options := []string{correctWord}
 				if correctVocab, ok := vocabByWord[strings.ToLower(correctWord)]; ok {
 					distractors := GenerateDistractorsFromCategory(correctVocab, allVocab, 3)
 					options = append(options, distractors...)
 				} else {
-					fallback := []string{"happy", "sad", "big", "run", "eat", "go"}
-					for _, f := range fallback {
-						if f != correctWord && len(options) < 4 {
-							options = append(options, f)
+					for _, v := range allVocab {
+						if len(options) >= 4 {
+							break
+						}
+						if !strings.EqualFold(v.Word, correctWord) {
+							options = append(options, v.Word)
 						}
 					}
 				}
@@ -715,15 +747,15 @@ func buildFillBlankConfig(words []*content.Vocabulary, allVocab []*content.Vocab
 		}
 	}
 
-	// Fallback: use a simple word-level fill blank
-	if len(words) > 0 {
-		target := words[0]
+	// Word-level fallback: use the vocab row's example_sentence. We will not
+	// synthesise "I like X." — applying that template to verbs/adverbs/function
+	// words produces ungrammatical output the kid would memorise as wrong.
+	for _, target := range words {
+		if target.ExampleSentence == "" {
+			continue
+		}
 		sentence := target.ExampleSentence
 		sentenceVI := target.ExampleSentenceVI
-		if sentence == "" {
-			sentence = "I like " + target.Word + "."
-			sentenceVI = "Tôi thích " + target.TranslationVI + "."
-		}
 
 		displaySentence := strings.Replace(sentence, target.Word, "___", 1)
 		options := []string{target.Word}
@@ -740,7 +772,7 @@ func buildFillBlankConfig(words []*content.Vocabulary, allVocab []*content.Vocab
 			"options":          options,
 		}
 
-		reason := fmt.Sprintf("'%s' — blank='%s' (fallback from example sentence)", sentence, target.Word)
+		reason := fmt.Sprintf("'%s' — blank='%s' (from vocab example_sentence)", sentence, target.Word)
 		return config, reason, []uuid.UUID{target.ID}
 	}
 
@@ -777,15 +809,14 @@ func buildBuildSentenceConfig(words []*content.Vocabulary, patterns []*content.P
 		}
 	}
 
-	// Fallback: build from example sentence of a word
-	if len(words) > 0 {
-		target := words[0]
+	// Word-level fallback: only use a vocab row that has a real example
+	// sentence. No "I like X" synthesis — see the rationale in buildFillBlankConfig.
+	for _, target := range words {
+		if target.ExampleSentence == "" {
+			continue
+		}
 		sentence := target.ExampleSentence
 		sentenceVI := target.ExampleSentenceVI
-		if sentence == "" {
-			sentence = "I like " + target.Word + "."
-			sentenceVI = "Tôi thích " + target.TranslationVI + "."
-		}
 
 		shuffled, correct := ScrambleWords(sentence)
 
@@ -797,7 +828,7 @@ func buildBuildSentenceConfig(words []*content.Vocabulary, patterns []*content.P
 			"correct_order":   correct,
 		}
 
-		reason := fmt.Sprintf("'%s' — fallback from word '%s'", sentence, target.Word)
+		reason := fmt.Sprintf("'%s' — from vocab example_sentence '%s'", sentence, target.Word)
 		return config, reason, []uuid.UUID{target.ID}
 	}
 

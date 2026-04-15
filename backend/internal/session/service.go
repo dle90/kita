@@ -108,7 +108,9 @@ func (s *SessionService) GetSession(ctx context.Context, kidID uuid.UUID, dayNum
 
 	// --- Dynamic Session Generation (primary path) ---
 	plans := LoadSessionPlans()
-	plan := plans.DefaultPlan
+	kidState := s.buildSelectorState(ctx, kidID)
+	selected := SelectPlan(plans, kidState)
+	plan := selected.Plan
 
 	// Get all vocabulary, indexed by word
 	allVocab, err := s.contentRepo.GetVocabulary(ctx, 0, "") // 0 = all days
@@ -132,13 +134,20 @@ func (s *SessionService) GetSession(ctx context.Context, kidID uuid.UUID, dayNum
 	// Phase 4: Load grammar structures (ordered by difficulty ASC from DB)
 	allGrammarStructures, _ := s.contentRepo.GetGrammarStructures(ctx)
 
+	// Curriculum units (replaces the old hardcoded unit_vocabulary in session_plans.json)
+	curriculumUnits, _ := s.contentRepo.GetCurriculumUnits(ctx)
+
 	activities, decisionLog, dynErr := GenerateDynamicSession(
 		ctx, kidID, dayNumber, plan,
 		s.contentRepo, s.skillMasteryRepo, s.srsRepo,
 		s.phonemeMasteryRepo, s.curriculumRepo,
 		vocabByWord, allVocab, patterns,
 		allPhonemes, allGrammarStructures,
+		curriculumUnits,
 	)
+
+	selectorLog := fmt.Sprintf("[selector] plan='%s' kind='%s' reason=%s", selected.Name, selected.Kind, selected.Reason)
+	decisionLog = append([]string{selectorLog}, decisionLog...)
 
 	if dynErr != nil || len(activities) == 0 {
 		// --- Fallback to template-based generation ---
@@ -164,7 +173,7 @@ func (s *SessionService) GetSession(ctx context.Context, kidID uuid.UUID, dayNum
 			vocabByID = make(map[uuid.UUID]*content.Vocabulary)
 		}
 
-		activities = GenerateSessionActivities(dayNumber, templates, dueCards, recentAccuracy, vocabByID)
+		activities = GenerateSessionActivities(dayNumber, templates, dueCards, recentAccuracy, vocabByID, allVocab)
 		decisionLog = append(decisionLog, fmt.Sprintf("[fallback] Generated %d activities from templates", len(activities)))
 	}
 
@@ -361,6 +370,48 @@ func scoreFromActivityResult(result *ActivityResult) float64 {
 	default:
 		return 50
 	}
+}
+
+// buildSelectorState assembles the KidState snapshot the plan selector reads.
+// All repo lookups tolerate errors — a fresh kid with no data yields a zero state,
+// which lets cold_start-style triggers fire naturally.
+func (s *SessionService) buildSelectorState(ctx context.Context, kidID uuid.UUID) KidState {
+	state := KidState{}
+
+	if s.sessionRepo != nil {
+		sessions, err := s.sessionRepo.GetKidSessions(ctx, kidID)
+		if err == nil {
+			for _, sess := range sessions {
+				if sess.CompletedAt != nil {
+					state.TotalCompletedSessions++
+				}
+			}
+		}
+	}
+
+	if s.srsRepo != nil {
+		dueCards, err := s.srsRepo.GetDueCards(ctx, kidID, time.Now())
+		if err == nil {
+			state.SrsBacklog = len(dueCards)
+		}
+	}
+
+	if s.skillMasteryRepo != nil {
+		summary, err := s.skillMasteryRepo.GetSkillSummary(ctx, kidID)
+		if err == nil && len(summary) > 0 {
+			var sum float64
+			var count int
+			for _, v := range summary {
+				sum += v
+				count++
+			}
+			if count > 0 {
+				state.AvgSkill = sum / float64(count) / 100.0
+			}
+		}
+	}
+
+	return state
 }
 
 func (s *SessionService) getRecentAccuracy(ctx context.Context, kidID uuid.UUID) float64 {

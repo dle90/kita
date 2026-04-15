@@ -1,0 +1,356 @@
+[
+  {
+    "unit_number": 1,
+    "theme": "Chào hỏi",
+    "theme_en": "Hello",
+    "description_en": "First meetings — greet, say your name, ask someone else's name, say goodbye.",
+    "description_vi": "Lần đầu gặp mặt — chào hỏi, nói tên mình, hỏi tên người khác, tạm biệt.",
+    "prerequisites": [],
+    "words": [
+      "hello", "hi", "goodbye", "bye",
+      "name", "my", "your", "you", "i",
+      "what", "am", "is",
+      "nice", "meet", "friend", "new",
+      "good", "morning", "please", "thank", "welcome",
+      "yes", "no",
+      "mr", "mrs", "ms", "teacher"
+    ],
+    "patterns": ["p_my_name_is", "p_whats_your_name", "p_nice_to_meet_you", "p_goodbye"],
+    "target_phonemes": ["h", "n", "m"],
+    "target_functions": ["greet", "introduce_self", "ask_name", "say_goodbye"],
+    "grammar_structures": ["be_i_am"]
+  },
+
+  {
+    "unit_number": 2,
+    "theme": "Số đếm và tuổi",
+    "theme_en": "Numbers & Age",
+    "description_en": "Count to ten, say how old you are, ask someone's age.",
+    "description_vi": "Đếm đến mười, nói tuổi của mình, hỏi tuổi người khác.",
+    "prerequisites": [1],
+    "words": [
+      "one", "two", "three", "four", "five",
+      "six", "seven", "eight", "nine", "ten",
+      "zero", "number", "count",
+      "how", "old", "year", "years",
+      "many", "birthday", "age",
+      "too", "very", "also"
+    ],
+    "patterns": ["p_i_am_years_old", "p_how_old_are_you", "p_how_many"],
+    "target_phonemes": ["th_voiceless", "f", "w"],
+    "target_functions": ["count", "state_age", "ask_age"],
+    "grammar_structures": ["be_i_am", "wh_question_how"]
+  },
+
+  {
+    "unit_number": 3,
+    "theme": "Màu sắc",
+    "theme_en": "Colors",
+    "description_en": "Name basic colors, describe things by color, ask what color something is.",
+    "description_vi": "Gọi tên các màu cơ bản, mô tả đồ vật theo màu, hỏi màu của đồ vật.",
+    "prerequisites": [1, 2],
+    "words": [
+      "red", "blue", "yellow", "green", "orange",
+      "pink", "purple", "brown", "black", "white",
+      "gray", "color",
+      "apple", "sky", "sun", "grass", "leaf",
+      "it", "this", "that",
+      "look", "see", "like"
+    ],
+    "patterns": ["p_it_is_color", "p_what_color", "p_i_like_color"],
+    "target_phonemes": ["l", "r", "ae"],
+    "target_functions": ["identify_color", "describe_object", "express_preference"],
+    "grammar_structures": ["be_it_is", "wh_question_what"]
+  },
+
+  {
+    "unit_number": 4,
+    "theme": "Gia đình",
+    "theme_en": "Family",
+    "description_en": "Introduce family members using 'This is my ___'.",
+    "description_vi": "Giới thiệu các thành viên trong gia đình bằng 'Đây là ___ của tôi'.",
+    "prerequisites": [1],
+    "words": [
+      "mom", "mommy", "dad", "daddy",
+      "brother", "sister", "baby",
+      "grandma", "grandpa", "grandmother", "grandfather",
+      "family", "love", "me",
+      "big", "little", "small",
+      "boy", "girl", "kid",
+      "aunt", "uncle", "cousin",
+      "home", "house"
+    ],
+    "patterns": ["p_this_is_my", "p_i_have_family", "p_i_love"],
+    "target_phonemes": ["th_voiced", "m", "b"],
+    "target_functions": ["introduce_family", "express_possession", "express_affection"],
+    "grammar_structures": ["demonstrative_this", "possessive_my"]
+  },
+
+  {
+    "unit_number": 5,
+    "theme": "Cơ thể",
+    "theme_en": "Body & Face",
+    "description_en": "Name body parts and face features, say 'I have ___'.",
+    "description_vi": "Gọi tên các bộ phận cơ thể và khuôn mặt, nói 'Tôi có ___'.",
+    "prerequisites": [1, 4],
+    "words": [
+      "head", "hair", "face", "eye", "eyes",
+      "ear", "ears", "nose", "mouth", "teeth", "tooth",
+      "hand", "hands", "arm", "arms",
+      "leg", "legs", "foot", "feet",
+      "body", "have", "has",
+      "long", "short",
+      "touch", "wash"
+    ],
+    "patterns": ["p_i_have", "p_i_have_body_part", "p_touch_your"],
+    "target_phonemes": ["i_long", "i_short", "h"],
+    "target_functions": ["describe_self", "identify_body_part", "give_command"],
+    "grammar_structures": ["have_i_have", "plural_s"]
+  },
+
+  {
+    "unit_number": 6,
+    "theme": "Con vật",
+    "theme_en": "Animals",
+    "description_en": "Identify pets, farm animals, and common wild animals; use plurals.",
+    "description_vi": "Nhận biết thú cưng, gia súc và các con vật phổ biến; dùng số nhiều.",
+    "prerequisites": [1, 3, 5],
+    "words": [
+      "cat", "dog", "bird", "fish", "rabbit",
+      "cow", "pig", "duck", "horse", "sheep",
+      "lion", "tiger", "elephant", "monkey", "bear",
+      "mouse", "frog", "snake",
+      "animal", "pet", "farm",
+      "big", "little", "cute",
+      "run", "jump", "fly", "swim",
+      "cats", "dogs", "birds"
+    ],
+    "patterns": ["p_it_is_animal", "p_i_have_pet", "p_the_animal_can"],
+    "target_phonemes": ["k", "g", "sp_cluster"],
+    "target_functions": ["identify_animal", "describe_ability", "express_possession"],
+    "grammar_structures": ["plural_s", "be_it_is"]
+  },
+
+  {
+    "unit_number": 7,
+    "theme": "Tôi có thể",
+    "theme_en": "I Can",
+    "description_en": "Express ability with 'I can ___' and ask 'Can you ___?'.",
+    "description_vi": "Diễn đạt khả năng với 'Tôi có thể ___' và hỏi 'Bạn có thể ___?'.",
+    "prerequisites": [1, 6],
+    "words": [
+      "can", "cant",
+      "run", "jump", "walk", "hop", "skip",
+      "swim", "fly", "climb",
+      "sing", "dance", "draw", "paint", "read", "write",
+      "play", "catch", "throw", "kick",
+      "see", "hear", "help",
+      "fast", "slow", "well"
+    ],
+    "patterns": ["p_i_can", "p_i_cant", "p_can_you"],
+    "target_phonemes": ["k", "t_final", "cluster_tr"],
+    "target_functions": ["express_ability", "ask_ability", "decline_ability"],
+    "grammar_structures": ["modal_can"]
+  },
+
+  {
+    "unit_number": 8,
+    "theme": "Đồ ăn và thức uống",
+    "theme_en": "Food & Drink",
+    "description_en": "Name common foods and drinks; say what you like and don't like.",
+    "description_vi": "Gọi tên các món ăn và đồ uống phổ biến; nói thích và không thích.",
+    "prerequisites": [1, 3],
+    "words": [
+      "rice", "bread", "noodle", "noodles",
+      "chicken", "fish", "egg", "meat", "pork",
+      "apple", "banana", "orange", "grape", "mango",
+      "milk", "water", "juice", "tea",
+      "cake", "ice", "cream", "cookie", "candy",
+      "food", "drink", "eat", "hungry", "thirsty",
+      "like", "love", "want", "dont",
+      "yummy", "good"
+    ],
+    "patterns": ["p_i_like_food", "p_i_dont_like", "p_do_you_like", "p_i_want"],
+    "target_phonemes": ["l", "ai"],
+    "target_functions": ["express_preference", "ask_preference", "request_food"],
+    "grammar_structures": ["present_simple_i_like", "negation_dont"]
+  },
+
+  {
+    "unit_number": 9,
+    "theme": "Đồ chơi",
+    "theme_en": "Toys",
+    "description_en": "Name toys and possessions using 'this/that is ___' and 'whose'.",
+    "description_vi": "Gọi tên đồ chơi và đồ sở hữu bằng 'cái này/cái kia là ___' và 'của ai'.",
+    "prerequisites": [1, 3, 4],
+    "words": [
+      "toy", "ball", "doll", "car", "truck",
+      "bike", "kite", "block", "blocks",
+      "teddy", "bear", "robot", "puzzle",
+      "game", "book", "plane",
+      "this", "that", "these", "those",
+      "whose", "mine", "yours", "his", "hers",
+      "give", "take", "share"
+    ],
+    "patterns": ["p_this_is", "p_that_is", "p_whose_is_it", "p_its_mine"],
+    "target_phonemes": ["th_voiced", "s", "z"],
+    "target_functions": ["identify_object", "ask_ownership", "claim_ownership"],
+    "grammar_structures": ["demonstrative_this_that", "possessive_pronouns"]
+  },
+
+  {
+    "unit_number": 10,
+    "theme": "Nhà của tôi",
+    "theme_en": "My Home",
+    "description_en": "Name rooms and furniture; say where things are with 'There is ___' and 'Where is ___?'.",
+    "description_vi": "Gọi tên các phòng và đồ đạc; nói vị trí đồ vật với 'Có một ___' và 'Cái ___ ở đâu?'.",
+    "prerequisites": [1, 4, 9],
+    "words": [
+      "home", "house", "room", "door", "window",
+      "bedroom", "kitchen", "bathroom", "living",
+      "bed", "chair", "table", "sofa", "lamp",
+      "tv", "clock", "picture", "mirror",
+      "there", "where", "here",
+      "in", "on", "under", "next",
+      "go", "come", "stay"
+    ],
+    "patterns": ["p_there_is", "p_where_is", "p_it_is_in", "p_come_here"],
+    "target_phonemes": ["th_voiceless", "r"],
+    "target_functions": ["locate_object", "ask_location", "describe_room"],
+    "grammar_structures": ["there_is", "prepositions_place", "wh_question_where"]
+  },
+
+  {
+    "unit_number": 11,
+    "theme": "Quần áo",
+    "theme_en": "Clothes",
+    "description_en": "Name clothing items; introduce present continuous with 'I'm wearing ___'.",
+    "description_vi": "Gọi tên trang phục; làm quen thì hiện tại tiếp diễn với 'Tôi đang mặc ___'.",
+    "prerequisites": [1, 3, 5],
+    "words": [
+      "shirt", "tshirt", "pants", "shorts", "skirt",
+      "dress", "jacket", "coat", "sweater",
+      "hat", "cap", "shoe", "shoes", "sock", "socks",
+      "glasses", "bag", "scarf", "gloves",
+      "wear", "wearing", "put",
+      "big", "small", "new", "old", "nice",
+      "today", "now"
+    ],
+    "patterns": ["p_im_wearing", "p_i_have_clothes", "p_its_new"],
+    "target_phonemes": ["sh", "ing"],
+    "target_functions": ["describe_appearance", "identify_clothing"],
+    "grammar_structures": ["present_continuous_intro"]
+  },
+
+  {
+    "unit_number": 12,
+    "theme": "Cảm xúc",
+    "theme_en": "Feelings",
+    "description_en": "Say how you feel with 'I'm happy/sad/___'; ask 'Are you happy?'.",
+    "description_vi": "Nói cảm xúc của mình với 'Tôi vui/buồn/___'; hỏi 'Bạn có vui không?'.",
+    "prerequisites": [1, 5],
+    "words": [
+      "happy", "sad", "angry", "mad", "scared",
+      "tired", "sleepy", "hungry", "thirsty",
+      "excited", "bored", "okay", "fine", "sick",
+      "love", "cry", "laugh", "smile",
+      "feel", "feeling",
+      "are", "im",
+      "why", "because"
+    ],
+    "patterns": ["p_im_feeling", "p_are_you_happy", "p_how_do_you_feel"],
+    "target_phonemes": ["ae", "h"],
+    "target_functions": ["express_feeling", "ask_feeling", "show_empathy"],
+    "grammar_structures": ["be_adj"]
+  },
+
+  {
+    "unit_number": 13,
+    "theme": "Thời tiết",
+    "theme_en": "Weather",
+    "description_en": "Describe the weather with 'It's sunny/rainy/___'; connect weather to clothes.",
+    "description_vi": "Mô tả thời tiết với 'Trời nắng/mưa/___'; liên hệ thời tiết với quần áo.",
+    "prerequisites": [3, 11, 12],
+    "words": [
+      "sun", "sunny", "rain", "rainy", "cloud", "cloudy",
+      "wind", "windy", "snow", "snowy", "storm",
+      "hot", "cold", "warm", "cool", "wet", "dry",
+      "sky", "rainbow", "umbrella", "weather",
+      "today", "outside", "inside",
+      "bring", "need"
+    ],
+    "patterns": ["p_its_weather", "p_whats_the_weather", "p_its_cold_wear"],
+    "target_phonemes": ["s", "sh", "au"],
+    "target_functions": ["describe_weather", "ask_weather", "give_advice_weather"],
+    "grammar_structures": ["be_it_is", "imperative_simple"]
+  },
+
+  {
+    "unit_number": 14,
+    "theme": "Trường học",
+    "theme_en": "School",
+    "description_en": "Classroom objects and wh-questions: 'What's this?' / 'Where is ___?' / 'Who is ___?'.",
+    "description_vi": "Đồ vật trong lớp học và câu hỏi wh-: 'Cái này là gì?' / 'Cái ___ ở đâu?' / 'Ai là ___?'.",
+    "prerequisites": [1, 3, 9, 10],
+    "words": [
+      "school", "class", "classroom",
+      "teacher", "student", "friend",
+      "book", "pen", "pencil", "paper", "eraser",
+      "desk", "chair", "board", "bag", "ruler",
+      "crayon", "scissors", "glue",
+      "read", "write", "listen", "speak",
+      "learn", "study", "know",
+      "who", "where", "what"
+    ],
+    "patterns": ["p_whats_this", "p_where_is_object", "p_who_is", "p_i_have_school_thing"],
+    "target_phonemes": ["w", "k_final"],
+    "target_functions": ["ask_identity", "ask_location", "identify_classroom_object"],
+    "grammar_structures": ["wh_question_what", "wh_question_where", "wh_question_who"]
+  },
+
+  {
+    "unit_number": 15,
+    "theme": "Một ngày của tôi",
+    "theme_en": "My Day",
+    "description_en": "Days of the week and daily routines with simple present (1st person).",
+    "description_vi": "Các ngày trong tuần và thói quen hàng ngày với thì hiện tại đơn (ngôi thứ nhất).",
+    "prerequisites": [1, 7, 14],
+    "words": [
+      "monday", "tuesday", "wednesday", "thursday",
+      "friday", "saturday", "sunday",
+      "day", "week", "today", "tomorrow", "yesterday",
+      "morning", "afternoon", "evening", "night",
+      "wake", "sleep", "eat", "brush", "wash",
+      "play", "study", "read",
+      "breakfast", "lunch", "dinner",
+      "at", "in", "on"
+    ],
+    "patterns": ["p_on_day_i_verb", "p_in_the_morning_i", "p_i_have_meal"],
+    "target_phonemes": ["ei", "t_final"],
+    "target_functions": ["describe_routine", "ask_day", "tell_time_of_day"],
+    "grammar_structures": ["present_simple_1st_person", "prepositions_time"]
+  },
+
+  {
+    "unit_number": 16,
+    "theme": "Đi đâu?",
+    "theme_en": "Where To?",
+    "description_en": "Places around town and transport; suggest activities with 'Let's go to ___'.",
+    "description_vi": "Các địa điểm quanh thị trấn và phương tiện; đề xuất hoạt động với 'Chúng ta đi ___'.",
+    "prerequisites": [1, 10, 14, 15],
+    "words": [
+      "park", "shop", "store", "market",
+      "zoo", "beach", "pool", "playground",
+      "school", "library", "home",
+      "bus", "car", "bike", "train", "plane", "boat",
+      "go", "come", "walk", "ride",
+      "lets", "to", "from", "with",
+      "fun", "happy", "together",
+      "where", "there", "here"
+    ],
+    "patterns": ["p_lets_go_to", "p_i_go_by", "p_come_with_me"],
+    "target_phonemes": ["ou", "au"],
+    "target_functions": ["propose_activity", "describe_transport", "invite"],
+    "grammar_structures": ["imperative_lets", "prepositions_movement"]
+  }
+]

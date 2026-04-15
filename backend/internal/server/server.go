@@ -15,6 +15,7 @@ import (
 	"github.com/kitaenglish/backend/internal/pronunciation"
 	"github.com/kitaenglish/backend/internal/session"
 	"github.com/kitaenglish/backend/internal/srs"
+	"github.com/kitaenglish/backend/internal/tts"
 )
 
 type Dependencies struct {
@@ -26,6 +27,7 @@ type Dependencies struct {
 	ProgressHandler      *progress.ProgressHandler
 	SrsHandler           *srs.SrsHandler
 	DebugHandler         *debug.DebugHandler
+	TTSHandler           *tts.Handler
 }
 
 func NewServer(deps Dependencies) *chi.Mux {
@@ -61,6 +63,11 @@ func NewServer(deps Dependencies) *chi.Mux {
 		// Debug routes (gated by DEBUG_ENABLED env var internally)
 		if deps.DebugHandler != nil {
 			r.Mount("/debug", deps.DebugHandler.Routes())
+		}
+
+		// TTS routes (public: audio bytes are not sensitive, Cache-Control immutable)
+		if deps.TTSHandler != nil {
+			r.Mount("/tts", deps.TTSHandler.Routes())
 		}
 
 		// Protected routes

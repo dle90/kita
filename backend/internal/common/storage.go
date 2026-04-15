@@ -70,3 +70,30 @@ func (s *Storage) GetFileURL(ctx context.Context, key string) (string, error) {
 	}
 	return presignedURL.String(), nil
 }
+
+// ObjectExists returns true if the object is present in the bucket.
+func (s *Storage) ObjectExists(ctx context.Context, key string) (bool, error) {
+	_, err := s.client.StatObject(ctx, s.bucket, key, minio.StatObjectOptions{})
+	if err != nil {
+		resp := minio.ToErrorResponse(err)
+		if resp.Code == "NoSuchKey" || resp.StatusCode == 404 {
+			return false, nil
+		}
+		return false, fmt.Errorf("stat object: %w", err)
+	}
+	return true, nil
+}
+
+// GetObjectBytes reads an object fully into memory. Suitable for small files (< few MB).
+func (s *Storage) GetObjectBytes(ctx context.Context, key string) ([]byte, error) {
+	obj, err := s.client.GetObject(ctx, s.bucket, key, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("get object: %w", err)
+	}
+	defer obj.Close()
+	data, err := io.ReadAll(obj)
+	if err != nil {
+		return nil, fmt.Errorf("read object: %w", err)
+	}
+	return data, nil
+}

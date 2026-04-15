@@ -1,0 +1,2 @@
+ALTER TABLE vocabulary
+    ADD COLUMN IF NOT EXISTS distractors JSONB NOT NULL DEFAULT '[]';

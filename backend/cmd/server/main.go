@@ -23,6 +23,7 @@ import (
 	"github.com/kitaenglish/backend/internal/server"
 	"github.com/kitaenglish/backend/internal/session"
 	"github.com/kitaenglish/backend/internal/srs"
+	"github.com/kitaenglish/backend/internal/tts"
 )
 
 func main() {
@@ -87,6 +88,16 @@ func main() {
 	sessionService := session.NewSessionService(sessionRepo, activityRepo, contentRepo, kidRepo, srsRepo, skillMasteryRepo, phonemeMasteryRepo, curriculumRepo)
 	azureClient := pronunciation.NewAzureSpeechClient(cfg.Azure)
 	pronService := pronunciation.NewPronunciationService(pronRepo, azureClient, storage)
+
+	// TTS (ElevenLabs + R2 cache). Nil-safe: disabled if API key or storage missing.
+	var ttsService *tts.Service
+	if cfg.ElevenLabs.APIKey != "" && storage != nil {
+		elevenClient := tts.NewElevenLabsClient(cfg.ElevenLabs.APIKey, cfg.ElevenLabs.ModelID)
+		ttsService = tts.NewService(elevenClient, storage, cfg.ElevenLabs.VoiceID, cfg.ElevenLabs.ModelID)
+		log.Printf("TTS enabled (default voice=%s model=%s)", cfg.ElevenLabs.VoiceID, cfg.ElevenLabs.ModelID)
+	} else {
+		log.Printf("TTS disabled (missing ELEVENLABS_API_KEY or storage)")
+	}
 	progressService := progress.NewProgressService(progressRepo, sessionRepo, activityRepo, srsRepo, pronRepo, skillMasteryRepo)
 	_ = notification.NewNotificationService()
 
@@ -111,6 +122,12 @@ func main() {
 	// Initialize debug handler (gated by DEBUG_ENABLED env var)
 	debugHandler := debug.NewDebugHandler(dbPool, contentRepo)
 
+	// Initialize TTS handler (nil-safe: server.go handles nil)
+	var ttsHandler *tts.Handler
+	if ttsService != nil {
+		ttsHandler = tts.NewHandler(ttsService, contentRepo)
+	}
+
 	// Create server
 	router := server.NewServer(server.Dependencies{
 		AuthHandler:          authHandler,
@@ -121,6 +138,7 @@ func main() {
 		ProgressHandler:      progressHandler,
 		SrsHandler:           srsHandler,
 		DebugHandler:         debugHandler,
+		TTSHandler:           ttsHandler,
 	})
 
 	httpServer := &http.Server{

@@ -66,6 +66,7 @@
   },
   {
     "word": "happy",
+    "distractors": ["hungry", "handy", "hobby", "hippy"],
     "translation_vi": "vui",
     "phonetic_ipa": "/ˈhæpi/",
     "category": "greetings",
@@ -79,6 +80,7 @@
   },
   {
     "word": "sad",
+    "distractors": ["sat", "said", "sand", "sled"],
     "translation_vi": "buồn",
     "phonetic_ipa": "/sæd/",
     "category": "greetings",
@@ -289,6 +291,7 @@
   },
   {
     "word": "water",
+    "distractors": ["winter", "weather", "wander", "waiter"],
     "translation_vi": "nước",
     "phonetic_ipa": "/ˈwɔːtər/",
     "category": "food",
@@ -328,6 +331,7 @@
   },
   {
     "word": "fish",
+    "distractors": ["dish", "wish", "fist", "fit"],
     "translation_vi": "cá",
     "phonetic_ipa": "/fɪʃ/",
     "category": "food",
@@ -590,6 +594,7 @@
   },
   {
     "word": "school",
+    "distractors": ["cool", "stool", "skull", "scoop"],
     "translation_vi": "trường học",
     "phonetic_ipa": "/skuːl/",
     "category": "daily_routine",

@@ -1,33 +1,29 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_tts/flutter_tts.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:kita_english/core/constants/api_endpoints.dart';
 
-/// Simple text-to-speech service for reading English words aloud.
+/// Text-to-speech service.
+///
+/// Streams pre-generated mp3 audio from the backend TTS endpoint
+/// (`GET /api/v1/tts?text=...`) which proxies ElevenLabs and caches in R2.
+/// On web, just_audio uses the HTML5 audio element so the browser caches the
+/// mp3 by URL automatically (the endpoint sends Cache-Control: immutable).
 class TtsService {
-  final FlutterTts _tts = FlutterTts();
-  bool _initialized = false;
+  final AudioPlayer _player = AudioPlayer();
 
-  Future<void> _init() async {
-    if (_initialized) return;
-    try {
-      if (kIsWeb) {
-        await _tts.awaitSpeakCompletion(true);
-      }
-      await _tts.setLanguage('en-US');
-      await _tts.setSpeechRate(0.4);
-      await _tts.setPitch(1.1);
-      await _tts.setVolume(1.0);
-      _initialized = true;
-    } catch (e) {
-      debugPrint('TTS init failed: $e');
-    }
+  static String _urlFor(String text) {
+    final encoded = Uri.encodeQueryComponent(text);
+    return '${ApiEndpoints.baseUrl}/tts?text=$encoded';
   }
 
   Future<void> speak(String text) async {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return;
     try {
-      await _init();
-      await _tts.stop();
-      await _tts.speak(text);
+      await _player.stop();
+      await _player.setUrl(_urlFor(trimmed));
+      await _player.play();
     } catch (e) {
       debugPrint('TTS speak failed: $e');
     }
@@ -35,9 +31,19 @@ class TtsService {
 
   Future<void> stop() async {
     try {
-      await _tts.stop();
+      await _player.stop();
+    } catch (_) {}
+  }
+
+  Future<void> dispose() async {
+    try {
+      await _player.dispose();
     } catch (_) {}
   }
 }
 
-final ttsProvider = Provider<TtsService>((ref) => TtsService());
+final ttsProvider = Provider<TtsService>((ref) {
+  final service = TtsService();
+  ref.onDispose(() => service.dispose());
+  return service;
+});
